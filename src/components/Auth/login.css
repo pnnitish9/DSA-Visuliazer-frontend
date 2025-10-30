@@ -1,0 +1,252 @@
+/* --- Global Styles & Variables --- */
+:root {
+  --bg-dark-950: #0c111c;
+  --bg-dark-900: #111827;
+  --bg-dark-800: #1f2937;
+  --bg-dark-700: #374151;
+  --bg-dark-600: #4b5563;
+  --bg-dark-500: #6b7280;
+  
+  --text-gray-200: #e5e7eb;
+  --text-gray-300: #d1d5db;
+  --text-gray-400: #9ca3af;
+  --text-gray-500: #6b7280;
+
+  --border-gray-600: #4b5563;
+  --border-gray-700: #374151;
+
+  --cyan-400: #22d3ee;
+  --cyan-500: #06b6d4;
+  --cyan-600: #0891b2;
+}
+
+/* Reset and base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  text-decoration: none;
+  color: var(--cyan-400);
+  transition: color 0.2s;
+}
+
+a:hover {
+  color: var(--cyan-500);
+}
+
+/* Full height setup */
+html, body {
+  height: 100%;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-dark-900);
+  color: var(--text-gray-200);
+}
+
+/* Wrapper to push footer to bottom */
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Header styling */
+header {
+  text-align: center;
+  padding: 2rem 1rem;
+  background-color: var(--bg-dark-800);
+  color: white;
+  border-bottom: 1px solid var(--border-gray-700);
+}
+
+/* Navbar styling */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.nav-left, .nav-right {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.nav-link {
+  color: var(--text-gray-200);
+  text-decoration: none;
+  font-weight: bold;
+  transition: color 0.3s ease;
+}
+
+.nav-link:hover {
+  color: var(--cyan-400);
+}
+
+/* Header text */
+header h1 {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+  color: var(--cyan-400);
+}
+
+header p {
+  font-size: 1.2rem;
+  color: var(--text-gray-300);
+}
+
+/* Topics grid */
+.topics-container {
+  flex-grow: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  padding: 2rem;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+}
+
+/* Individual topic card */
+.topic-card {
+  background-color: var(--bg-dark-800);
+  color: var(--text-gray-200);
+  border-radius: 0.5rem;
+  padding: 2rem;
+  text-align: center;
+  font-weight: bold;
+  font-size: 1.1rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, background-color 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
+  border: 1px solid var(--border-gray-700);
+}
+
+.topic-card:hover {
+  transform: scale(1.03);
+  background-color: var(--bg-dark-700);
+  color: var(--cyan-400);
+  box-shadow: 0 0 15px var(--cyan-500, 0.2);
+}
+
+/* Footer */
+footer {
+  text-align: center;
+  padding: 1.5rem;
+  background-color: var(--bg-dark-950);
+  color: var(--text-gray-400);
+  font-size: 0.9rem;
+  margin-top: auto;
+  border-top: 1px solid var(--border-gray-700);
+}
+
+/* --- Login Page Styles --- */
+
+/* Center container */
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  /* Assumes it's inside the body, so it inherits the dark bg */
+  /* If it's a standalone page, add: background-color: var(--bg-dark-900); */
+  flex-grow: 1; /* Make it take up remaining space */
+  padding: 2rem;
+}
+
+/* Form box */
+.login-form {
+  background: var(--bg-dark-800);
+  padding: 2.5rem;
+  border-radius: 0.5rem; /* Consistent border radius */
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  width: 100%;
+  max-width: 400px; /* Slightly wider for a better feel */
+  border: 1px solid var(--border-gray-700);
+}
+
+/* Title */
+.login-title {
+  text-align: center;
+  margin-bottom: 2rem;
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: var(--cyan-400); /* Use theme accent color */
+}
+
+/* Labels and inputs */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-gray-300); /* Lighter text for labels */
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border-gray-600);
+  background-color: var(--bg-dark-700);
+  color: var(--text-gray-200);
+  border-radius: 0.5rem; /* Consistent border radius */
+  outline: none;
+  font-size: 1rem;
+  transition: 0.2s;
+}
+
+.form-group input:focus {
+  border-color: var(--cyan-500);
+  box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.3);
+}
+
+/* Button */
+.login-btn {
+  width: 100%;
+  padding: 0.8rem;
+  background: var(--cyan-600);
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.login-btn:hover {
+  background: var(--cyan-500);
+}
+
+.switch-text, .error-msg {
+  text-align: center;
+  margin-top: 15px;
+  font-size: 14px;
+}
+
+.switch-link {
+  color: #007bff;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.switch-link:hover {
+  text-decoration: underline;
+}

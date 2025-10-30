@@ -1,0 +1,127 @@
+/* --- Global Styles & Variables --- */
+:root {
+  --bg-dark-950: #0c111c;
+  --bg-dark-900: #111827;
+  --bg-dark-800: #1f2937;
+  --bg-dark-700: #374151;
+  --bg-dark-600: #4b5563;
+  --bg-dark-500: #6b7280;
+  
+  --text-gray-200: #e5e7eb;
+  --text-gray-300: #d1d5db;
+  --text-gray-400: #9ca3af;
+  --text-gray-500: #6b7280;
+
+  --border-gray-600: #4b5563;
+  --border-gray-700: #374151;
+
+  --cyan-400: #22d3ee;
+  --cyan-500: #06b6d4;
+  --cyan-600: #0891b2;
+}
+
+/* Reset and base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  text-decoration: none;
+  color: var(--cyan-400);
+  transition: color 0.2s;
+}
+
+a:hover {
+  color: var(--cyan-500);
+}
+
+/* Full height setup */
+html, body {
+  height: 100%;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-dark-900);
+  color: var(--text-gray-200);
+}
+
+/* Wrapper to push footer to bottom */
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Header styling */
+header {
+  text-align: center;
+  padding: 2rem 1rem;
+  background-color: var(--bg-dark-800);
+  color: white;
+  border-bottom: 1px solid var(--border-gray-700);
+}
+
+/* Navbar styling */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.nav-left, .nav-right {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.nav-link {
+  color: var(--text-gray-200);
+  text-decoration: none;
+  font-weight: bold;
+  transition: color 0.3s ease;
+}
+
+.nav-link:hover {
+  color: var(--cyan-400);
+}
+
+.nav-link.btn-as-link {
+  background: transparent;
+  color: #cbd5e0;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.nav-link.btn-as-link:active {
+  transform: scale(1); 
+  background-color: rgba(37, 99, 235, 0.2); 
+  box-shadow: none; 
+  transition-duration: 0.1s;
+}
+
+
+
+/* Header text */
+header h1 {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+  color: var(--cyan-400);
+}
+
+header p {
+  font-size: 1.2rem;
+  color: var(--text-gray-300);
+}
