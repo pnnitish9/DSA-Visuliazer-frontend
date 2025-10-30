@@ -7,11 +7,6 @@ function Navbar() {
   const { isAuthenticated, user, logout } = useAuth();
   const nav = useNavigate();
 
-  const handleLogout = () => {
-    logout();
-    nav("/");
-  };
-
   return (
     <header>
       <nav className="navbar">
@@ -36,11 +31,7 @@ function Navbar() {
               <Link to="/useraccount" className="nav-link" title="User Account">
                 <User size={24} />
               </Link>
-
               <span className="nav-user">{user?.name || "User"}</span>
-              <button onClick={handleLogout} className="nav-link btn-as-link">
-                logout
-              </button>
             </>
           )}
         </div>

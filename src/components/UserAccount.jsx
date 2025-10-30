@@ -73,6 +73,13 @@ function UserAccount() {
     }
   };
 
+  // ✅ Logout user and navigate to home
+  const handleLogout = () => {
+    logout();
+    nav("/");
+  };
+
+
   // ✅ Helper to show popup
   const showPopup = (message, type = "info") => {
     setPopup({ show: true, message, type });
@@ -127,19 +134,23 @@ function UserAccount() {
       </div>
 
       <div className="user-actions">
-        {!editing ? (
-          <button onClick={() => setEditing(true)} className="btn-primary">
-            Edit
+          {!editing ? (
+            <button onClick={() => setEditing(true)} className="btn-primary">
+              Edit
+            </button>
+          ) : (
+            <button onClick={handleSave} className="btn-primary">
+              Save
+            </button>
+          )}
+          <button onClick={() => setConfirmDelete(true)} className="btn-danger">
+            Delete Account
           </button>
-        ) : (
-          <button onClick={handleSave} className="btn-primary">
-            Save
+          <button onClick={handleLogout} className="btn-secondary">
+            Logout
           </button>
-        )}
-        <button onClick={() => setConfirmDelete(true)} className="btn-danger">
-          Delete Account
-        </button>
-      </div>
+    </div>
+
 
       {/* ✅ Toast Popup */}
       {popup.show && (
