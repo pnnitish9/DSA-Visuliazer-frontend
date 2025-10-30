@@ -1,20 +1,30 @@
+/* 🌑 Container Styling */
 .user-account-container {
   background-color: var(--bg-dark-900);
   color: var(--text-gray-200);
-  width: 400px;
+  width: 90%;
+  max-width: 420px;
   margin: 60px auto;
-  padding: 30px;
-  border-radius: 15px;
-  box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+  padding: 30px 25px;
+  border-radius: 16px;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.08);
+  transition: all 0.3s ease;
 }
 
+.user-account-container:hover {
+  box-shadow: 0 0 25px rgba(255, 255, 255, 0.12);
+}
+
+/* 🏷️ Header */
 .user-account-container h2 {
   text-align: center;
   margin-bottom: 25px;
   color: var(--text-gray-200);
   font-size: 1.8rem;
+  letter-spacing: 0.5px;
 }
 
+/* 📄 User Info Fields */
 .user-info {
   display: flex;
   flex-direction: column;
@@ -24,17 +34,25 @@
 .user-info label {
   font-weight: 600;
   color: var(--text-gray-300);
+  font-size: 0.95rem;
 }
 
 .user-info input,
 .user-info select {
-  padding: 10px;
-  border: none;
+  padding: 10px 12px;
+  border: 1px solid transparent;
   border-radius: 8px;
   background-color: var(--bg-dark-700);
   color: var(--text-gray-200);
   outline: none;
   font-size: 0.95rem;
+  transition: background 0.3s, border 0.3s;
+}
+
+.user-info input:focus,
+.user-info select:focus {
+  border: 1px solid #3b82f6;
+  background-color: var(--bg-dark-800);
 }
 
 .user-info input:disabled,
@@ -44,41 +62,56 @@
   cursor: not-allowed;
 }
 
+/* 🎛️ Action Buttons */
 .user-actions {
-  margin-top: 25px;
+  margin-top: 30px;
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
+  gap: 12px;
 }
 
+.btn-primary,
+.btn-danger,
+.btn-secondary {
+  flex: 1;
+  text-align: center;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+/* Primary */
 .btn-primary {
   background-color: #2563eb;
   color: white;
-  border: none;
-  padding: 10px 16px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.3s;
 }
-
 .btn-primary:hover {
   background-color: #1d4ed8;
 }
 
+/* Danger */
 .btn-danger {
   background-color: #dc2626;
   color: white;
-  border: none;
-  padding: 10px 16px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.3s;
 }
-
 .btn-danger:hover {
   background-color: #b91c1c;
 }
 
-/* ✅ Toast popup */
+/* Secondary */
+.btn-secondary {
+  background-color: #374151;
+  color: #e5e7eb;
+}
+.btn-secondary:hover {
+  background-color: #4b5563;
+}
+
+/* ✅ Popup Toasts */
 .popup {
   position: fixed;
   bottom: 30px;
@@ -126,7 +159,7 @@
   }
 }
 
-/* ⚠️ Delete confirmation modal */
+/* ⚠️ Delete Confirmation Modal */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -147,7 +180,8 @@
   border-radius: 12px;
   box-shadow: 0 0 25px rgba(255, 255, 255, 0.05);
   text-align: center;
-  width: 350px;
+  width: 90%;
+  max-width: 360px;
   animation: fadeIn 0.3s ease;
 }
 
@@ -192,3 +226,37 @@
   }
 }
 
+/* 📱 Responsive Design */
+@media (max-width: 600px) {
+  .user-account-container {
+    width: 95%;
+    padding: 20px;
+    margin: 40px auto;
+  }
+
+  .user-account-container h2 {
+    font-size: 1.5rem;
+  }
+
+  .user-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn-primary,
+  .btn-danger,
+  .btn-secondary {
+    width: 100%;
+    padding: 12px;
+  }
+
+  .popup {
+    bottom: 20px;
+    right: 20px;
+    font-size: 0.85rem;
+  }
+
+  .modal {
+    padding: 20px;
+  }
+}
