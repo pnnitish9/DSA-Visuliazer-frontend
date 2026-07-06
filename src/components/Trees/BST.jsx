@@ -414,8 +414,9 @@ const InjectedStyles = () => (
 );
 
 const codeSnippets = {
-  insert: {
-    python: `
+  bst: {
+    insert: {
+      python: `
 def insert(root, key):
     if root is None:
         return Node(key)
@@ -424,8 +425,8 @@ def insert(root, key):
     elif key > root.val:
         root.right = insert(root.right, key)
     return root
-    `.trim(),
-    c: `
+      `.trim(),
+      c: `
 struct node* insert(struct node* node, int key) {
     if (node == NULL) return newNode(key);
     if (key < node->key)
@@ -434,8 +435,8 @@ struct node* insert(struct node* node, int key) {
         node->right = insert(node->right, key);
     return node;
 }
-    `.trim(),
-    cpp: `
+      `.trim(),
+      cpp: `
 Node* insert(Node* root, int data) {
     if (root == NULL) return new Node(data);
     if (data < root->data)
@@ -444,8 +445,8 @@ Node* insert(Node* root, int data) {
         root->right = insert(root->right, data);
     return root;
 }
-    `.trim(),
-    java: `
+      `.trim(),
+      java: `
 Node insert(Node root, int key) {
     if (root == null) {
         root = new Node(key);
@@ -457,18 +458,18 @@ Node insert(Node root, int key) {
         root.right = insert(root.right, key);
     return root;
 }
-    `.trim()
-  },
-  search: {
-    python: `
+      `.trim()
+    },
+    search: {
+      python: `
 def search(root, key):
     if root is None or root.val == key:
         return root
     if key < root.val:
         return search(root.left, key)
     return search(root.right, key)
-    `.trim(),
-    c: `
+      `.trim(),
+      c: `
 struct node* search(struct node* root, int key) {
     if (root == NULL || root->key == key)
         return root;
@@ -476,8 +477,8 @@ struct node* search(struct node* root, int key) {
         return search(root->right, key);
     return search(root->left, key);
 }
-    `.trim(),
-    cpp: `
+      `.trim(),
+      cpp: `
 Node* search(Node* root, int data) {
     if (root == NULL || root->data == data)
         return root;
@@ -485,8 +486,8 @@ Node* search(Node* root, int data) {
         return search(root->right, data);
     return search(root->left, data);
 }
-    `.trim(),
-    java: `
+      `.trim(),
+      java: `
 Node search(Node root, int key) {
     if (root == null || root.key == key)
         return root;
@@ -494,10 +495,10 @@ Node search(Node root, int key) {
         return search(root.left, key);
     return search(root.right, key);
 }
-    `.trim()
-  },
-  delete: {
-    python: `
+      `.trim()
+    },
+    delete: {
+      python: `
 def delete(root, key):
     if root is None:
         return root
@@ -514,8 +515,8 @@ def delete(root, key):
         root.val = temp.val
         root.right = delete(root.right, temp.val)
     return root
-    `.trim(),
-    c: `
+      `.trim(),
+      c: `
 struct node* deleteNode(struct node* root, int key) {
     if (root == NULL) return root;
     if (key < root->key)
@@ -536,8 +537,8 @@ struct node* deleteNode(struct node* root, int key) {
     }
     return root;
 }
-    `.trim(),
-    cpp: `
+      `.trim(),
+      cpp: `
 Node* deleteNode(Node* root, int data) {
     if (root == NULL) return root;
     if (data < root->data)
@@ -558,8 +559,8 @@ Node* deleteNode(Node* root, int data) {
     }
     return root;
 }
-    `.trim(),
-    java: `
+      `.trim(),
+      java: `
 Node delete(Node root, int key) {
     if (root == null) return root;
     if (key < root.key)
@@ -575,7 +576,157 @@ Node delete(Node root, int key) {
     }
     return root;
 }
-    `.trim()
+      `.trim()
+    }
+  },
+  bt: {
+    insert: {
+      python: `
+def insert_bt(root, key):
+    # Inserts in Level-Order (Complete Tree)
+    new_node = Node(key)
+    if root is None:
+        return new_node
+    queue = [root]
+    while queue:
+        temp = queue.pop(0)
+        if temp.left is None:
+            temp.left = new_node
+            break
+        else:
+            queue.append(temp.left)
+        if temp.right is None:
+            temp.right = new_node
+            break
+        else:
+            queue.append(temp.right)
+    return root
+      `.trim(),
+      c: `
+void insert_bt(struct node* root, int key) {
+    // level-order lookup for empty left/right child
+    struct node* newNode = createNode(key);
+    struct node* q[100]; int f=0, r=0;
+    q[r++] = root;
+    while(f < r) {
+        struct node* temp = q[f++];
+        if (!temp->left) { temp->left = newNode; break; }
+        else q[r++] = temp->left;
+        if (!temp->right) { temp->right = newNode; break; }
+        else q[r++] = temp->right;
+    }
+}
+      `.trim(),
+      cpp: `
+void insert_bt(Node* root, int key) {
+    Node* newNode = new Node(key);
+    queue<Node*> q;
+    q.push(root);
+    while(!q.empty()) {
+        Node* temp = q.front(); q.pop();
+        if (!temp->left) { temp->left = newNode; break; }
+        else q.push(temp->left);
+        if (!temp->right) { temp->right = newNode; break; }
+        else q.push(temp->right);
+    }
+}
+      `.trim(),
+      java: `
+void insertBT(Node root, int key) {
+    Node newNode = new Node(key);
+    Queue<Node> q = new LinkedList<>();
+    q.add(root);
+    while(!q.isEmpty()) {
+        Node temp = q.poll();
+        if (temp.left == null) { temp.left = newNode; break; }
+        else q.add(temp.left);
+        if (temp.right == null) { temp.right = newNode; break; }
+        else q.add(temp.right);
+    }
+}
+      `.trim()
+    },
+    search: {
+      python: `
+def search_bt(root, key):
+    # Unsorted: must search recursively (DFS)
+    if root is None or root.val == key:
+        return root
+    left_res = search_bt(root.left, key)
+    if left_res:
+        return left_res
+    return search_bt(root.right, key)
+      `.trim(),
+      c: `
+struct node* search_bt(struct node* root, int key) {
+    if (root == NULL || root->key == key)
+        return root;
+    struct node* left = search_bt(root->left, key);
+    if (left != NULL) return left;
+    return search_bt(root->right, key);
+}
+      `.trim(),
+      cpp: `
+Node* search_bt(Node* root, int key) {
+    if (root == NULL || root->data == key)
+        return root;
+    Node* left = search_bt(root->left, key);
+    if (left != NULL) return left;
+    return search_bt(root->right, key);
+}
+      `.trim(),
+      java: `
+Node searchBT(Node root, int key) {
+    if (root == null || root.key == key)
+        return root;
+    Node left = searchBT(root.left, key);
+    if (left != null) return left;
+    return searchBT(root.right, key);
+}
+      `.trim()
+    },
+    delete: {
+      python: `
+def delete_bt(root, key):
+    # Replace target with deepest, rightmost node
+    target = find_node(root, key)
+    deepest = find_deepest(root)
+    if target and deepest:
+        target.val = deepest.val
+        delete_deepest_node(root, deepest)
+    return root
+      `.trim(),
+      c: `
+void delete_bt(struct node* root, int key) {
+    struct node* target = find(root, key);
+    struct node* deepest = getDeepest(root);
+    if (target && deepest) {
+        target->key = deepest->key;
+        freeDeepest(root, deepest);
+    }
+}
+      `.trim(),
+      cpp: `
+void delete_bt(Node* root, int key) {
+    Node* target = findNode(root, key);
+    Node* deepest = getDeepest(root);
+    if (target && deepest) {
+        target->data = deepest->data;
+        deleteDeepest(root, deepest);
+    }
+}
+      `.trim(),
+      java: `
+void deleteBT(Node root, int key) {
+    Node target = findNode(root, key);
+    Node deepest = getDeepest(root);
+    if (target != null && deepest != null) {
+        target.key = deepest.key;
+        deleteDeepestNode(root, deepest);
+    }
+}
+      `.trim()
+    }
   },
   inorder: {
     python: `
@@ -688,23 +839,45 @@ void postorder(Node root) {
 };
 
 const LINE_MAPS = {
-  insert: {
-    python: { check_null: 2, recurse_left: 5, recurse_right: 7 },
-    c: { check_null: 2, recurse_left: 4, recurse_right: 6 },
-    cpp: { check_null: 2, recurse_left: 4, recurse_right: 6 },
-    java: { check_null: 2, recurse_left: 7, recurse_right: 9 }
+  bst: {
+    insert: {
+      python: { check_null: 2, recurse_left: 5, recurse_right: 7 },
+      c: { check_null: 2, recurse_left: 4, recurse_right: 6 },
+      cpp: { check_null: 2, recurse_left: 4, recurse_right: 6 },
+      java: { check_null: 2, recurse_left: 7, recurse_right: 9 }
+    },
+    search: {
+      python: { check_target: 2, recurse_left: 4, recurse_right: 5 },
+      c: { check_target: 2, recurse_left: 6, recurse_right: 4 },
+      cpp: { check_target: 2, recurse_left: 6, recurse_right: 4 },
+      java: { check_target: 2, recurse_left: 5, recurse_right: 7 }
+    },
+    delete: {
+      python: { check_null: 2, recurse_left: 5, recurse_right: 7, leaf: 10, one_child: 10, find_min: 13, copy_val: 14, delete_min: 15 },
+      c: { check_null: 2, recurse_left: 4, recurse_right: 6, leaf: 10, one_child: 10, find_min: 15, copy_val: 16, delete_min: 17 },
+      cpp: { check_null: 2, recurse_left: 4, recurse_right: 6, leaf: 10, one_child: 10, find_min: 15, copy_val: 16, delete_min: 17 },
+      java: { check_null: 2, recurse_left: 4, recurse_right: 6, leaf: 8, one_child: 8, find_min: 10, copy_val: 11, delete_min: 12 }
+    }
   },
-  search: {
-    python: { check_target: 2, recurse_left: 4, recurse_right: 5 },
-    c: { check_target: 2, recurse_left: 6, recurse_right: 4 },
-    cpp: { check_target: 2, recurse_left: 6, recurse_right: 4 },
-    java: { check_target: 2, recurse_left: 5, recurse_right: 7 }
-  },
-  delete: {
-    python: { check_null: 2, recurse_left: 5, recurse_right: 7, leaf: 10, one_child: 10, find_min: 13, copy_val: 14, delete_min: 15 },
-    c: { check_null: 2, recurse_left: 4, recurse_right: 6, leaf: 10, one_child: 10, find_min: 15, copy_val: 16, delete_min: 17 },
-    cpp: { check_null: 2, recurse_left: 4, recurse_right: 6, leaf: 10, one_child: 10, find_min: 15, copy_val: 16, delete_min: 17 },
-    java: { check_null: 2, recurse_left: 4, recurse_right: 6, leaf: 8, one_child: 8, find_min: 10, copy_val: 11, delete_min: 12 }
+  bt: {
+    insert: {
+      python: { check_null: 3, loop_cond: 7, recurse_left: 9, recurse_right: 14 },
+      c: { check_null: 5, loop_cond: 6, recurse_left: 8, recurse_right: 10 },
+      cpp: { check_null: 4, loop_cond: 5, recurse_left: 7, recurse_right: 9 },
+      java: { check_null: 4, loop_cond: 5, recurse_left: 7, recurse_right: 9 }
+    },
+    search: {
+      python: { check_target: 3, recurse_left: 5, recurse_right: 8 },
+      c: { check_target: 2, recurse_left: 4, recurse_right: 6 },
+      cpp: { check_target: 2, recurse_left: 4, recurse_right: 6 },
+      java: { check_target: 2, recurse_left: 4, recurse_right: 6 }
+    },
+    delete: {
+      python: { check_null: 2, recurse_left: 4, recurse_right: 5 },
+      c: { check_null: 2, recurse_left: 4, recurse_right: 5 },
+      cpp: { check_null: 2, recurse_left: 4, recurse_right: 5 },
+      java: { check_null: 2, recurse_left: 4, recurse_right: 5 }
+    }
   },
   inorder: {
     python: { cond: 2, left: 3, visit: 4, right: 5 },
@@ -732,6 +905,7 @@ export default function BST() {
   const [tree, setTree] = useState(null);
   const [value, setValue] = useState("");
   
+  const [isBST, setIsBST] = useState(false); // Default is General Binary Tree
   const [language, setLanguage] = useState("c");
   const [speed, setSpeed] = useState(500);
   const [status, setStatus] = useState("Tree is empty. Insert a node to begin.");
@@ -796,11 +970,8 @@ export default function BST() {
     if (node.value === targetValue) {
       newNode.state = newState;
     }
-    if (targetValue < node.value) {
-      newNode.left = updateNodeByValue(node.left, targetValue, newState);
-    } else if (targetValue > node.value) {
-      newNode.right = updateNodeByValue(node.right, targetValue, newState);
-    }
+    newNode.left = updateNodeByValue(node.left, targetValue, newState);
+    newNode.right = updateNodeByValue(node.right, targetValue, newState);
     return newNode;
   };
 
@@ -828,17 +999,24 @@ export default function BST() {
         setTree(prev => resetAllStates(prev));
         setStatus("Ready.");
         setHighlightLineNum(-1);
-        setCallStackEdges([]); // Clear active recursive descent segments
-        setBacktrackEdge(null); // Clear active red backtracks
+        setCallStackEdges([]); 
+        setBacktrackEdge(null); 
       }
     }, speed * 2);
   };
 
   const highlightLine = (concept, key) => {
-    if (LINE_MAPS[concept] && LINE_MAPS[concept][language]) {
-      setHighlightLineNum(LINE_MAPS[concept][language][key] ?? -1);
+    if (concept === "inorder" || concept === "preorder" || concept === "postorder") {
+      if (LINE_MAPS[concept] && LINE_MAPS[concept][language]) {
+        setHighlightLineNum(LINE_MAPS[concept][language][key] ?? -1);
+      }
     } else {
-      setHighlightLineNum(-1);
+      const modeKey = isBST ? "bst" : "bt";
+      if (LINE_MAPS[modeKey] && LINE_MAPS[modeKey][concept] && LINE_MAPS[modeKey][concept][language]) {
+        setHighlightLineNum(LINE_MAPS[modeKey][concept][language][key] ?? -1);
+      } else {
+        setHighlightLineNum(-1);
+      }
     }
   };
 
@@ -851,7 +1029,12 @@ export default function BST() {
     setActiveConcept("insert");
     setExecutionLog(prev => [...prev, `[Insert] Requesting insert of: ${val}`]);
     
-    const newNode = { value: val, id: crypto.randomUUID(), left: null, right: null, state: 'found' };
+    // Fallback to random ID generation if crypto.randomUUID is not supported in the sandbox
+    const uniqueId = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') 
+      ? crypto.randomUUID() 
+      : Math.random().toString(36).substring(2, 9);
+
+    const newNode = { value: val, id: uniqueId, left: null, right: null, state: 'found' };
     
     if (tree === null) {
       highlightLine("insert", "check_null");
@@ -863,69 +1046,136 @@ export default function BST() {
       return;
     }
 
-    let current = tree;
-    let parent = null;
-    let found = false;
+    if (isBST) {
+      // --- Standard BST Sorted Insertion ---
+      let current = tree;
+      let parent = null;
+      let found = false;
 
-    while (current) {
-      if (isCancelledRef.current) return cleanup();
-      await checkPause();
+      while (current) {
+        if (isCancelledRef.current) return cleanup();
+        await checkPause();
+        
+        const currentValue = current.value;
+        highlightLine("insert", "check_null");
+        setStatus(`Checking node ${currentValue}...`);
+        setTree(prev => updateNodeByValue(prev, currentValue, 'visiting'));
+        await sleep(speed);
+
+        if (currentValue === val) {
+          setStatus(`Value ${val} already exists in the BST.`);
+          setTree(prev => updateNodeByValue(prev, currentValue, 'found'));
+          setExecutionLog(prev => [...prev, `[Duplicate] ${val} already exists. Aborted insert.`]);
+          found = true;
+          break;
+        }
+        
+        parent = current;
+        setTree(prev => updateNodeByValue(prev, currentValue, 'default'));
+        
+        if (val < currentValue) {
+          highlightLine("insert", "recurse_left");
+          current = current.left;
+        } else {
+          highlightLine("insert", "recurse_right");
+          current = current.right;
+        }
+      }
       
-      const currentValue = current.value;
-      highlightLine("insert", "check_null");
-      setStatus(`Checking node ${currentValue}...`);
-      setTree(prev => updateNodeByValue(prev, currentValue, 'visiting'));
+      if (found) return cleanup();
+      if (isCancelledRef.current) return cleanup();
+
+      setStatus(`Inserting ${val} as child of node ${parent.value}.`);
+      setTree(prev => updateNodeByValue(prev, parent.value, 'pre-op'));
       await sleep(speed);
 
-      if (currentValue === val) {
-        setStatus(`Value ${val} already exists in the BST.`);
-        setTree(prev => updateNodeByValue(prev, currentValue, 'found'));
-        setExecutionLog(prev => [...prev, `[Duplicate] ${val} already exists. Aborted insert.`]);
-        found = true;
-        break;
-      }
+      const insertNodeBST = (node) => {
+        if (!node) return null;
+        if (node.id === parent.id) {
+          let newNodeWithChild = { ...node, state: 'default' };
+          if (val < parent.value) {
+            newNodeWithChild.left = newNode;
+          } else {
+            newNodeWithChild.right = newNode;
+          }
+          return newNodeWithChild;
+        }
+        let newNodeCopy = { ...node };
+        if (val < node.value) {
+          newNodeCopy.left = insertNodeBST(node.left);
+        } else {
+          newNodeCopy.right = insertNodeBST(node.right);
+        }
+        return newNodeCopy;
+      };
       
-      parent = current;
-      setTree(prev => updateNodeByValue(prev, currentValue, 'default'));
+      setTree(prev => insertNodeBST(prev));
+      setExecutionLog(prev => [...prev, `[Success] Connected child ${val} under parent ${parent.value}.`]);
+    } else {
+      // --- General Complete Binary Tree (Level-Order) Insertion ---
+      let parentTarget = null;
+      let attachSide = 'left';
+      let queue = [tree];
       
-      if (val < currentValue) {
-        highlightLine("insert", "recurse_left");
-        current = current.left;
-      } else {
-        highlightLine("insert", "recurse_right");
-        current = current.right;
+      highlightLine("insert", "loop_cond");
+      setStatus("Analyzing Complete Binary Tree level-by-level using Breadth-First search...");
+      await sleep(speed);
+
+      while (queue.length > 0) {
+        if (isCancelledRef.current) return cleanup();
+        await checkPause();
+
+        let current = queue.shift();
+        setTree(prev => updateNodeByValue(prev, current.value, 'visiting'));
+        setStatus(`Checking left & right spots on node ${current.value}...`);
+        await sleep(speed);
+
+        if (!current.left) {
+          highlightLine("insert", "recurse_left");
+          parentTarget = current;
+          attachSide = 'left';
+          break;
+        } else {
+          queue.push(current.left);
+        }
+
+        if (!current.right) {
+          highlightLine("insert", "recurse_right");
+          parentTarget = current;
+          attachSide = 'right';
+          break;
+        } else {
+          queue.push(current.right);
+        }
+
+        setTree(prev => updateNodeByValue(prev, current.value, 'default'));
       }
+
+      if (isCancelledRef.current) return cleanup();
+
+      setStatus(`Found next empty spot! Attaching ${val} as ${attachSide} child of ${parentTarget.value}.`);
+      setTree(prev => updateNodeByValue(prev, parentTarget.value, 'pre-op'));
+      await sleep(speed);
+
+      const insertNodeBT = (node) => {
+        if (!node) return null;
+        if (node.id === parentTarget.id) {
+          let updatedParent = { ...node, state: 'default' };
+          if (attachSide === 'left') updatedParent.left = newNode;
+          else updatedParent.right = newNode;
+          return updatedParent;
+        }
+        return {
+          ...node,
+          left: insertNodeBT(node.left),
+          right: insertNodeBT(node.right)
+        };
+      };
+
+      setTree(prev => insertNodeBT(prev));
+      setExecutionLog(prev => [...prev, `[Success] Connected child ${val} to level-order parent ${parentTarget.value}.`]);
     }
     
-    if (found) return cleanup();
-    if (isCancelledRef.current) return cleanup();
-
-    setStatus(`Inserting ${val} as child of node ${parent.value}.`);
-    setTree(prev => updateNodeByValue(prev, parent.value, 'pre-op'));
-    await sleep(speed);
-
-    const insertNode = (node) => {
-      if (!node) return null;
-      if (node.id === parent.id) {
-        let newNodeWithChild = { ...node, state: 'default' };
-        if (val < parent.value) {
-          newNodeWithChild.left = newNode;
-        } else {
-          newNodeWithChild.right = newNode;
-        }
-        return newNodeWithChild;
-      }
-      let newNodeCopy = { ...node };
-      if (val < node.value) {
-        newNodeCopy.left = insertNode(node.left);
-      } else {
-        newNodeCopy.right = insertNode(node.right);
-      }
-      return newNodeCopy;
-    };
-    
-    setTree(prev => insertNode(prev));
-    setExecutionLog(prev => [...prev, `[Success] Connected child ${val} under parent ${parent.value}.`]);
     cleanup();
   };
 
@@ -938,85 +1188,174 @@ export default function BST() {
     setActiveConcept("search");
     setCallStackEdges([]);
     setBacktrackEdge(null);
-    setExecutionLog(prev => [...prev, `--- Initiating Recursive Search for Target: ${val} ---`]);
+    
+    if (isBST) {
+      // --- BST Ordered Fast Search ---
+      setExecutionLog(prev => [...prev, `--- Initiating Sorted BST Search for: ${val} ---`]);
+      
+      const pushStackSegment = (fromId, toId) => {
+        setCallStackEdges(prev => [...prev, { from: fromId, to: toId }]);
+      };
 
-    const pushStackSegment = (fromId, toId) => {
-      setCallStackEdges(prev => [...prev, { from: fromId, to: toId }]);
-    };
+      const popStackSegment = (fromId, toId) => {
+        setCallStackEdges(prev => prev.filter(e => !(e.from === fromId && e.to === toId)));
+        setBacktrackEdge({ from: toId, to: fromId });
+      };
 
-    const popStackSegment = (fromId, toId) => {
-      setCallStackEdges(prev => prev.filter(e => !(e.from === fromId && e.to === toId)));
-      setBacktrackEdge({ from: toId, to: fromId }); // Flows upwards (child to parent) in red
-    };
+      const searchBSTRecursive = async (node, parentId = null) => {
+        if (isCancelledRef.current) return null;
+        await checkPause();
 
-    const searchRecursive = async (node, parentId = null) => {
-      if (isCancelledRef.current) return null;
-      await checkPause();
-
-      // Visualize descent (winding the call stack) - glowing green dotted trace
-      if (parentId) {
-        pushStackSegment(parentId, node.id);
-        setStatus(`Recursive descent call: searching node ${node.value} for target ${val}.`);
-        await sleep(speed);
-      }
-
-      highlightLine("search", "check_target");
-      setStatus(`Checking if current node ${node.value} matches target ${val}...`);
-      setTree(prev => updateNodeByValue(prev, node.value, 'visiting'));
-      await sleep(speed);
-
-      if (node.value === val) {
-        setStatus(`Target ${val} found!`);
-        setTree(prev => updateNodeByValue(prev, node.value, 'found'));
-        setExecutionLog(prev => [...prev, `[Success] Target ${val} found successfully.`]);
-        await sleep(speed * 1.5);
-        
         if (parentId) {
+          pushStackSegment(parentId, node.id);
+          setStatus(`Recursive descent call: searching node ${node.value} for target ${val}.`);
+          await sleep(speed);
+        }
+
+        highlightLine("search", "check_target");
+        setStatus(`Checking if node ${node.value} matches target ${val}...`);
+        setTree(prev => updateNodeByValue(prev, node.value, 'visiting'));
+        await sleep(speed);
+
+        if (node.value === val) {
+          setStatus(`Target ${val} found!`);
+          setTree(prev => updateNodeByValue(prev, node.value, 'found'));
+          setExecutionLog(prev => [...prev, `[Success] Target ${val} found successfully.`]);
+          await sleep(speed * 1.5);
+          
+          if (parentId) {
+            popStackSegment(parentId, node.id);
+            setStatus(`Returning true up the stack. (Call Stack Unwinding)`);
+            await sleep(speed);
+            setBacktrackEdge(null);
+          }
+          return node;
+        }
+
+        setTree(prev => updateNodeByValue(prev, node.value, 'default'));
+
+        let foundResult = null;
+        if (val < node.value) {
+          highlightLine("search", "recurse_left");
+          if (node.left) {
+            foundResult = await searchBSTRecursive(node.left, node.id);
+          } else {
+            setStatus(`No left child. Node ${node.value} is greater than ${val}, target not found.`);
+            await sleep(speed);
+          }
+        } else {
+          highlightLine("search", "recurse_right");
+          if (node.right) {
+            foundResult = await searchBSTRecursive(node.right, node.id);
+          } else {
+            setStatus(`No right child. Node ${node.value} is smaller than ${val}, target not found.`);
+            await sleep(speed);
+          }
+        }
+
+        if (parentId && !isCancelledRef.current) {
           popStackSegment(parentId, node.id);
-          setStatus(`Returning true up the stack. (Call Stack Unwinding)`);
+          setStatus(`Returning from recursive search frame of node ${node.value}. (Call Stack Unwinding)`);
           await sleep(speed);
           setBacktrackEdge(null);
         }
-        return node;
+
+        return foundResult;
+      };
+
+      const searchResult = await searchBSTRecursive(tree);
+      if (!searchResult && !isCancelledRef.current) {
+        setStatus(`Recursive search complete. Target value ${val} is not present in the tree.`);
+        setExecutionLog(prev => [...prev, `[Search Failed] Target ${val} not found.`]);
       }
+    } else {
+      // --- General Binary Tree Full DFS Search ---
+      setExecutionLog(prev => [...prev, `--- Initiating General BT Search (Unsorted DFS search) for: ${val} ---`]);
+      
+      const pushStackSegment = (fromId, toId) => {
+        setCallStackEdges(prev => [...prev, { from: fromId, to: toId }]);
+      };
 
-      setTree(prev => updateNodeByValue(prev, node.value, 'default'));
+      const popStackSegment = (fromId, toId) => {
+        setCallStackEdges(prev => prev.filter(e => !(e.from === fromId && e.to === toId)));
+        setBacktrackEdge({ from: toId, to: fromId });
+      };
 
-      let foundResult = null;
-      if (val < node.value) {
-        highlightLine("search", "recurse_left");
-        if (node.left) {
-          foundResult = await searchRecursive(node.left, node.id);
-        } else {
-          setStatus(`No left child. Node ${node.value} is greater than ${val}, target not found.`);
+      const searchBTRecursive = async (node, parentId = null) => {
+        if (!node || isCancelledRef.current) return null;
+        await checkPause();
+
+        if (parentId) {
+          pushStackSegment(parentId, node.id);
+          setStatus(`Recursive descent call: visiting node ${node.value}.`);
           await sleep(speed);
         }
-      } else {
-        highlightLine("search", "recurse_right");
-        if (node.right) {
-          foundResult = await searchRecursive(node.right, node.id);
-        } else {
-          setStatus(`No right child. Node ${node.value} is smaller than ${val}, target not found.`);
-          await sleep(speed);
-        }
-      }
 
-      // Visualize ascent (unwinding stack frame on return statement) - flowing back up in red
-      if (parentId && !isCancelledRef.current) {
-        popStackSegment(parentId, node.id);
-        setStatus(`Returning from recursive search frame of node ${node.value}. (Call Stack Unwinding)`);
+        highlightLine("search", "check_target");
+        setStatus(`Checking if node ${node.value} matches target ${val}...`);
+        setTree(prev => updateNodeByValue(prev, node.value, 'visiting'));
         await sleep(speed);
-        setBacktrackEdge(null);
+
+        if (node.value === val) {
+          setStatus(`Target ${val} found!`);
+          setTree(prev => updateNodeByValue(prev, node.value, 'found'));
+          setExecutionLog(prev => [...prev, `[Success] Target ${val} found successfully.`]);
+          await sleep(speed * 1.5);
+          
+          if (parentId) {
+            popStackSegment(parentId, node.id);
+            setStatus(`Unwinding: Target found, returning match upwards.`);
+            await sleep(speed);
+            setBacktrackEdge(null);
+          }
+          return node;
+        }
+
+        setTree(prev => updateNodeByValue(prev, node.value, 'default'));
+
+        // Recurse Left
+        highlightLine("search", "recurse_left");
+        let foundLeft = null;
+        if (node.left) {
+          foundLeft = await searchBTRecursive(node.left, node.id);
+        }
+
+        if (foundLeft) {
+          if (parentId) {
+            popStackSegment(parentId, node.id);
+            setStatus(`Unwinding: Node found in left subtree, propagating result up.`);
+            await sleep(speed);
+            setBacktrackEdge(null);
+          }
+          return foundLeft;
+        }
+
+        // Recurse Right (if left didn't find it)
+        highlightLine("search", "recurse_right");
+        let foundRight = null;
+        if (node.right) {
+          setStatus(`Target not in left subtree of ${node.value}. Searching right subtree...`);
+          await sleep(speed);
+          foundRight = await searchBTRecursive(node.right, node.id);
+        }
+
+        if (parentId && !isCancelledRef.current) {
+          popStackSegment(parentId, node.id);
+          setStatus(`Returning up stack from node ${node.value}.`);
+          await sleep(speed);
+          setBacktrackEdge(null);
+        }
+
+        return foundRight;
+      };
+
+      const searchResult = await searchBTRecursive(tree);
+      if (!searchResult && !isCancelledRef.current) {
+        setStatus(`Recursive search complete. Target value ${val} is not present in the tree.`);
+        setExecutionLog(prev => [...prev, `[Search Failed] Target ${val} not found.`]);
       }
-
-      return foundResult;
-    };
-
-    const searchResult = await searchRecursive(tree);
-    if (!searchResult && !isCancelledRef.current) {
-      setStatus(`Recursive search complete. Target value ${val} is not present in the tree.`);
-      setExecutionLog(prev => [...prev, `[Search Failed] Target ${val} not found.`]);
     }
+    
     cleanup();
   };
 
@@ -1029,88 +1368,161 @@ export default function BST() {
     setActiveConcept("delete");
     setExecutionLog(prev => [...prev, `[Delete] Requesting deletion of: ${val}`]);
     
-    const findMin = (node) => {
-      let current = node;
-      while (current && current.left) {
-        current = current.left;
-      }
-      return current;
-    };
+    if (isBST) {
+      // --- BST Ordered Deletion ---
+      const findMin = (node) => {
+        let current = node;
+        while (current && current.left) {
+          current = current.left;
+        }
+        return current;
+      };
 
-    const deleteRecursive = async (node, value) => {
-      if (isCancelledRef.current) return node;
-      if (!node) {
-        setStatus(`Value ${value} not found.`);
-        return null;
-      }
-      
-      await checkPause();
-      highlightLine("delete", "check_null");
-      setStatus(`Searching for ${value}... checking node ${node.value}`);
-      setTree(prev => updateNodeByValue(prev, node.value, 'visiting'));
-      await sleep(speed);
-
-      if (value < node.value) {
-        highlightLine("delete", "recurse_left");
-        setTree(prev => updateNodeByValue(prev, node.value, 'default'));
-        const newLeft = await deleteRecursive(node.left, value);
-        return { ...node, left: newLeft };
-      } else if (value > node.value) {
-        highlightLine("delete", "recurse_right");
-        setTree(prev => updateNodeByValue(prev, node.value, 'default'));
-        const newRight = await deleteRecursive(node.right, value);
-        return { ...node, right: newRight };
-      } else {
-        setStatus(`Found node ${value}. Preparing delete process.`);
-        setTree(prev => updateNodeByValue(prev, node.value, 'deleting'));
-        await sleep(speed);
-
-        if (!node.left && !node.right) {
-          highlightLine("delete", "leaf");
-          setStatus(`Node ${value} is a leaf node. Freeing space.`);
-          await sleep(speed);
-          setExecutionLog(prev => [...prev, `[Delete] Removed leaf node ${value}.`]);
+      const deleteRecursiveBST = async (node, value) => {
+        if (isCancelledRef.current) return node;
+        if (!node) {
+          setStatus(`Value ${value} not found.`);
           return null;
         }
         
-        if (!node.left) {
-          highlightLine("delete", "one_child");
-          setStatus(`Node ${value} has 1 right child. Rewiring child node up.`);
-          await sleep(speed);
-          setExecutionLog(prev => [...prev, `[Delete] Removed node ${value}, promoted right child.`]);
-          return node.right;
-        }
-        if (!node.right) {
-          highlightLine("delete", "one_child");
-          setStatus(`Node ${value} has 1 left child. Rewiring child node up.`);
-          await sleep(speed);
-          setExecutionLog(prev => [...prev, `[Delete] Removed node ${value}, promoted left child.`]);
-          return node.left;
-        }
-
-        highlightLine("delete", "find_min");
-        setStatus(`Node ${value} has 2 children. Searching for in-order successor...`);
-        const successor = findMin(node.right);
-        
-        setTree(prev => updateNodeByValue(prev, successor.value, 'pre-op'));
-        highlightLine("delete", "copy_val");
-        setStatus(`In-order successor is ${successor.value}. Overriding current value.`);
+        await checkPause();
+        highlightLine("delete", "check_null");
+        setStatus(`Searching for ${value}... checking node ${node.value}`);
+        setTree(prev => updateNodeByValue(prev, node.value, 'visiting'));
         await sleep(speed);
 
-        const newNode = { ...node, value: successor.value, state: 'default' };
-        highlightLine("delete", "delete_min");
-        setStatus(`Recursively deleting original successor node ${successor.value}...`);
-        newNode.right = await deleteRecursive(node.right, successor.value);
-        
-        setExecutionLog(prev => [...prev, `[Delete] Replaced node ${value} with successor ${successor.value}.`]);
-        return newNode;
-      }
-    };
+        if (value < node.value) {
+          highlightLine("delete", "recurse_left");
+          setTree(prev => updateNodeByValue(prev, node.value, 'default'));
+          const newLeft = await deleteRecursiveBST(node.left, value);
+          return { ...node, left: newLeft };
+        } else if (value > node.value) {
+          highlightLine("delete", "recurse_right");
+          setTree(prev => updateNodeByValue(prev, node.value, 'default'));
+          const newRight = await deleteRecursiveBST(node.right, value);
+          return { ...node, right: newRight };
+        } else {
+          setStatus(`Found node ${value}. Preparing delete process.`);
+          setTree(prev => updateNodeByValue(prev, node.value, 'deleting'));
+          await sleep(speed);
 
-    const newTree = await deleteRecursive(tree, val);
-    if (!isCancelledRef.current) {
-      setTree(newTree);
+          if (!node.left && !node.right) {
+            highlightLine("delete", "leaf");
+            setStatus(`Node ${value} is a leaf node. Freeing space.`);
+            await sleep(speed);
+            setExecutionLog(prev => [...prev, `[Delete] Removed leaf node ${value}.`]);
+            return null;
+          }
+          
+          if (!node.left) {
+            highlightLine("delete", "one_child");
+            setStatus(`Node ${value} has 1 right child. Rewiring child node up.`);
+            await sleep(speed);
+            setExecutionLog(prev => [...prev, `[Delete] Removed node ${value}, promoted right child.`]);
+            return node.right;
+          }
+          if (!node.right) {
+            highlightLine("delete", "one_child");
+            setStatus(`Node ${value} has 1 left child. Rewiring child node up.`);
+            await sleep(speed);
+            setExecutionLog(prev => [...prev, `[Delete] Removed node ${value}, promoted left child.`]);
+            return node.left;
+          }
+
+          highlightLine("delete", "find_min");
+          setStatus(`Node ${value} has 2 children. Searching for in-order successor...`);
+          const successor = findMin(node.right);
+          
+          setTree(prev => updateNodeByValue(prev, successor.value, 'pre-op'));
+          highlightLine("delete", "copy_val");
+          setStatus(`In-order successor is ${successor.value}. Overriding current value.`);
+          await sleep(speed);
+
+          const newNode = { ...node, value: successor.value, state: 'default' };
+          highlightLine("delete", "delete_min");
+          setStatus(`Recursively deleting original successor node ${successor.value}...`);
+          newNode.right = await deleteRecursiveBST(node.right, successor.value);
+          
+          setExecutionLog(prev => [...prev, `[Delete] Replaced node ${value} with successor ${successor.value}.`]);
+          return newNode;
+        }
+      };
+
+      const newTree = await deleteRecursiveBST(tree, val);
+      if (!isCancelledRef.current) {
+        setTree(newTree);
+      }
+    } else {
+      // --- General Binary Tree (BT) Replacement Deletion ---
+      let targetNode = null;
+      let deepestNode = null;
+
+      setStatus("Searching for the node to delete...");
+      await sleep(speed);
+
+      const findTargetBT = (node) => {
+        if (!node) return null;
+        if (node.value === val) return node;
+        let leftSearch = findTargetBT(node.left);
+        if (leftSearch) return leftSearch;
+        return findTargetBT(node.right);
+      };
+
+      targetNode = findTargetBT(tree);
+
+      if (!targetNode) {
+        setStatus(`Node ${val} not found in the Binary Tree.`);
+        setExecutionLog(prev => [...prev, `[Delete Failed] Node ${val} not found.`]);
+        cleanup();
+        return;
+      }
+
+      setTree(prev => updateNodeByValue(prev, targetNode.value, 'deleting'));
+      setStatus(`Target node ${val} found. Now looking for the deepest, rightmost leaf node...`);
+      await sleep(speed);
+
+      // Find deepest rightmost node using BFS queue
+      let queue = [{ node: tree, parent: null }];
+      while (queue.length > 0) {
+        let currentItem = queue.shift();
+        deepestNode = currentItem.node;
+
+        if (currentItem.node.left) {
+          queue.push({ node: currentItem.node.left, parent: currentItem.node });
+        }
+        if (currentItem.node.right) {
+          queue.push({ node: currentItem.node.right, parent: currentItem.node });
+        }
+      }
+
+      setTree(prev => updateNodeByValue(prev, deepestNode.value, 'pre-op'));
+      setStatus(`Deepest rightmost node is ${deepestNode.value}. Copying its value to the target node...`);
+      await sleep(speed);
+
+      const swapAndPrune = (node) => {
+        if (!node) return null;
+        let copy = { ...node };
+        if (node.id === targetNode.id) {
+          copy.value = deepestNode.value;
+          copy.state = 'default';
+        }
+        if (copy.id === deepestNode.id) {
+          return null; 
+        }
+        copy.left = swapAndPrune(copy.left);
+        copy.right = swapAndPrune(copy.right);
+        return copy;
+      };
+
+      if (tree.id === deepestNode.id) {
+        setTree(null);
+        setExecutionLog(prev => [...prev, `[Delete] Cleared the only node in the tree.`]);
+      } else {
+        setTree(prev => swapAndPrune(prev));
+        setExecutionLog(prev => [...prev, `[Delete] Swapped ${val} with deepest leaf ${deepestNode.value}, and removed the leaf.`]);
+      }
     }
+    
     cleanup();
   };
 
@@ -1122,27 +1534,25 @@ export default function BST() {
     setError(null);
     setIsVisualizing(true);
     setActiveConcept(mode);
-    setCallStackEdges([]); // Clear active call stack traces
-    setBacktrackEdge(null); // Clear backtrack markers
+    setCallStackEdges([]); 
+    setBacktrackEdge(null); 
     setExecutionLog(prev => [...prev, `--- Starting ${mode.toUpperCase()} Traversal ---`]);
     
     let visitedPath = [];
 
-    // Helper functions to visual descent and backtrack on actual tree branches
     const pushStackSegment = (fromId, toId) => {
       setCallStackEdges(prev => [...prev, { from: fromId, to: toId }]);
     };
 
     const popStackSegment = (fromId, toId) => {
       setCallStackEdges(prev => prev.filter(e => !(e.from === fromId && e.to === toId)));
-      setBacktrackEdge({ from: toId, to: fromId }); // Flows upwards (child to parent) in red
+      setBacktrackEdge({ from: toId, to: fromId }); 
     };
 
     const traverse = async (node, parentId = null) => {
       if (!node || isCancelledRef.current) return;
       await checkPause();
 
-      // Visualize Descent (Winding Call Stack) - flowing down along structural branch
       if (parentId) {
         pushStackSegment(parentId, node.id);
         setStatus(`Recursive descent call to node ${node.value}. (Call Stack Expanded)`);
@@ -1194,7 +1604,6 @@ export default function BST() {
         await sleep(speed);
       }
 
-      // Visualize Ascent/Backtrack (Unwinding Stack Frame) - flowing back up
       if (parentId && !isCancelledRef.current) {
         popStackSegment(parentId, node.id);
         setStatus(`Returning from recursive call of node ${node.value}. (Stack Frame Unwound)`);
@@ -1223,8 +1632,8 @@ export default function BST() {
     setStatus("Tree is empty. Insert a node to begin.");
     setHighlightLineNum(-1);
     setExecutionLog([]);
-    setCallStackEdges([]); // Reset segment stacks
-    setBacktrackEdge(null); // Reset backtracks
+    setCallStackEdges([]); 
+    setBacktrackEdge(null); 
     
     setTimeout(() => {
       isCancelledRef.current = false;
@@ -1242,11 +1651,15 @@ export default function BST() {
     }
   };
 
-  const codeLines = codeSnippets[activeConcept][language].trim().split('\n');
+  const activeSnippetSet = (activeConcept === "inorder" || activeConcept === "preorder" || activeConcept === "postorder")
+    ? codeSnippets[activeConcept][language]
+    : codeSnippets[isBST ? "bst" : "bt"][activeConcept][language];
+
+  const codeLines = activeSnippetSet.trim().split('\n');
   
-  const statusColor = status.includes("Found") || status.includes("completed")
+  const statusColor = status.includes("found") || status.includes("completed") || status.includes("Success")
     ? "status-found"
-    : status.includes("not found")
+    : status.includes("not found") || status.includes("unreachable")
     ? "status-not-found"
     : status.includes("Paused")
     ? "status-paused"
@@ -1262,8 +1675,38 @@ export default function BST() {
       <aside className="controls-sidebar">
         <h1 className="sidebar-title">
           <GitFork size={30} />
-          BST
+          Binary Tree
         </h1>
+
+        {/* --- Dynamic Tree Mode Switcher --- */}
+        <div className="input-group">
+          <label>Tree Mode Rules</label>
+          <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.2rem' }}>
+            <button
+              onClick={() => { setIsBST(false); handleReset(); }}
+              disabled={isVisualizing}
+              className={`btn ${!isBST ? 'btn-cyan' : 'btn-secondary'}`}
+              style={{ flex: 1 }}
+              title="General Unsorted Binary Tree"
+            >
+              General BT
+            </button>
+            <button
+              onClick={() => { setIsBST(true); handleReset(); }}
+              disabled={isVisualizing}
+              className={`btn ${isBST ? 'btn-cyan' : 'btn-secondary'}`}
+              style={{ flex: 1 }}
+              title="Sorted Binary Search Tree rules"
+            >
+              BST Rules
+            </button>
+          </div>
+          <span style={{ fontSize: '0.725rem', color: 'var(--text-gray-400)', display: 'block', marginTop: '0.35rem', lineHeight: '1.3' }}>
+            {isBST 
+              ? "BST Mode: Values are sorted on placement. Ideal for logarithmic search logic." 
+              : "General BT Mode: Elements placed level-by-level (Complete Tree). Searching requires recursive traversal of both subtrees."}
+          </span>
+        </div>
 
         <div className="input-group">
           <label htmlFor="value">Value</label>
@@ -1394,7 +1837,6 @@ export default function BST() {
             </span>
           </div>
           
-          {/* SVG Overlay representing the direct parent-child branches */}
           <div className="visualization-boxes">
             {tree === null && (
               <span style={{color: 'var(--text-gray-500)', margin: 'auto'}}>
@@ -1410,12 +1852,10 @@ export default function BST() {
                   style={{ zIndex: 0 }}
                 >
                   {edgesList.map((edge, idx) => {
-                    // Check if this branch is currently part of the active call stack (green descent)
                     const isDescentActive = callStackEdges.some(
                       s => (s.from === edge.from.id && s.to === edge.to.id)
                     );
 
-                    // Check if this branch is currently backtracking (red ascent)
                     const isBacktrackActive = backtrackEdge && (
                       (backtrackEdge.from === edge.from.id && backtrackEdge.to === edge.to.id) ||
                       (backtrackEdge.from === edge.to.id && backtrackEdge.to === edge.from.id)
@@ -1423,7 +1863,6 @@ export default function BST() {
 
                     return (
                       <g key={idx}>
-                        {/* Static connection branch verbatim to image_eed3d6.png */}
                         <line
                           x1={`${edge.from.x}%`}
                           y1={`${edge.from.y}px`}
@@ -1435,7 +1874,6 @@ export default function BST() {
                           style={{ transition: 'all 0.3s' }}
                         />
 
-                        {/* GREEN descent dotted line: moving downward when executing a call */}
                         {isDescentActive && (
                           <line
                             x1={`${edge.from.x}%`}
@@ -1446,7 +1884,6 @@ export default function BST() {
                           />
                         )}
 
-                        {/* RED ascent backtrack dotted line: moving upward on return statement */}
                         {isBacktrackActive && (
                           <line
                             x1={`${edge.from.x}%`}
@@ -1461,7 +1898,6 @@ export default function BST() {
                   })}
                 </svg>
 
-                {/* Absolutey positioned circular nodes */}
                 {nodesList.map((node) => (
                   <div
                     key={node.id}
@@ -1485,12 +1921,11 @@ export default function BST() {
 
         {/* --- Lower Content Area (Code & Log) --- */}
         <div className="lower-content-area">
-          {/* --- Code Area --- */}
           <section className="code-section">
             <h2 className="section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span>Code Tracker</span>
               <span style={{ fontSize: '0.8rem', color: 'var(--cyan-400)', textTransform: 'uppercase' }}>
-                {activeConcept}
+                {activeConcept} ({isBST ? "BST" : "General BT"})
               </span>
             </h2>
             <div className="code-block">
@@ -1512,7 +1947,6 @@ export default function BST() {
             </div>
           </section>
 
-          {/* --- Execution Log --- */}
           <section className="log-section">
             <h2 className="section-title">Execution Log</h2>
             <div className="log-block" ref={logContainerRef}>
