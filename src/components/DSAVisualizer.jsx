@@ -15,7 +15,7 @@ export default function DSAVisualizer() {
     { name: "Stack", href: "stack" },
     { name: "Queue", href: "queue" },
     { name: "Binary Search Tree", href: "bst" },
-    { name: "DFS & BFS", href: "#" },
+    { name: "DFS & BFS", href: "bfsdfs" },
   ];
 
   return (
