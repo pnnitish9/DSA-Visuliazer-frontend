@@ -109,28 +109,6 @@ function UserAccount() {
           onChange={handleChange}
           disabled
         />
-
-        <label>Gender:</label>
-        <select
-          name="gender"
-          value={formData.gender || ""}
-          onChange={handleChange}
-          disabled={!editing}
-        >
-          <option value="">Select gender</option>
-          <option value="male">Male</option>
-          <option value="female">Female</option>
-          <option value="other">Other</option>
-        </select>
-
-        <label>Date of Birth:</label>
-        <input
-          type="date"
-          name="dob"
-          value={formData.dob?.slice(0, 10) || ""}
-          onChange={handleChange}
-          disabled={!editing}
-        />
       </div>
 
       <div className="user-actions">
