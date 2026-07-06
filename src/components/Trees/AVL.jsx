@@ -262,9 +262,9 @@ const InjectedStyles = () => (
       font-size: 1.15rem;
       font-weight: 600;
       border-radius: 50%;
-      transition: left 0.8s cubic-bezier(0.25, 1, 0.5, 1), 
-                  top 0.8s cubic-bezier(0.25, 1, 0.5, 1), 
-                  background-color 0.4s, border-color 0.4s, transform 0.4s, box-shadow 0.4s;
+      transition: left 1.6s cubic-bezier(0.25, 1, 0.5, 1), 
+                  top 1.6s cubic-bezier(0.25, 1, 0.5, 1), 
+                  background-color 0.6s, border-color 0.6s, transform 0.6s, box-shadow 0.6s;
       user-select: none;
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
       animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -935,7 +935,6 @@ export default function AVLTreeVisualizer() {
         setHighlightLineNum(-1);
         setCallStackEdges([]); 
         setBacktrackEdge(null); 
-        setRotationDiagnostic(null);
       }
     }, speed * 1.5);
   };
@@ -952,36 +951,50 @@ export default function AVLTreeVisualizer() {
     let x = y.left;
     let T2 = x ? x.right : null;
 
-    // Phase 1: Highlight Imbalance & Pivot configuration
-    setStatus(`Imbalance detected! Highlighting pivot node ${y.value} (pink) and child ${x?.value || ''}.`);
-    setExecutionLog(prev => [...prev, `[Rotation Setup] Pivot: ${y.value}, Left Child: ${x?.value || ''}`]);
+    // Phase 1: Diagnose Imbalance & Highlight Pivot Nodes
+    setStatus(`Imbalance detected! Initiating Right Rotation. Stage 1: Identifying Pivot node ${y.value} (pink) and child ${x?.value || ''}.`);
+    setExecutionLog(prev => [...prev, `[Rotation Phase 1] Pivot: ${y.value}, Left Child: ${x?.value || ''}`]);
     
     setRotationDiagnostic({
       type: 'Right Rotation (Single R)',
       pivot: y.value,
       target: x?.value,
       orphan: T2 ? T2.value : 'None',
-      phase: 'Identifying Pivot and Subtrees'
+      phase: 'Step 1: Identifying Pivot and Subtrees'
     });
 
-    // Update global tree to display the highlighted pivot and child
     const highlightPivotNode = {
       ...y,
       state: 'pivot',
       left: x ? {
         ...x,
         state: 'visiting',
-        right: T2 ? { ...T2, state: 'detached' } : null
+        right: T2 ? { ...T2, state: 'default' } : null
       } : null
     };
     setTree(prev => replaceSubtree(prev, y.id, highlightPivotNode));
     await sleep(speed * 1.5);
 
-    // Phase 2: Perform structural re-routing in animation
-    setStatus(`Swapping pointers: Node ${x?.value || ''} swings up to Root. ${y.value} slides down.`);
-    if (rotationDiagnostic) {
-      setRotationDiagnostic(prev => prev ? { ...prev, phase: 'Reassigning Pointers & swinging child up' } : null);
+    // Phase 2: Isolate and visually detach Orphan Subtree T2
+    if (T2) {
+      setStatus(`Stage 2: Isolating orphan subtree under node ${T2.value} (purple) before pointer shifts...`);
+      setRotationDiagnostic(prev => prev ? { ...prev, phase: 'Step 2: Detaching and Isolating Orphan T2' } : null);
+      const isolateOrphanNode = {
+        ...y,
+        state: 'pivot',
+        left: x ? {
+          ...x,
+          state: 'visiting',
+          right: { ...T2, state: 'detached' }
+        } : null
+      };
+      setTree(prev => replaceSubtree(prev, y.id, isolateOrphanNode));
+      await sleep(speed * 1.5);
     }
+
+    // Phase 3: Swing Pivot Node downwards, promoting the child to new local root
+    setStatus(`Stage 3: Swinging pivot node ${y.value} down, and sliding child node ${x?.value || ''} upwards.`);
+    setRotationDiagnostic(prev => prev ? { ...prev, phase: 'Step 3: Swinging Pivot node down' } : null);
 
     let intermediateX = {
       ...x,
@@ -989,38 +1002,63 @@ export default function AVLTreeVisualizer() {
       right: {
         ...y,
         state: 'visiting',
+        left: null // Temporarily empty to visually highlight connection break
+      }
+    };
+    setTree(prev => replaceSubtree(prev, y.id, intermediateX));
+    await sleep(speed * 1.8);
+
+    // Phase 4: Re-integrate and reattach the detached Orphan Subtree
+    if (T2) {
+      setStatus(`Stage 4: Reattaching isolated orphan subtree ${T2.value} as left child of pivot node ${y.value}.`);
+      setRotationDiagnostic(prev => prev ? { ...prev, phase: 'Step 4: Re-attaching isolated subtrees' } : null);
+      let attachedX = {
+        ...x,
+        state: 'pre-op',
+        right: {
+          ...y,
+          state: 'visiting',
+          left: { ...T2, state: 'default' }
+        }
+      };
+      setTree(prev => replaceSubtree(prev, y.id, attachedX));
+      await sleep(speed * 1.5);
+    }
+
+    // Phase 5: Recalculate node height metrics & settle balanced subtrees
+    setStatus(`Stage 5: Recalculation complete. Settling node placement coordinates.`);
+    setExecutionLog(prev => [...prev, `[Rotation Success] Completed Right Rotation under parent node ${x?.value || ''}`]);
+
+    let finalX = {
+      ...x,
+      state: 'default',
+      right: {
+        ...y,
+        state: 'default',
         left: T2 ? { ...T2, state: 'default' } : null
       }
     };
 
-    setTree(prev => replaceSubtree(prev, y.id, intermediateX));
-    await sleep(speed * 1.5);
+    finalX.right.height = 1 + Math.max(getNodeHeight(finalX.right.left), getNodeHeight(finalX.right.right));
+    finalX.height = 1 + Math.max(getNodeHeight(finalX.left), getNodeHeight(finalX.right));
 
-    // Phase 3: Settle positions and recalculate weights
-    setStatus(`Pointer alignment complete! Height recalculation settling.`);
-    setExecutionLog(prev => [...prev, `[Rotation Success] Completed Right Rotation under parent node ${x?.value || ''}`]);
-
-    intermediateX.right.height = 1 + Math.max(getNodeHeight(intermediateX.right.left), getNodeHeight(intermediateX.right.right));
-    intermediateX.height = 1 + Math.max(getNodeHeight(intermediateX.left), getNodeHeight(intermediateX.right));
-
-    setRotationDiagnostic(null);
-    return intermediateX;
+    return finalX;
   };
 
   const performLeftRotation = async (x) => {
     let y = x.right;
     let T2 = y ? y.left : null;
 
-    // Phase 1: Highlight Imbalance & Pivot configuration
-    setStatus(`Imbalance detected! Highlighting pivot node ${x.value} (pink) and child ${y?.value || ''}.`);
-    setExecutionLog(prev => [...prev, `[Rotation Setup] Pivot: ${x.value}, Right Child: ${y?.value || ''}`]);
+    // Phase 1: Diagnose Imbalance & Highlight Pivot Nodes
+    setStatus(`Imbalance detected! Initiating Left Rotation. Stage 1: Identifying Pivot node ${x.value} (pink) and child ${y?.value || ''}.`);
+    setExecutionLog(prev => [...prev, `[Rotation Phase 1] Pivot: ${x.value}, Right Child: ${y?.value || ''}`]);
 
     setRotationDiagnostic({
       type: 'Left Rotation (Single L)',
       pivot: x.value,
       target: y?.value,
       orphan: T2 ? T2.value : 'None',
-      phase: 'Identifying Pivot and Subtrees'
+      phase: 'Step 1: Identifying Pivot and Subtrees'
     });
 
     const highlightPivotNode = {
@@ -1029,17 +1067,32 @@ export default function AVLTreeVisualizer() {
       right: y ? {
         ...y,
         state: 'visiting',
-        left: T2 ? { ...T2, state: 'detached' } : null
+        left: T2 ? { ...T2, state: 'default' } : null
       } : null
     };
     setTree(prev => replaceSubtree(prev, x.id, highlightPivotNode));
     await sleep(speed * 1.5);
 
-    // Phase 2: Perform structural re-routing in animation
-    setStatus(`Swapping pointers: Node ${y?.value || ''} swings up to Root. ${x.value} slides down.`);
-    if (rotationDiagnostic) {
-      setRotationDiagnostic(prev => prev ? { ...prev, phase: 'Reassigning Pointers & swinging child up' } : null);
+    // Phase 2: Isolate and visually detach Orphan Subtree T2
+    if (T2) {
+      setStatus(`Stage 2: Isolating orphan subtree under node ${T2.value} (purple) before pointer shifts...`);
+      setRotationDiagnostic(prev => prev ? { ...prev, phase: 'Step 2: Detaching and Isolating Orphan T2' } : null);
+      const isolateOrphanNode = {
+        ...x,
+        state: 'pivot',
+        right: y ? {
+          ...y,
+          state: 'visiting',
+          left: { ...T2, state: 'detached' }
+        } : null
+      };
+      setTree(prev => replaceSubtree(prev, x.id, isolateOrphanNode));
+      await sleep(speed * 1.5);
     }
+
+    // Phase 3: Swing Pivot Node downwards, promoting the child to new local root
+    setStatus(`Stage 3: Swinging pivot node ${x.value} down, and sliding child node ${y?.value || ''} upwards.`);
+    setRotationDiagnostic(prev => prev ? { ...prev, phase: 'Step 3: Swinging Pivot node down' } : null);
 
     let intermediateY = {
       ...y,
@@ -1047,22 +1100,47 @@ export default function AVLTreeVisualizer() {
       left: {
         ...x,
         state: 'visiting',
+        right: null // Temporarily empty to visually highlight connection break
+      }
+    };
+    setTree(prev => replaceSubtree(prev, x.id, intermediateY));
+    await sleep(speed * 1.8);
+
+    // Phase 4: Re-integrate and reattach the detached Orphan Subtree
+    if (T2) {
+      setStatus(`Stage 4: Reattaching isolated orphan subtree ${T2.value} as right child of pivot node ${x.value}.`);
+      setRotationDiagnostic(prev => prev ? { ...prev, phase: 'Step 4: Re-attaching isolated subtrees' } : null);
+      let attachedY = {
+        ...y,
+        state: 'pre-op',
+        left: {
+          ...x,
+          state: 'visiting',
+          right: { ...T2, state: 'default' }
+        }
+      };
+      setTree(prev => replaceSubtree(prev, x.id, attachedY));
+      await sleep(speed * 1.5);
+    }
+
+    // Phase 5: Recalculate node height metrics & settle balanced subtrees
+    setStatus(`Stage 5: Recalculation complete. Settling node placement coordinates.`);
+    setExecutionLog(prev => [...prev, `[Rotation Success] Completed Left Rotation under parent node ${y?.value || ''}`]);
+
+    let finalY = {
+      ...y,
+      state: 'default',
+      left: {
+        ...x,
+        state: 'default',
         right: T2 ? { ...T2, state: 'default' } : null
       }
     };
 
-    setTree(prev => replaceSubtree(prev, x.id, intermediateY));
-    await sleep(speed * 1.5);
+    finalY.left.height = 1 + Math.max(getNodeHeight(finalY.left.left), getNodeHeight(finalY.left.right));
+    finalY.height = 1 + Math.max(getNodeHeight(finalY.left), getNodeHeight(finalY.right));
 
-    // Phase 3: Settle positions and recalculate weights
-    setStatus(`Pointer alignment complete! Height recalculation settling.`);
-    setExecutionLog(prev => [...prev, `[Rotation Success] Completed Left Rotation under parent node ${y?.value || ''}`]);
-
-    intermediateY.left.height = 1 + Math.max(getNodeHeight(intermediateY.left.left), getNodeHeight(intermediateY.left.right));
-    intermediateY.height = 1 + Math.max(getNodeHeight(intermediateY.left), getNodeHeight(intermediateY.right));
-
-    setRotationDiagnostic(null);
-    return intermediateY;
+    return finalY;
   };
 
   const handleInsert = async () => {
@@ -1628,7 +1706,7 @@ export default function AVLTreeVisualizer() {
                           stroke="#8cc07e"
                           strokeWidth="2.5"
                           strokeLinecap="round"
-                          style={{ transition: 'all 0.8s ease-in-out' }}
+                          style={{ transition: 'all 1.6s cubic-bezier(0.25, 1, 0.5, 1)' }}
                         />
 
                         {isDescentActive && (
