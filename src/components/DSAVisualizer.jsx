@@ -14,7 +14,7 @@ export default function DSAVisualizer() {
     { name: "Doubly LinkedList", href: "doublylinkedlist" },
     { name: "Stack", href: "stack" },
     { name: "Queue", href: "queue" },
-    { name: "Binary Search Tree", href: "bst" },
+    { name: "Binary Search", href: "bst" },
     { name: "DFS & BFS", href: "bfsdfs" },
   ];
 
