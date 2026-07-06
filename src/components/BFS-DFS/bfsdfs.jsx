@@ -1,81 +1,388 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { 
-  GitFork, Play, Pause, RotateCcw, ChevronRight, Volume2, VolumeX, 
-  Settings, Info, Code, Terminal, BarChart3, ZoomIn, ZoomOut, Maximize2,
-  Layers, Plus, Trash2, ArrowRight, HelpCircle, Activity, LayoutGrid, Eye, EyeOff
-} from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { GitFork, Pause, Play, RefreshCw, Plus, Trash2, ArrowRight } from 'lucide-react';
 
-// --- SOUND FEEDBACK SYNTHESIZER ---
-const playAudioFeedback = (type, enabled) => {
-  if (!enabled) return;
-  try {
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContext) return;
-    const ctx = new AudioContext();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    
-    const now = ctx.currentTime;
-    
-    if (type === 'enqueue' || type === 'push') {
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(330, now); // E4
-      osc.frequency.exponentialRampToValueAtTime(440, now + 0.1); // A4
-      gain.gain.setValueAtTime(0.05, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-      osc.start(now);
-      osc.stop(now + 0.12);
-    } else if (type === 'dequeue' || type === 'pop') {
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(440, now); // A4
-      osc.frequency.exponentialRampToValueAtTime(220, now + 0.15); // A3
-      gain.gain.setValueAtTime(0.05, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
-      osc.start(now);
-      osc.stop(now + 0.18);
-    } else if (type === 'visit') {
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(554.37, now); // C#5
-      gain.gain.setValueAtTime(0.04, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-      osc.start(now);
-      osc.stop(now + 0.08);
-    } else if (type === 'success') {
-      // Harmonic arpeggio for target found
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(523.25, now); // C5
-      osc.frequency.setValueAtTime(659.25, now + 0.08); // E5
-      osc.frequency.setValueAtTime(783.99, now + 0.16); // G5
-      gain.gain.setValueAtTime(0.06, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-      osc.start(now);
-      osc.stop(now + 0.35);
-    } else if (type === 'not_found') {
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(150, now);
-      gain.gain.setValueAtTime(0.06, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-      osc.start(now);
-      osc.stop(now + 0.25);
+const InjectedStyles = () => (
+  <style>{`
+    :root {
+      --bg-dark-950: #0c111c;
+      --bg-dark-900: #111827;
+      --bg-dark-800: #1f2937;
+      --bg-dark-700: #374151;
+      --bg-dark-600: #4b5563;
+      --bg-dark-500: #6b7280;
+      
+      --text-gray-200: #e5e7eb;
+      --text-gray-300: #d1d5db;
+      --text-gray-400: #9ca3af;
+      --text-gray-500: #6b7280;
+
+      --border-gray-600: #4b5563;
+      --border-gray-700: #374151;
+
+      --cyan-400: #22d3ee;
+      --cyan-500: #06b6d4;
+      --cyan-600: #0891b2;
+      
+      --green-400: #4ade80;
+      --green-500: #22c55e;
+      --green-600: #16a34a;
+      
+      --yellow-400: #facc15;
+      --yellow-500: #eab308;
+      --yellow-600: #ca8a04;
+      
+      --red-400: #f87171;
+      --red-500: #ef4444;
+      --red-600: #dc2626;
+
+      --orange-500: #f97316;
+      --orange-600: #ea580c;
+
+      --purple-500: #a855f7;
+      --purple-600: #9333ea;
+      
+      --pink-500: #ec4899;
+      --pink-600: #db2777;
     }
-  } catch (e) {
-    // Fail-safe for audio policy blocks
-  }
-};
+
+    .visualizer-container {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+        sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      background-color: var(--bg-dark-900);
+      color: var(--text-gray-200);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    @media (min-width: 1024px) {
+      .visualizer-container { flex-direction: row; }
+    }
+
+    * { box-sizing: border-box; }
+
+    .controls-sidebar {
+      width: 100%;
+      background-color: var(--bg-dark-800);
+      padding: 1.5rem;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      z-index: 10;
+    }
+    @media (min-width: 1024px) {
+      .controls-sidebar {
+        width: 25%;
+        min-width: 320px;
+        max-width: 360px;
+        min-height: 100vh;
+        overflow-y: auto;
+      }
+    }
+
+    .sidebar-title {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin: 0 0 1.5rem 0;
+      color: var(--cyan-400);
+      display: flex;
+      align-items: center;
+    }
+    .sidebar-title svg { margin-right: 0.75rem; }
+
+    .input-group { margin-bottom: 0.85rem; }
+    .input-group label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+      color: var(--text-gray-300);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .input-field {
+      width: 100%;
+      padding: 0.6rem 0.75rem;
+      background-color: var(--bg-dark-700);
+      border-radius: 0.375rem;
+      border: 1px solid var(--border-gray-600);
+      color: var(--text-gray-200);
+      transition: border-color 0.2s, box-shadow 0.2s;
+      font-size: 0.9rem;
+    }
+    .input-field:focus {
+      outline: none;
+      border-color: var(--cyan-500);
+      box-shadow: 0 0 0 2px var(--cyan-500);
+    }
+    .input-field:disabled { opacity: 0.5; cursor: not-allowed; }
+    
+    .editor-section {
+      background-color: var(--bg-dark-950);
+      padding: 1rem;
+      border-radius: 0.5rem;
+      border: 1px solid var(--border-gray-700);
+      margin-bottom: 1.25rem;
+    }
+
+    .error-message {
+      color: var(--red-400);
+      font-size: 0.8rem;
+      margin-bottom: 1rem;
+      padding: 0.6rem;
+      background-color: rgba(248, 113, 113, 0.1);
+      border: 1px solid var(--red-400);
+      border-radius: 0.375rem;
+    }
+    
+    .actions-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .actions-single {
+      margin-bottom: 0.75rem;
+    }
+    
+    .btn {
+      padding: 0.6rem;
+      border-radius: 0.375rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: none;
+      font-size: 0.85rem;
+      text-align: center;
+      width: 100%;
+    }
+    .btn svg { width: 16px; height: 16px; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-cyan { background-color: var(--cyan-600); color: white; }
+    .btn-cyan:hover:not(:disabled) { background-color: var(--cyan-500); }
+    .btn-green { background-color: var(--green-600); color: white; }
+    .btn-green:hover:not(:disabled) { background-color: var(--green-500); }
+    .btn-red { background-color: var(--red-600); color: white; }
+    .btn-red:hover:not(:disabled) { background-color: var(--red-500); }
+    .btn-pause { background-color: var(--yellow-600); color: black; }
+    .btn-pause:hover:not(:disabled) { background-color: var(--yellow-500); }
+    .btn-resume { background-color: var(--green-600); color: white; }
+    .btn-resume:hover:not(:disabled) { background-color: var(--green-500); }
+    .btn-secondary { background-color: var(--bg-dark-600); color: white; }
+    .btn-secondary:hover:not(:disabled) { background-color: var(--bg-dark-500); }
+
+    .speed-slider-group { display: flex; align-items: center; gap: 1rem; }
+    .speed-slider {
+      width: 100%;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      background: var(--bg-dark-700);
+      border-radius: 3px;
+      outline: none;
+      opacity: 0.9;
+    }
+    .speed-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      background: var(--cyan-500);
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    .speed-value {
+      width: 4rem;
+      text-align: right;
+      color: var(--text-gray-400);
+      font-size: 0.85rem;
+    }
+
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 1.5rem;
+    }
+    @media (min-width: 768px) {
+      .main-content { padding: 2rem; }
+    }
+    .section-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 0 0 1rem 0;
+      color: var(--text-gray-200);
+    }
+
+    .visualization-section {
+      display: flex;
+      flex-direction: column;
+      min-height: 250px;
+    }
+    .status-bar {
+      width: 100%;
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+      background-color: var(--bg-dark-800);
+      border: 1px solid var(--border-gray-700);
+      border-radius: 0.375rem;
+      text-align: center;
+      min-height: 46px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .status-text {
+      font-size: 1rem;
+      font-weight: 500;
+      transition: color 0.3s;
+    }
+    .status-default { color: var(--cyan-400); }
+    .status-found { color: var(--green-400); }
+    .status-not-found { color: var(--red-400); }
+    .status-paused { color: var(--yellow-400); }
+
+    .visualization-boxes {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 0.5rem;
+      padding: 2rem;
+      background-color: rgba(0, 0, 0, 0.2);
+      border-radius: 0.5rem;
+      min-height: 380px;
+      width: 100%;
+      border: 1px solid var(--border-gray-700);
+      box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .box {
+      width: 3.2rem;
+      height: 3.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.95rem;
+      font-weight: 700;
+      border-radius: 50%;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      transition: border-color 0.2s, background-color 0.2s, transform 0.2s;
+      border: 2px solid transparent;
+      position: relative;
+      user-select: none;
+    }
+    .box.default {
+      background-color: var(--bg-dark-600);
+      color: white;
+      border-color: var(--border-gray-500);
+    }
+    .box.visiting {
+      background-color: var(--yellow-500);
+      color: black;
+      transform: scale(1.1);
+      border-color: var(--yellow-400);
+    }
+    .box.pre-op {
+      background-color: var(--orange-500);
+      color: white;
+      transform: scale(1.1);
+      border-color: var(--orange-600);
+    }
+    .box.found {
+      background-color: var(--green-500);
+      color: white;
+      transform: scale(1.1);
+      border-color: var(--green-400);
+      box-shadow: 0 0 15px var(--green-500);
+    }
+
+    .lower-content-area {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+      flex: 1;
+    }
+    @media (min-width: 1024px) {
+      .lower-content-area { flex-direction: row; }
+    }
+
+    .code-section, .log-section {
+      display: flex;
+      flex-direction: column;
+      flex: 1; 
+      min-height: 250px;
+    }
+    .code-block, .log-block {
+      background-color: var(--bg-dark-950);
+      padding: 1.25rem;
+      border-radius: 0.5rem;
+      border: 1px solid var(--border-gray-700);
+      height: 100%;
+      overflow: auto;
+    }
+    @media (max-width: 1023px) {
+      .log-block { max-height: 250px; }
+    }
+
+    .code-block pre {
+      margin: 0;
+      font-family: 'Fira Code', 'Courier New', monospace;
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+    .code-line {
+      display: block;
+      padding: 0 0.5rem;
+      transition: background-color 0.2s;
+    }
+    .code-line.highlight {
+      background-color: rgba(6, 182, 212, 0.2);
+      border-radius: 0.25rem;
+    }
+    .code-line.comment {
+      color: var(--text-gray-500);
+      font-style: italic;
+    }
+    
+    .log-list {
+      margin: 0;
+      padding: 0;
+      list-style-type: none;
+      font-family: 'Fira Code', 'Courier New', monospace;
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+    .log-item {
+      padding: 0.2rem 0.5rem;
+      border-bottom: 1px solid var(--bg-dark-700);
+      color: var(--text-gray-300);
+    }
+    .log-item:last-child {
+      border-bottom: none; 
+      color: white;
+    }
+  `}</style>
+);
 
 const codeSnippets = {
-  python: {
-    bfs: `
+  bfs: {
+    python: `
 def bfs(graph, start, target):
     visited = set()
     queue = [start]
     visited.add(start)
     
     while queue:
-        node = queue.pop(0) # Dequeue
+        node = queue.pop(0)
         if node == target:
             return True # Found!
             
@@ -84,27 +391,30 @@ def bfs(graph, start, target):
                 visited.add(neighbor)
                 queue.append(neighbor)
     return False
-`.trim(),
-    dfs: `
-def dfs(graph, start, target):
-    visited = set()
-    stack = [start]
+    `.trim(),
+    c: `
+int bfs(int adj[N][N], int start, int target, int n) {
+    int visited[N] = {0};
+    int queue[N], front = 0, rear = 0;
     
-    while stack:
-        node = stack.pop() # Pop from top
-        if node not in visited:
-            visited.add(node)
-            if node == target:
-                return True # Found!
-                
-            for neighbor in reversed(graph[node]):
-                if neighbor not in visited:
-                    stack.append(neighbor)
-    return False
-`.trim()
-  },
-  cpp: {
-    bfs: `
+    queue[rear++] = start;
+    visited[start] = 1;
+    
+    while (front < rear) {
+        int node = queue[front++];
+        if (node == target) return 1;
+        
+        for (int i = 0; i < n; i++) {
+            if (adj[node][i] && !visited[i]) {
+                visited[i] = 1;
+                queue[rear++] = i;
+            }
+        }
+    }
+    return 0;
+}
+    `.trim(),
+    cpp: `
 bool bfs(map<int, vector<int>>& adj, int start, int target) {
     unordered_set<int> visited;
     queue<int> q;
@@ -126,8 +436,72 @@ bool bfs(map<int, vector<int>>& adj, int start, int target) {
     }
     return false;
 }
-`.trim(),
-    dfs: `
+    `.trim(),
+    java: `
+public boolean bfs(Map<Integer, List<Integer>> adj, int start, int target) {
+    Set<Integer> visited = new HashSet<>();
+    Queue<Integer> q = new LinkedList<>();
+    
+    q.add(start);
+    visited.add(start);
+    
+    while (!q.isEmpty()) {
+        int node = q.poll();
+        if (node == target) return true;
+        
+        for (int neighbor : adj.getOrDefault(node, new ArrayList<>())) {
+            if (!visited.contains(neighbor)) {
+                visited.add(neighbor);
+                q.add(neighbor);
+            }
+        }
+    }
+    return false;
+}
+    `.trim()
+  },
+  dfs: {
+    python: `
+def dfs(graph, start, target):
+    visited = set()
+    stack = [start]
+    
+    while stack:
+        node = stack.pop()
+        if node not in visited:
+            visited.add(node)
+            if node == target:
+                return True # Found!
+                
+            for neighbor in reversed(graph[node]):
+                if neighbor not in visited:
+                    stack.append(neighbor)
+    return False
+    `.trim(),
+    c: `
+int dfs(int adj[N][N], int start, int target, int n) {
+    int visited[N] = {0};
+    int stack[N], top = 0;
+    
+    stack[top++] = start;
+    
+    while (top > 0) {
+        int node = stack[--top];
+        if (!visited[node]) {
+            visited[node] = 1;
+            if (node == target) return 1;
+            
+            for (int i = n - 1; i >= 0; i--) {
+                if (adj[node][i] && !visited[i]) {
+                    stack[top++] = i;
+                }
+            }
+        }
+    }
+    return 0;
+}
+    `.trim(),
+    cpp: `
 bool dfs(map<int, vector<int>>& adj, int start, int target) {
     unordered_set<int> visited;
     stack<int> s;
@@ -151,32 +525,8 @@ bool dfs(map<int, vector<int>>& adj, int start, int target) {
     }
     return false;
 }
-`.trim()
-  },
-  java: {
-    bfs: `
-public boolean bfs(Map<Integer, List<Integer>> adj, int start, int target) {
-    Set<Integer> visited = new HashSet<>();
-    Queue<Integer> q = new LinkedList<>();
-    
-    q.add(start);
-    visited.add(start);
-    
-    while (!q.isEmpty()) {
-        int node = q.poll();
-        if (node == target) return true;
-        
-        for (int neighbor : adj.getOrDefault(node, new ArrayList<>())) {
-            if (!visited.contains(neighbor)) {
-                visited.add(neighbor);
-                q.add(neighbor);
-            }
-        }
-    }
-    return false;
-}
-`.trim(),
-    dfs: `
+    `.trim(),
+    java: `
 public boolean dfs(Map<Integer, List<Integer>> adj, int start, int target) {
     Set<Integer> visited = new HashSet<>();
     Stack<Integer> s = new Stack<>();
@@ -201,1339 +551,930 @@ public boolean dfs(Map<Integer, List<Integer>> adj, int start, int target) {
     }
     return false;
 }
-`.trim()
-  },
-  c: {
-    bfs: `
-int bfs(int adj[N][N], int start, int target, int num_nodes) {
-    int visited[N] = {0};
-    int queue[N], front = 0, rear = 0;
-    
-    queue[rear++] = start;
-    visited[start] = 1;
-    
-    while (front < rear) {
-        int node = queue[front++];
-        if (node == target) return 1;
-        
-        for (int i = 0; i < num_nodes; i++) {
-            if (adj[node][i] && !visited[i]) {
-                visited[i] = 1;
-                queue[rear++] = i;
-            }
-        }
-    }
-    return 0;
-}
-`.trim(),
-    dfs: `
-int dfs(int adj[N][N], int start, int target, int num_nodes) {
-    int visited[N] = {0};
-    int stack[N], top = 0;
-    
-    stack[top++] = start;
-    
-    while (top > 0) {
-        int node = stack[--top];
-        if (!visited[node]) {
-            visited[node] = 1;
-            if (node == target) return 1;
-            
-            for (int i = num_nodes - 1; i >= 0; i--) {
-                if (adj[node][i] && !visited[i]) {
-                    stack[top++] = i;
-                }
-            }
-        }
-    }
-    return 0;
-}
-`.trim()
+    `.trim()
   }
 };
 
 const LINE_MAPS = {
-  python: {
-    bfs: {
-      init: 2,
-      loop_cond: 7,
-      pop: 8,
-      check_target: 9,
-      loop_neighbors: 12,
-      check_visited: 13,
-      push: 15,
-      return_false: 16
-    },
-    dfs: {
-      init: 2,
-      loop_cond: 6,
-      pop: 7,
-      check_visited: 8,
-      check_target: 10,
-      loop_neighbors: 13,
-      push: 15,
-      return_false: 16
-    }
+  bfs: {
+    python: { init: 2, loop_cond: 6, pop: 7, check_target: 8, loop_neighbors: 11, check_visited: 12, push: 13, return_false: 15 },
+    c: { init: 2, loop_cond: 8, pop: 9, check_target: 10, loop_neighbors: 12, check_visited: 13, push: 14, return_false: 18 },
+    cpp: { init: 2, loop_cond: 8, pop: 10, check_target: 11, loop_neighbors: 13, check_visited: 14, push: 16, return_false: 20 },
+    java: { init: 2, loop_cond: 8, pop: 9, check_target: 10, loop_neighbors: 12, check_visited: 13, push: 15, return_false: 19 }
   },
-  cpp: {
-    bfs: {
-      init: 2,
-      loop_cond: 9,
-      pop: 11,
-      check_target: 12,
-      loop_neighbors: 14,
-      check_visited: 15,
-      push: 17
-    },
-    dfs: {
-      init: 2,
-      loop_cond: 7,
-      pop: 9,
-      check_visited: 12,
-      check_target: 14,
-      loop_neighbors: 16,
-      push: 18
-    }
-  },
-  java: {
-    bfs: {
-      init: 2,
-      loop_cond: 8,
-      pop: 9,
-      check_target: 10,
-      loop_neighbors: 12,
-      check_visited: 13,
-      push: 15
-    },
-    dfs: {
-      init: 2,
-      loop_cond: 8,
-      pop: 9,
-      check_visited: 11,
-      check_target: 13,
-      loop_neighbors: 16,
-      push: 19
-    }
-  },
-  c: {
-    bfs: {
-      init: 2,
-      loop_cond: 8,
-      pop: 9,
-      check_target: 10,
-      loop_neighbors: 12,
-      check_visited: 13,
-      push: 14
-    },
-    dfs: {
-      init: 2,
-      loop_cond: 7,
-      pop: 8,
-      check_visited: 9,
-      check_target: 11,
-      loop_neighbors: 13,
-      push: 14
-    }
+  dfs: {
+    python: { init: 2, loop_cond: 5, pop: 6, check_target: 9, loop_neighbors: 11, check_visited: 12, push: 13, return_false: 14 },
+    c: { init: 2, loop_cond: 7, pop: 8, check_target: 11, loop_neighbors: 13, check_visited: 14, push: 15, return_false: 19 },
+    cpp: { init: 2, loop_cond: 7, pop: 8, check_target: 13, loop_neighbors: 16, check_visited: 17, push: 18, return_false: 23 },
+    java: { init: 2, loop_cond: 8, pop: 9, check_target: 12, loop_neighbors: 15, check_visited: 16, push: 18, return_false: 23 }
   }
 };
 
-const colorizeLineCode = (line) => {
-  const trimmed = line.trim();
-  if (trimmed.startsWith('#') || trimmed.startsWith('//') || trimmed.startsWith('/*') || trimmed.startsWith('*')) {
-    return <span className="text-gray-500 italic font-mono">{line}</span>;
+const PRESETS = {
+  ring: {
+    nodes: [
+      { id: 1, label: 'C1', x: 50, y: 15, state: 'default' },
+      { id: 2, label: 'C2', x: 75, y: 35, state: 'default' },
+      { id: 3, label: 'C3', x: 75, y: 65, state: 'default' },
+      { id: 4, label: 'C4', x: 50, y: 85, state: 'default' },
+      { id: 5, label: 'C5', x: 25, y: 65, state: 'default' },
+      { id: 6, label: 'C6', x: 25, y: 35, state: 'default' }
+    ],
+    edges: [
+      { from: 1, to: 2, state: 'default' },
+      { from: 2, to: 3, state: 'default' },
+      { from: 3, to: 4, state: 'default' },
+      { from: 4, to: 5, state: 'default' },
+      { from: 5, to: 6, state: 'default' },
+      { from: 6, to: 1, state: 'default' },
+      { from: 1, to: 4, state: 'default' }
+    ],
+    start: 1,
+    target: 4
+  },
+  tree: {
+    nodes: [
+      { id: 1, label: 'T1', x: 50, y: 15, state: 'default' },
+      { id: 2, label: 'T2', x: 30, y: 45, state: 'default' },
+      { id: 3, label: 'T3', x: 70, y: 45, state: 'default' },
+      { id: 4, label: 'T4', x: 15, y: 75, state: 'default' },
+      { id: 5, label: 'T5', x: 45, y: 75, state: 'default' },
+      { id: 6, label: 'T6', x: 55, y: 75, state: 'default' },
+      { id: 7, label: 'T7', x: 85, y: 75, state: 'default' }
+    ],
+    edges: [
+      { from: 1, to: 2, state: 'default' },
+      { from: 1, to: 3, state: 'default' },
+      { from: 2, to: 4, state: 'default' },
+      { from: 2, to: 5, state: 'default' },
+      { from: 3, to: 6, state: 'default' },
+      { from: 3, to: 7, state: 'default' }
+    ],
+    start: 1,
+    target: 7
+  },
+  grid: {
+    nodes: [
+      { id: 1, label: 'G1', x: 25, y: 25, state: 'default' },
+      { id: 2, label: 'G2', x: 50, y: 25, state: 'default' },
+      { id: 3, label: 'G3', x: 75, y: 25, state: 'default' },
+      { id: 4, label: 'G4', x: 25, y: 50, state: 'default' },
+      { id: 5, label: 'G5', x: 50, y: 50, state: 'default' },
+      { id: 6, label: 'G6', x: 75, y: 50, state: 'default' },
+      { id: 7, label: 'G7', x: 25, y: 75, state: 'default' },
+      { id: 8, label: 'G8', x: 50, y: 75, state: 'default' },
+      { id: 9, label: 'G9', x: 75, y: 75, state: 'default' }
+    ],
+    edges: [
+      { from: 1, to: 2, state: 'default' },
+      { from: 2, to: 3, state: 'default' },
+      { from: 1, to: 4, state: 'default' },
+      { from: 2, to: 5, state: 'default' },
+      { from: 3, to: 6, state: 'default' },
+      { from: 4, to: 5, state: 'default' },
+      { from: 5, to: 6, state: 'default' },
+      { from: 4, to: 7, state: 'default' },
+      { from: 5, to: 8, state: 'default' },
+      { from: 6, to: 9, state: 'default' },
+      { from: 7, to: 8, state: 'default' },
+      { from: 8, to: 9, state: 'default' }
+    ],
+    start: 1,
+    target: 9
   }
+};
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export default function BFSDFSGraphVisualizer() {
+  const [activePresetKey, setActivePresetKey] = useState("ring");
+  const [nodes, setNodes] = useState(PRESETS.ring.nodes);
+  const [edges, setEdges] = useState(PRESETS.ring.edges);
   
-  const keywords = /\b(def|class|if|elif|else|return|struct|int|float|double|char|sizeof|malloc|NULL|void|public|static|class|new|this|while|for|bool|map|vector|unordered_set|queue|stack|set|HashSet|LinkedList|Queue|Stack|Map|ArrayList|List|true|false)\b/g;
-  const parts = line.split(/(\W+)/);
-  return (
-    <span className="font-mono">
-      {parts.map((part, index) => {
-        if (part.match(keywords)) {
-          return <span key={index} className="text-cyan-400 font-semibold">{part}</span>;
-        }
-        if (part.match(/^\d+$/)) {
-          return <span key={index} className="text-amber-400">{part}</span>;
-        }
-        if (part === 'visited' || part === 'queue' || part === 'stack' || part === 'node' || part === 'neighbor' || part === 'graph' || part === 'adj') {
-          return <span key={index} className="text-fuchsia-300 italic">{part}</span>;
-        }
-        return <span key={index} className="text-gray-200">{part}</span>;
-      })}
-    </span>
-  );
-};
+  const [startNodeId, setStartNodeId] = useState(PRESETS.ring.start);
+  const [targetNodeId, setTargetNodeId] = useState(PRESETS.ring.target);
 
-export default function BFSDFSVisualizer() {
-  // Graph structure states
-  const [nodes, setNodes] = useState([
-    { id: 0, label: 'A', x: 200, y: 120, state: 'default' },
-    { id: 1, label: 'B', x: 100, y: 220, state: 'default' },
-    { id: 2, label: 'C', x: 300, y: 220, state: 'default' },
-    { id: 3, label: 'D', x: 60, y: 340, state: 'default' },
-    { id: 4, label: 'E', x: 180, y: 340, state: 'default' },
-    { id: 5, label: 'F', x: 340, y: 340, state: 'default' }
-  ]);
-
-  const [edges, setEdges] = useState([
-    { from: 0, to: 1, type: 'undirected', state: 'default' },
-    { from: 0, to: 2, type: 'undirected', state: 'default' },
-    { from: 1, to: 3, type: 'undirected', state: 'default' },
-    { from: 1, to: 4, type: 'undirected', state: 'default' },
-    { from: 2, to: 5, type: 'undirected', state: 'default' },
-    { from: 4, to: 5, type: 'undirected', state: 'default' }
-  ]);
-
-  // Operational Settings
-  const [algo, setAlgo] = useState("bfs"); // bfs | dfs
-  const [startNodeId, setStartNodeId] = useState(0);
-  const [targetNodeId, setTargetNodeId] = useState(5);
+  const [activeAlgo, setActiveAlgo] = useState("bfs"); 
   const [language, setLanguage] = useState("python");
-  const [speed, setSpeed] = useState(700);
-  const [audioEnabled, setAudioEnabled] = useState(true);
-  const [showNodeCoords, setShowNodeCoords] = useState(false);
-  const [zoom, setZoom] = useState(100);
-  const [activeTab, setActiveTab] = useState("debugger"); // debugger | analysis | logs
-  const [activePreset, setActivePreset] = useState("tree");
+  const [speed, setSpeed] = useState(500);
+  const [status, setStatus] = useState("Graph loaded. Drag nodes, adjust presets, or set start & target.");
+  const [executionLog, setExecutionLog] = useState(["[System] Circular Ring Preset loaded. Drag nodes directly on the canvas to reorganize."]);
+  const [highlightLineNum, setHighlightLineNum] = useState(-1);
 
-  // Custom addition states
-  const [newNodeLabel, setNewNodeLabel] = useState("");
-  const [edgeFrom, setEdgeFrom] = useState("");
-  const [edgeTo, setEdgeTo] = useState("");
-  const [edgeDirected, setEdgeDirected] = useState(false);
-
-  // Visualization Runtime States
-  const [status, setStatus] = useState("Choose configurations and press Run Algorithm.");
-  const [statusType, setStatusType] = useState("default"); // default | visiting | success | error
   const [isVisualizing, setIsVisualizing] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const [highlightLine, setHighlightLine] = useState(-1);
-  const [activeDS, setActiveDS] = useState([]); // Visual simulation of Queue or Stack
-  const [visitedNodesSet, setVisitedNodesSet] = useState([]); // Keeps chronological visited path
-  const [systemLogs, setSystemLogs] = useState(["[System] Sandbox loaded with Tree Graph preset."]);
-  const [maxDSSize, setMaxDSSize] = useState(0);
+  const [error, setError] = useState(null);
 
-  // Drag node state
-  const [draggingNodeId, setDraggingNodeId] = useState(null);
+  // Dynamic Custom Graph States
+  const [newNodeLabel, setNewNodeLabel] = useState("");
+  const [edgeFromId, setEdgeFromId] = useState("");
+  const [edgeToId, setEdgeToId] = useState("");
+  const [nodeToDeleteId, setNodeToDeleteId] = useState("");
+
+  // Dragging States
+  const [draggedNodeId, setDraggedNodeId] = useState(null);
+
+  const pausedRef = useRef(false);
+  const isCancelledRef = useRef(false);
+  const logContainerRef = useRef(null);
   const canvasRef = useRef(null);
 
-  // Debugging control references
-  const isCancelledRef = useRef(false);
-  const pausedRef = useRef(false);
-  const stepModeRef = useRef(false);
-  const stepSignalRef = useRef(null);
-  const speedRef = useRef(speed);
-  const logsEndRef = useRef(null);
-
   useEffect(() => {
-    speedRef.current = speed;
-  }, [speed]);
-
-  useEffect(() => {
-    if (logsEndRef.current) {
-      logsEndRef.current.scrollTop = logsEndRef.current.scrollHeight;
+    if (logContainerRef.current) {
+      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
     }
-  }, [systemLogs]);
+  }, [executionLog]);
 
-  const logMessage = (msg) => {
-    setSystemLogs(prev => [...prev, msg]);
-  };
-
-  const loadPreset = (preset) => {
-    setActivePreset(preset);
-    logMessage(`[Preset] Loading graph layout: ${preset}`);
-    
-    if (preset === 'tree') {
-      setNodes([
-        { id: 0, label: 'A', x: 250, y: 80, state: 'default' },
-        { id: 1, label: 'B', x: 130, y: 180, state: 'default' },
-        { id: 2, label: 'C', x: 370, y: 180, state: 'default' },
-        { id: 3, label: 'D', x: 70, y: 280, state: 'default' },
-        { id: 4, label: 'E', x: 190, y: 280, state: 'default' },
-        { id: 5, label: 'F', x: 310, y: 280, state: 'default' },
-        { id: 6, label: 'G', x: 430, y: 280, state: 'default' }
-      ]);
-      setEdges([
-        { from: 0, to: 1, type: 'undirected', state: 'default' },
-        { from: 0, to: 2, type: 'undirected', state: 'default' },
-        { from: 1, to: 3, type: 'undirected', state: 'default' },
-        { from: 1, to: 4, type: 'undirected', state: 'default' },
-        { from: 2, to: 5, type: 'undirected', state: 'default' },
-        { from: 2, to: 6, type: 'undirected', state: 'default' }
-      ]);
-      setStartNodeId(0);
-      setTargetNodeId(6);
-    } 
-    else if (preset === 'mesh') {
-      setNodes([
-        { id: 0, label: 'N1', x: 100, y: 100, state: 'default' },
-        { id: 1, label: 'N2', x: 250, y: 100, state: 'default' },
-        { id: 2, label: 'N3', x: 400, y: 100, state: 'default' },
-        { id: 3, label: 'N4', x: 100, y: 250, state: 'default' },
-        { id: 4, label: 'N5', x: 250, y: 250, state: 'default' },
-        { id: 5, label: 'N6', x: 400, y: 250, state: 'default' },
-        { id: 6, label: 'N7', x: 250, y: 380, state: 'default' }
-      ]);
-      setEdges([
-        { from: 0, to: 1, type: 'undirected', state: 'default' },
-        { from: 1, to: 2, type: 'undirected', state: 'default' },
-        { from: 0, to: 3, type: 'undirected', state: 'default' },
-        { from: 1, to: 4, type: 'undirected', state: 'default' },
-        { from: 2, to: 5, type: 'undirected', state: 'default' },
-        { from: 3, to: 4, type: 'undirected', state: 'default' },
-        { from: 4, to: 5, type: 'undirected', state: 'default' },
-        { from: 3, to: 6, type: 'undirected', state: 'default' },
-        { from: 5, to: 6, type: 'undirected', state: 'default' }
-      ]);
-      setStartNodeId(0);
-      setTargetNodeId(6);
-    }
-    else if (preset === 'cycle') {
-      setNodes([
-        { id: 0, label: 'C1', x: 250, y: 60, state: 'default' },
-        { id: 1, label: 'C2', x: 380, y: 150, state: 'default' },
-        { id: 2, label: 'C3', x: 380, y: 300, state: 'default' },
-        { id: 3, label: 'C4', x: 250, y: 380, state: 'default' },
-        { id: 4, label: 'C5', x: 120, y: 300, state: 'default' },
-        { id: 5, label: 'C6', x: 120, y: 150, state: 'default' }
-      ]);
-      setEdges([
-        { from: 0, to: 1, type: 'directed', state: 'default' },
-        { from: 1, to: 2, type: 'directed', state: 'default' },
-        { from: 2, to: 3, type: 'directed', state: 'default' },
-        { from: 3, to: 4, type: 'directed', state: 'default' },
-        { from: 4, to: 5, type: 'directed', state: 'default' },
-        { from: 5, to: 0, type: 'directed', state: 'default' }
-      ]);
-      setStartNodeId(0);
-      setTargetNodeId(3);
-    }
-  };
-
-  const addCustomNode = () => {
-    if (!newNodeLabel.trim()) return;
-    const existingNode = nodes.find(n => n.label.toLowerCase() === newNodeLabel.trim().toLowerCase());
-    if (existingNode) {
-      logMessage(`[Error] Node labeled "${newNodeLabel}" already exists.`);
-      return;
-    }
-    const newId = nodes.length > 0 ? Math.max(...nodes.map(n => n.id)) + 1 : 0;
-    const newNode = {
-      id: newId,
-      label: newNodeLabel.trim().toUpperCase(),
-      x: 100 + Math.random() * 250,
-      y: 100 + Math.random() * 200,
-      state: 'default'
-    };
-    setNodes(prev => [...prev, newNode]);
-    logMessage(`[Build] Added Node: ${newNode.label}`);
-    setNewNodeLabel("");
-  };
-
-  const addCustomEdge = () => {
-    const fromId = parseInt(edgeFrom);
-    const toId = parseInt(edgeTo);
-    if (isNaN(fromId) || isNaN(toId)) return;
-    if (fromId === toId) {
-      logMessage(`[Error] Self-loops are not visually supported.`);
-      return;
-    }
-
-    const edgeExists = edges.some(e => 
-      (e.from === fromId && e.to === toId) || 
-      (e.type === 'undirected' && e.from === toId && e.to === fromId)
-    );
-
-    if (edgeExists) {
-      logMessage(`[Error] Link between selected nodes already exists.`);
-      return;
-    }
-
-    const newEdge = {
-      from: fromId,
-      to: toId,
-      type: edgeDirected ? 'directed' : 'undirected',
-      state: 'default'
-    };
-
-    setEdges(prev => [...prev, newEdge]);
-    const fNode = nodes.find(n => n.id === fromId)?.label;
-    const tNode = nodes.find(n => n.id === toId)?.label;
-    logMessage(`[Build] Connected: ${fNode} ${edgeDirected ? '→' : '—'} ${tNode}`);
-    setEdgeFrom("");
-    setEdgeTo("");
-  };
-
-  const clearCanvas = () => {
-    setNodes([]);
-    setEdges([]);
-    setStartNodeId(null);
-    setTargetNodeId(null);
-    logMessage(`[System] Canvas cleared. Design your own network.`);
-  };
-
-  const handleNodeMouseDown = (e, nodeId) => {
+  const handleClearAll = () => {
     if (isVisualizing) return;
-    setDraggingNodeId(nodeId);
-    e.stopPropagation();
-  };
-
-  const handleCanvasMouseMove = (e) => {
-    if (draggingNodeId === null || isVisualizing) return;
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = Math.min(Math.max(30, (e.clientX - rect.left) * (100 / zoom)), 570);
-    const y = Math.min(Math.max(30, (e.clientY - rect.top) * (100 / zoom)), 470);
-    
-    setNodes(prev => prev.map(node => 
-      node.id === draggingNodeId ? { ...node, x, y } : node
-    ));
-  };
-
-  const handleCanvasMouseUpOrLeave = () => {
-    setDraggingNodeId(null);
-  };
-
-  const checkPauseState = async () => {
-    while (pausedRef.current && !isCancelledRef.current) {
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
-  };
-
-  const handleNextStep = () => {
-    if (stepSignalRef.current) {
-      const resolve = stepSignalRef.current;
-      stepSignalRef.current = null;
-      resolve();
-    }
-  };
-
-  const awaitStepper = async (logicalStep, message, soundEffect = 'visit') => {
-    if (isCancelledRef.current) throw new Error("cancelled");
-    setHighlightLine(LINE_MAPS[language]?.[algo]?.[logicalStep] || -1);
-    setStatus(message);
-    logMessage(`[Trace] ${message}`);
-    
-    if (soundEffect) {
-      playAudioFeedback(soundEffect, audioEnabled);
-    }
-
-    if (pausedRef.current) {
-      setStatus(`[Paused] ${message}`);
-      return new Promise((resolve) => {
-        stepSignalRef.current = resolve;
-      });
-    } else {
-      await new Promise(resolve => setTimeout(resolve, speedRef.current));
-    }
-  };
-
-  const togglePausePlay = () => {
-    const nextPaused = !isPaused;
-    setIsPaused(nextPaused);
-    pausedRef.current = nextPaused;
-    if (nextPaused) {
-      logMessage(`[Control] Visualization paused.`);
-    } else {
-      logMessage(`[Control] Visualization resumed.`);
-      handleNextStep();
-    }
-  };
-
-  const toggleStepMode = () => {
-    const nextMode = !stepModeRef.current;
-    stepModeRef.current = nextMode;
-    if (nextMode) {
-      logMessage(`[Control] Step-through debugger mode enabled. Manually step forward.`);
-      setIsPaused(true);
-      pausedRef.current = true;
-    } else {
-      logMessage(`[Control] Step-through disabled. Automated interval play resumed.`);
-      setIsPaused(false);
-      pausedRef.current = false;
-      handleNextStep();
-    }
-  };
-
-  const resetSimulationStates = () => {
     isCancelledRef.current = true;
     setIsVisualizing(false);
     setIsPaused(false);
     pausedRef.current = false;
-    stepModeRef.current = false;
-    setHighlightLine(-1);
-    setActiveDS([]);
-    setVisitedNodesSet([]);
-    setMaxDSSize(0);
-    setNodes(prev => prev.map(n => ({ ...n, state: 'default' })));
-    setEdges(prev => prev.map(e => ({ ...e, state: 'default' })));
-    setStatus("Sandbox reset. Configure nodes and play.");
-    setStatusType("default");
+
+    setNodes([]);
+    setEdges([]);
+    setStartNodeId(null);
+    setTargetNodeId(null);
+    setError(null);
+    setStatus("Graph cleared. Add nodes and edges to begin.");
+    setHighlightLineNum(-1);
+    setExecutionLog(["[System] Cleared all nodes and edges. Canvas is empty."]);
+
     setTimeout(() => {
       isCancelledRef.current = false;
-    }, 150);
+    }, 100);
   };
 
-  const runBFS = async () => {
-    if (startNodeId === null || targetNodeId === null) {
-      setStatus("Error: Start and Target nodes must be set.");
-      setStatusType("error");
+  const loadPreset = (presetKey) => {
+    if (isVisualizing) return;
+    setActivePresetKey(presetKey);
+    const p = PRESETS[presetKey];
+    setNodes(p.nodes);
+    setEdges(p.edges);
+    setStartNodeId(p.start);
+    setTargetNodeId(p.target);
+    setExecutionLog([`[Preset] Loaded ${presetKey.toUpperCase()} graph network layout.`]);
+    setStatus("Ready.");
+    setError(null);
+  };
+
+  const updateNodeState = (nodesList, id, stateName) => {
+    return nodesList.map(n => n.id === id ? { ...n, state: stateName } : n);
+  };
+
+  const checkPause = async () => {
+    while (pausedRef.current && !isCancelledRef.current) {
+      setStatus("Paused. Press Resume to continue.");
+      await sleep(100);
+    }
+  };
+
+  const cleanup = () => {
+    setIsVisualizing(false);
+    setTimeout(() => {
+      if (!isCancelledRef.current) {
+        setNodes(prev => prev.map(n => ({ ...n, state: 'default' })));
+        setEdges(prev => prev.map(e => ({ ...e, state: 'default' })));
+        setStatus("Ready.");
+      }
+    }, speed * 2);
+  };
+
+  const handleReset = () => {
+    isCancelledRef.current = true;
+    setIsVisualizing(false);
+    setIsPaused(false);
+    pausedRef.current = false;
+
+    const p = PRESETS[activePresetKey] || PRESETS.ring;
+    setNodes(p.nodes.map(n => ({ ...n, state: 'default' })));
+    setEdges(p.edges.map(e => ({ ...e, state: 'default' })));
+    setStartNodeId(p.start);
+    setTargetNodeId(p.target);
+    setError(null);
+    setStatus("Graph reset to preset layout.");
+    setHighlightLineNum(-1);
+    setExecutionLog(["[System] Restored preset graph dimensions."]);
+
+    setTimeout(() => {
+      isCancelledRef.current = false;
+    }, 100);
+  };
+
+  const togglePause = () => {
+    const nextPaused = !isPaused;
+    setIsPaused(nextPaused);
+    pausedRef.current = nextPaused;
+    if (nextPaused) {
+      setExecutionLog(prev => [...prev, "Paused visual walk."]);
+    } else {
+      setExecutionLog(prev => [...prev, "Resuming search..."]);
+    }
+  };
+
+  const handleNodeClick = (id) => {
+    if (isVisualizing) return;
+    setError(null);
+    if (startNodeId === id) {
+      setStartNodeId(null);
+      setExecutionLog(prev => [...prev, `Deselected Start Node.`]);
+    } else if (targetNodeId === id) {
+      setTargetNodeId(null);
+      setExecutionLog(prev => [...prev, `Deselected Target Node.`]);
+    } else if (!startNodeId) {
+      setStartNodeId(id);
+      setExecutionLog(prev => [...prev, `Set Start Node: ${nodes.find(n => n.id === id)?.label}`]);
+    } else {
+      setTargetNodeId(id);
+      setExecutionLog(prev => [...prev, `Set Target Node: ${nodes.find(n => n.id === id)?.label}`]);
+    }
+  };
+
+  const handleMouseDown = (e, nodeId) => {
+    if (isVisualizing) return;
+    e.preventDefault();
+    setDraggedNodeId(nodeId);
+  };
+
+  const handleMouseMove = (e) => {
+    if (draggedNodeId === null || !canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    
+    // Convert client coordinates to canvas percentage offset
+    let x = ((e.clientX - rect.left) / rect.width) * 100;
+    let y = ((e.clientY - rect.top) / rect.height) * 100;
+
+    // Boundary constraints
+    x = Math.max(5, Math.min(95, x));
+    y = Math.max(5, Math.min(95, y));
+
+    setNodes(prev => prev.map(n => n.id === draggedNodeId ? { ...n, x: Math.round(x), y: Math.round(y) } : n));
+  };
+
+  const handleMouseUpOrLeave = () => {
+    setDraggedNodeId(null);
+  };
+
+  const handleTouchMove = (e) => {
+    if (draggedNodeId === null || !canvasRef.current) return;
+    const touch = e.touches[0];
+    const rect = canvasRef.current.getBoundingClientRect();
+    
+    let x = ((touch.clientX - rect.left) / rect.width) * 100;
+    let y = ((touch.clientY - rect.top) / rect.height) * 100;
+
+    x = Math.max(5, Math.min(95, x));
+    y = Math.max(5, Math.min(95, y));
+
+    setNodes(prev => prev.map(n => n.id === draggedNodeId ? { ...n, x: Math.round(x), y: Math.round(y) } : n));
+  };
+
+  const handleAddNode = () => {
+    if (isVisualizing) return;
+    const label = newNodeLabel.trim();
+    if (!label) {
+      setError("Please specify a valid label to add a Node.");
+      return;
+    }
+    if (nodes.some(n => n.label.toLowerCase() === label.toLowerCase())) {
+      setError(`Node with label "${label}" already exists.`);
       return;
     }
 
-    isCancelledRef.current = false;
-    setIsVisualizing(true);
-    setStatusType("visiting");
-    setVisitedNodesSet([]);
-    setMaxDSSize(0);
+    // Place new node near center with standard offsets
+    const nextId = nodes.length > 0 ? Math.max(...nodes.map(n => Number(n.id) || 0)) + 1 : 1;
+    const offset = (nodes.length % 5) * 5;
+    const newNode = {
+      id: nextId,
+      label: label.toUpperCase(),
+      x: 50 + (nodes.length % 2 === 0 ? offset : -offset),
+      y: 50 + (nodes.length % 2 === 1 ? offset : -offset),
+      state: 'default'
+    };
+
+    setNodes(prev => [...prev, newNode]);
+    setExecutionLog(prev => [...prev, `[Editor] Created Node ${label.toUpperCase()} at center. Drag to reposition.`]);
+    setNewNodeLabel("");
+    setError(null);
+  };
+
+  const handleDeleteNode = () => {
+    if (isVisualizing) return;
+    const idToDelete = Number(nodeToDeleteId);
+    if (!idToDelete) {
+      setError("Please select a valid node to delete.");
+      return;
+    }
+
+    // Filter nodes and all associated connecting edges
+    setNodes(prev => prev.filter(n => n.id !== idToDelete));
+    setEdges(prev => prev.filter(e => e.from !== idToDelete && e.to !== idToDelete));
     
-    // Clear styles
-    let workingNodes = nodes.map(n => ({ ...n, state: 'default' }));
-    let workingEdges = edges.map(e => ({ ...e, state: 'default' }));
-    setNodes(workingNodes);
-    setEdges(workingEdges);
+    // Clean up selected targets if they were deleted
+    if (startNodeId === idToDelete) setStartNodeId(null);
+    if (targetNodeId === idToDelete) setTargetNodeId(null);
 
-    logMessage(`--- Starting Breadth-First Search (BFS) sequence from [${nodes.find(n=>n.id===startNodeId)?.label}] ---`);
+    setExecutionLog(prev => [...prev, `[Editor] Deleted Node ID: ${idToDelete} and its incoming/outgoing connections.`]);
+    setNodeToDeleteId("");
+    setError(null);
+  };
 
-    try {
-      // 1. Init
-      const queue = [startNodeId];
-      const visited = new Set([startNodeId]);
-      setActiveDS([...queue]);
-      setVisitedNodesSet([startNodeId]);
-      
-      workingNodes = workingNodes.map(n => n.id === startNodeId ? { ...n, state: 'visiting' } : n);
-      setNodes(workingNodes);
-      setMaxDSSize(1);
-      
-      await awaitStepper('init', `Initialized queue with start node: ${nodes.find(n=>n.id===startNodeId)?.label}`, 'enqueue');
+  const handleAddEdge = () => {
+    if (isVisualizing) return;
+    const fromId = Number(edgeFromId);
+    const toId = Number(edgeToId);
 
-      while (queue.length > 0) {
-        await checkPauseState();
+    if (!fromId || !toId) {
+      setError("Select both source and destination nodes to draw an edge.");
+      return;
+    }
+    if (fromId === toId) {
+      setError("Self-loops are not allowed in this visualizer.");
+      return;
+    }
+    if (edges.some(e => e.from === fromId && e.to === toId)) {
+      setError("This directional connection already exists.");
+      return;
+    }
 
-        // 2. Loop check
-        await awaitStepper('loop_cond', `Checking queue. Queue length is: ${queue.length}`);
-        
-        // 3. Dequeue
-        const currentId = queue.shift();
-        setActiveDS([...queue]);
-        workingNodes = workingNodes.map(n => n.id === currentId ? { ...n, state: 'active' } : n);
-        setNodes(workingNodes);
-        
-        await awaitStepper('pop', `Dequeued node ${nodes.find(n=>n.id===currentId)?.label}`, 'dequeue');
+    const newEdge = { from: fromId, to: toId, state: 'default' };
+    setEdges(prev => [...prev, newEdge]);
+    setExecutionLog(prev => [...prev, `[Editor] Created directed edge from ${nodes.find(n => n.id === fromId)?.label} to ${nodes.find(n => n.id === toId)?.label}`]);
+    setEdgeFromId("");
+    setEdgeToId("");
+    setError(null);
+  };
 
-        // 4. Target check
-        if (currentId === targetNodeId) {
-          workingNodes = workingNodes.map(n => n.id === currentId ? { ...n, state: 'found' } : n);
-          setNodes(workingNodes);
-          await awaitStepper('check_target', `Target node ${nodes.find(n=>n.id===currentId)?.label} found!`, 'success');
-          setStatus(`Search successful! Found node ${nodes.find(n=>n.id===currentId)?.label}`);
-          setStatusType("success");
+  const runAlgorithm = async () => {
+    if (isVisualizing) return;
+    if (!startNodeId || !targetNodeId) {
+      setError("Please specify both a Start and Target Node to execute.");
+      return;
+    }
+    if (startNodeId === targetNodeId) {
+      setError("Start and Target nodes must be different.");
+      return;
+    }
+
+    setError(null);
+    setIsVisualizing(true);
+    isCancelledRef.current = false;
+
+    let currNodes = nodes.map(n => ({ ...n, state: 'default' }));
+    let currEdges = edges.map(e => ({ ...e, state: 'default' }));
+    setNodes(currNodes);
+    setEdges(currEdges);
+
+    if (activeAlgo === 'bfs') {
+      await runBFS();
+    } else {
+      await runDFS();
+    }
+  };
+
+  const runBFS = async () => {
+    setExecutionLog(prev => [...prev, `--- Initiating BFS from ${nodes.find(n => n.id === startNodeId)?.label} ---`]);
+    let queue = [startNodeId];
+    let visited = new Set([startNodeId]);
+
+    setHighlightLineNum(LINE_MAPS.bfs[language].init);
+    setStatus(`Enqueuing start node ${nodes.find(n => n.id === startNodeId)?.label}.`);
+    setNodes(prev => updateNodeState(prev, startNodeId, 'visiting'));
+    await sleep(speed);
+
+    while (queue.length > 0) {
+      if (isCancelledRef.current) return cleanup();
+      await checkPause();
+
+      setHighlightLineNum(LINE_MAPS.bfs[language].loop_cond);
+      setStatus(`Queue contents: [ ${queue.map(id => nodes.find(n => n.id === id)?.label).join(', ')} ]`);
+      await sleep(speed);
+
+      const current = queue.shift();
+      setHighlightLineNum(LINE_MAPS.bfs[language].pop);
+      setStatus(`Dequeued node ${nodes.find(n => n.id === current)?.label}.`);
+      setNodes(prev => updateNodeState(prev, current, 'pre-op')); 
+      await sleep(speed);
+
+      setHighlightLineNum(LINE_MAPS.bfs[language].check_target);
+      if (current === targetNodeId) {
+        setNodes(prev => updateNodeState(prev, current, 'found')); 
+        setStatus(`Search successful! Found node ${nodes.find(n => n.id === current)?.label}`);
+        setExecutionLog(prev => [...prev, `BFS Success: Target reached at ${nodes.find(n => n.id === current)?.label}`]);
+        setIsVisualizing(false);
+        return;
+      }
+
+      setNodes(prev => updateNodeState(prev, current, 'found'));
+      setExecutionLog(prev => [...prev, `Visited Node: ${nodes.find(n => n.id === current)?.label}`]);
+
+      const neighbors = edges.filter(e => e.from === current).map(e => e.to);
+      setHighlightLineNum(LINE_MAPS.bfs[language].loop_neighbors);
+      setStatus(`Scanning neighbors of ${nodes.find(n => n.id === current)?.label}.`);
+      await sleep(speed);
+
+      for (let neighbor of neighbors) {
+        if (isCancelledRef.current) return cleanup();
+        await checkPause();
+
+        setHighlightLineNum(LINE_MAPS.bfs[language].check_visited);
+        const hasBeenVisited = visited.has(neighbor);
+        setStatus(`Checking neighbor ${nodes.find(n => n.id === neighbor)?.label}. Visited? ${hasBeenVisited ? 'Yes' : 'No'}`);
+        await sleep(speed);
+
+        if (!hasBeenVisited) {
+          visited.add(neighbor);
+          queue.push(neighbor);
+
+          setEdges(prev => prev.map(e => e.from === current && e.to === neighbor ? { ...e, state: 'traversed' } : e));
+          setNodes(prev => updateNodeState(prev, neighbor, 'visiting'));
+
+          setHighlightLineNum(LINE_MAPS.bfs[language].push);
+          setStatus(`Enqueued node ${nodes.find(n => n.id === neighbor)?.label}.`);
+          setExecutionLog(prev => [...prev, `Enqueued neighbor: ${nodes.find(n => n.id === neighbor)?.label}`]);
+          await sleep(speed);
+        }
+      }
+    }
+
+    setHighlightLineNum(LINE_MAPS.bfs[language].return_false);
+    setStatus("Queue exhausted. Target node unreachable.");
+    setExecutionLog(prev => [...prev, `BFS Completed: Target not reached.`]);
+    cleanup();
+  };
+
+  const runDFS = async () => {
+    setExecutionLog(prev => [...prev, `--- Initiating DFS from ${nodes.find(n => n.id === startNodeId)?.label} ---`]);
+    let stack = [startNodeId];
+    let visited = new Set();
+
+    setHighlightLineNum(LINE_MAPS.dfs[language].init);
+    setStatus(`Stacking start node ${nodes.find(n => n.id === startNodeId)?.label}.`);
+    setNodes(prev => updateNodeState(prev, startNodeId, 'visiting'));
+    await sleep(speed);
+
+    while (stack.length > 0) {
+      if (isCancelledRef.current) return cleanup();
+      await checkPause();
+
+      setHighlightLineNum(LINE_MAPS.dfs[language].loop_cond);
+      setStatus(`Stack contents: [ ${stack.map(id => nodes.find(n => n.id === id)?.label).join(', ')} ]`);
+      await sleep(speed);
+
+      const current = stack.pop();
+      setHighlightLineNum(LINE_MAPS.dfs[language].pop);
+      setStatus(`Popped node ${nodes.find(n => n.id === current)?.label} from stack.`);
+      setNodes(prev => updateNodeState(prev, current, 'pre-op')); 
+      await sleep(speed);
+
+      if (!visited.has(current)) {
+        visited.add(current);
+
+        setHighlightLineNum(LINE_MAPS.dfs[language].check_target);
+        if (current === targetNodeId) {
+          setNodes(prev => updateNodeState(prev, current, 'found')); 
+          setStatus(`Search successful! Found node ${nodes.find(n => n.id === current)?.label}`);
+          setExecutionLog(prev => [...prev, `DFS Success: Target reached at ${nodes.find(n => n.id === current)?.label}`]);
           setIsVisualizing(false);
           return;
         }
 
-        // Set to visited (green background)
-        workingNodes = workingNodes.map(n => n.id === currentId ? { ...n, state: 'visited' } : n);
-        setNodes(workingNodes);
+        setNodes(prev => updateNodeState(prev, current, 'found'));
+        setExecutionLog(prev => [...prev, `Visited Node: ${nodes.find(n => n.id === current)?.label}`]);
 
-        // 5. Query neighbors
-        await awaitStepper('loop_neighbors', `Retrieving unvisited neighbors for node ${nodes.find(n=>n.id===currentId)?.label}`);
-        
-        // Build adjacency
-        const neighbors = [];
-        edges.forEach(e => {
-          if (e.from === currentId) neighbors.push(e.to);
-          else if (e.type === 'undirected' && e.to === currentId) neighbors.push(e.from);
-        });
+        const neighbors = edges.filter(e => e.from === current).map(e => e.to);
+        setHighlightLineNum(LINE_MAPS.dfs[language].loop_neighbors);
+        setStatus(`Scanning neighbors of ${nodes.find(n => n.id === current)?.label}.`);
+        await sleep(speed);
 
-        for (const neighborId of neighbors) {
-          await checkPauseState();
+        for (let neighbor of neighbors) {
+          if (isCancelledRef.current) return cleanup();
+          await checkPause();
 
-          if (!visited.has(neighborId)) {
-            // Check visit step
-            await awaitStepper('check_visited', `Neighbor node ${nodes.find(n=>n.id===neighborId)?.label} is unvisited.`);
-            
-            visited.add(neighborId);
-            queue.push(neighborId);
-            
-            // Mark edge as traversed
-            workingEdges = workingEdges.map(e => {
-              if ((e.from === currentId && e.to === neighborId) || (e.type === 'undirected' && e.from === neighborId && e.to === currentId)) {
-                return { ...e, state: 'traversed' };
-              }
-              return e;
-            });
-            setEdges(workingEdges);
+          setHighlightLineNum(LINE_MAPS.dfs[language].check_visited);
+          const hasBeenVisited = visited.has(neighbor);
+          setStatus(`Checking neighbor ${nodes.find(n => n.id === neighbor)?.label}. Visited? ${hasBeenVisited ? 'Yes' : 'No'}`);
+          await sleep(speed);
 
-            workingNodes = workingNodes.map(n => n.id === neighborId ? { ...n, state: 'visiting' } : n);
-            setNodes(workingNodes);
-            
-            setVisitedNodesSet(prev => [...prev, neighborId]);
-            setActiveDS([...queue]);
-            setMaxDSSize(prev => Math.max(prev, queue.length));
+          if (!hasBeenVisited) {
+            stack.push(neighbor);
 
-            await awaitStepper('push', `Pushed ${nodes.find(n=>n.id===neighborId)?.label} to Queue.`, 'enqueue');
+            setEdges(prev => prev.map(e => e.from === current && e.to === neighbor ? { ...e, state: 'traversed' } : e));
+            setNodes(prev => updateNodeState(prev, neighbor, 'visiting'));
+
+            setHighlightLineNum(LINE_MAPS.dfs[language].push);
+            setStatus(`Pushed node ${nodes.find(n => n.id === neighbor)?.label} to stack.`);
+            setExecutionLog(prev => [...prev, `Pushed neighbor: ${nodes.find(n => n.id === neighbor)?.label}`]);
+            await sleep(speed);
           }
         }
       }
-
-      await awaitStepper('return_false', `Queue empty. Target node not reachable.`, 'not_found');
-      setStatus("BFS Finished: Target node was not found.");
-      setStatusType("error");
-    } catch (e) {
-      logMessage("[System] Run terminated.");
     }
-    setIsVisualizing(false);
+
+    setHighlightLineNum(LINE_MAPS.dfs[language].return_false);
+    setStatus("Stack exhausted. Target node unreachable.");
+    setExecutionLog(prev => [...prev, `DFS Completed: Target not reached.`]);
+    cleanup();
   };
 
-  const runDFS = async () => {
-    if (startNodeId === null || targetNodeId === null) {
-      setStatus("Error: Start and Target nodes must be set.");
-      setStatusType("error");
-      return;
-    }
-
-    isCancelledRef.current = false;
-    setIsVisualizing(true);
-    setStatusType("visiting");
-    setVisitedNodesSet([]);
-    setMaxDSSize(0);
-
-    let workingNodes = nodes.map(n => ({ ...n, state: 'default' }));
-    let workingEdges = edges.map(e => ({ ...e, state: 'default' }));
-    setNodes(workingNodes);
-    setEdges(workingEdges);
-
-    logMessage(`--- Starting Depth-First Search (DFS) sequence from [${nodes.find(n=>n.id===startNodeId)?.label}] ---`);
-
-    try {
-      const stack = [startNodeId];
-      const visited = new Set();
-      setActiveDS([...stack]);
-      setMaxDSSize(1);
-
-      await awaitStepper('init', `Initialized stack with start node: ${nodes.find(n=>n.id===startNodeId)?.label}`, 'push');
-
-      while (stack.length > 0) {
-        await checkPauseState();
-
-        await awaitStepper('loop_cond', `Checking stack. Stack depth is: ${stack.length}`);
-
-        const currentId = stack.pop();
-        setActiveDS([...stack]);
-        
-        if (!visited.has(currentId)) {
-          // Dequeue sound fits pop
-          await awaitStepper('pop', `Popped ${nodes.find(n=>n.id===currentId)?.label} from Stack top.`, 'dequeue');
-          
-          visited.add(currentId);
-          setVisitedNodesSet(prev => [...prev, currentId]);
-          
-          workingNodes = workingNodes.map(n => n.id === currentId ? { ...n, state: 'active' } : n);
-          setNodes(workingNodes);
-
-          await awaitStepper('check_visited', `Marking node ${nodes.find(n=>n.id===currentId)?.label} as visited.`);
-
-          if (currentId === targetNodeId) {
-            workingNodes = workingNodes.map(n => n.id === currentId ? { ...n, state: 'found' } : n);
-            setNodes(workingNodes);
-            await awaitStepper('check_target', `Target node found!`, 'success');
-            setStatus(`Search successful! Found node ${nodes.find(n=>n.id===currentId)?.label}`);
-            setStatusType("success");
-            setIsVisualizing(false);
-            return;
-          }
-
-          workingNodes = workingNodes.map(n => n.id === currentId ? { ...n, state: 'visited' } : n);
-          setNodes(workingNodes);
-
-          // Get neighbors
-          await awaitStepper('loop_neighbors', `Scanning neighbors for node ${nodes.find(n=>n.id===currentId)?.label}`);
-          const neighbors = [];
-          edges.forEach(e => {
-            if (e.from === currentId) neighbors.push(e.to);
-            else if (e.type === 'undirected' && e.to === currentId) neighbors.push(e.from);
-          });
-
-          // Stack neighbors in reverse order (to traverse in left-to-right or indexed alignment)
-          const reversedNeighbors = [...neighbors].reverse();
-
-          for (const neighborId of reversedNeighbors) {
-            await checkPauseState();
-
-            if (!visited.has(neighborId)) {
-              stack.push(neighborId);
-              
-              // Visualise queuing edge
-              workingEdges = workingEdges.map(e => {
-                if ((e.from === currentId && e.to === neighborId) || (e.type === 'undirected' && e.from === neighborId && e.to === currentId)) {
-                  return { ...e, state: 'traversed' };
-                }
-                return e;
-              });
-              setEdges(workingEdges);
-
-              workingNodes = workingNodes.map(n => n.id === neighborId && n.state !== 'visited' ? { ...n, state: 'visiting' } : n);
-              setNodes(workingNodes);
-
-              setActiveDS([...stack]);
-              setMaxDSSize(prev => Math.max(prev, stack.length));
-
-              await awaitStepper('push', `Pushed neighbor ${nodes.find(n=>n.id===neighborId)?.label} to Stack.`, 'push');
-            }
-          }
-        } else {
-          // Node is already visited
-          await awaitStepper('check_visited', `Node ${nodes.find(n=>n.id===currentId)?.label} was already visited. Skipping.`);
-        }
-      }
-
-      await awaitStepper('return_false', `Stack empty. Target unreachable.`, 'not_found');
-      setStatus("DFS Finished: Target node was not found.");
-      setStatusType("error");
-    } catch (e) {
-      logMessage("[System] Run terminated.");
-    }
-    setIsVisualizing(false);
-  };
-
-  const graphAnalytics = useMemo(() => {
-    if (nodes.length === 0) return { totalNodes: 0, totalEdges: 0, isConnected: false, maxDegree: 0 };
-    
-    // Degrees check
-    const degrees = {};
-    nodes.forEach(n => degrees[n.id] = 0);
-    edges.forEach(e => {
-      degrees[e.from] = (degrees[e.from] || 0) + 1;
-      degrees[e.to] = (degrees[e.to] || 0) + 1;
-    });
-
-    const maxDegree = Math.max(...Object.values(degrees), 0);
-
-    // Connected components using quick local BFS
-    const visited = new Set();
-    let components = 0;
-
-    nodes.forEach(start => {
-      if (!visited.has(start.id)) {
-        components++;
-        const q = [start.id];
-        visited.add(start.id);
-        while (q.length > 0) {
-          const node = q.shift();
-          edges.forEach(e => {
-            let neighbor = null;
-            if (e.from === node) neighbor = e.to;
-            else if (e.type === 'undirected' && e.to === node) neighbor = e.from;
-            
-            if (neighbor !== null && !visited.has(neighbor)) {
-              visited.add(neighbor);
-              q.push(neighbor);
-            }
-          });
-        }
-      }
-    });
-
-    return {
-      totalNodes: nodes.length,
-      totalEdges: edges.length,
-      isConnected: components === 1,
-      components,
-      maxDegree
-    };
-  }, [nodes, edges]);
+  const codeLines = codeSnippets[activeAlgo][language].trim().split('\n');
+  const statusColor = status.includes("successful")
+    ? "status-found"
+    : status.includes("unreachable")
+    ? "status-not-found"
+    : status.includes("Paused")
+    ? "status-paused"
+    : "status-default";
 
   return (
-    <div className="flex flex-col lg:flex-row min-h-screen bg-slate-950 text-slate-100 font-sans antialiased overflow-x-hidden">
+    <div className="visualizer-container">
+      <InjectedStyles />
       
-      {/* Dynamic styles injected inline */}
-      <style>{`
-        .scroll-smooth { scrollbar-width: thin; scrollbar-color: rgba(74, 85, 104, 0.5) rgba(15, 23, 42, 0.5); }
-        .grid-bg { background-image: radial-gradient(#1e293b 1.5px, transparent 1.5px); background-size: 20px 20px; }
-        @keyframes flow-dash { to { stroke-dashoffset: -20; } }
-        .animate-flow { stroke-dasharray: 8; animation: flow-dash 1s linear infinite; }
-      `}</style>
+      {/* --- Controls Sidebar --- */}
+      <aside className="controls-sidebar">
+        <h1 className="sidebar-title">
+          <GitFork size={26} style={{ transform: 'rotate(180deg)' }} />
+          BFS & DFS Graph
+        </h1>
 
-      {/* --- SIDEBAR PANEL --- */}
-      <aside className="w-full lg:w-80 xl:w-96 bg-slate-900 border-b lg:border-b-0 lg:border-r border-slate-800 p-5 flex flex-col shrink-0 gap-5 select-none scroll-smooth overflow-y-auto max-h-screen">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-cyan-950 border border-cyan-800 rounded-xl text-cyan-400 shadow-md">
-            <Layers size={26} />
-          </div>
-          <div>
-            <h1 className="text-xl font-black tracking-tight text-white">Traverse Sandbox</h1>
-            <p className="text-xs text-slate-400 font-medium">BFS & DFS Visual Machine</p>
-          </div>
-        </div>
-
-        {/* ALGORITHM SELECTOR SWITCH */}
-        <div className="bg-slate-950 p-1.5 rounded-xl border border-slate-800 grid grid-cols-2">
-          <button
-            onClick={() => setAlgo("bfs")}
+        {/* Dynamic Preset Switcher */}
+        <div className="input-group">
+          <label htmlFor="preset">Graph Preset</label>
+          <select
+            id="preset"
+            value={activePresetKey}
+            onChange={(e) => loadPreset(e.target.value)}
             disabled={isVisualizing}
-            className={`py-2 text-xs font-black rounded-lg transition-all ${algo === 'bfs' ? 'bg-cyan-600 text-white shadow-md' : 'text-slate-400 hover:text-white disabled:opacity-50'}`}
+            className="input-field"
           >
-            Breadth-First (BFS)
-          </button>
-          <button
-            onClick={() => setAlgo("dfs")}
-            disabled={isVisualizing}
-            className={`py-2 text-xs font-black rounded-lg transition-all ${algo === 'dfs' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white disabled:opacity-50'}`}
-          >
-            Depth-First (DFS)
-          </button>
+            <option value="ring">Ring Cycle (6 Nodes)</option>
+            <option value="tree">Binary Tree (7 Nodes)</option>
+            <option value="grid">Grid Network (9 Nodes)</option>
+          </select>
         </div>
 
-        {/* CANVAS LAYOUT CONFIGS */}
-        <div className="bg-slate-950 p-4 rounded-xl border border-slate-800/80 flex flex-col gap-3">
-          <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-            <Settings size={13} className="text-cyan-400" /> Source & Target
-          </label>
-          
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <span className="text-[10px] text-slate-500 font-bold uppercase block mb-1">Start Node</span>
-              <select
-                value={startNodeId ?? ""}
-                onChange={(e) => setStartNodeId(parseInt(e.target.value))}
-                disabled={isVisualizing}
-                className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs outline-none focus:border-cyan-500"
-              >
-                {nodes.map(n => <option key={n.id} value={n.id}>{n.label}</option>)}
-              </select>
-            </div>
-            <div>
-              <span className="text-[10px] text-slate-500 font-bold uppercase block mb-1">Target Node</span>
-              <select
-                value={targetNodeId ?? ""}
-                onChange={(e) => setTargetNodeId(parseInt(e.target.value))}
-                disabled={isVisualizing}
-                className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs outline-none focus:border-cyan-500"
-              >
-                {nodes.map(n => <option key={n.id} value={n.id}>{n.label}</option>)}
-              </select>
-            </div>
-          </div>
-
-          <button
-            onClick={algo === 'bfs' ? runBFS : runDFS}
-            disabled={isVisualizing || nodes.length === 0}
-            className={`w-full py-2.5 mt-1 font-bold text-xs rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg text-white ${
-              algo === 'bfs' ? 'bg-cyan-600 hover:bg-cyan-500 shadow-cyan-950/40' : 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-950/40'
-            } disabled:opacity-40`}
-          >
-            <Play size={14} fill="white" /> Execute {algo.toUpperCase()} Run
-          </button>
-        </div>
-
-        {/* STEP-BY-STEP DEBUGGER CONTROLS */}
-        <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col gap-3">
-          <span className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center justify-between">
-            <span>Runtime Debugger</span>
-            <button
-              onClick={toggleStepMode}
-              className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors ${stepModeRef.current ? 'bg-cyan-900 border-cyan-700 text-cyan-300' : 'bg-slate-900 border-slate-700 text-slate-400 hover:bg-slate-800'}`}
-            >
-              {stepModeRef.current ? "STEP MODE: ON" : "STEP MODE: OFF"}
-            </button>
+        {/* --- Custom Graph Builder Panel --- */}
+        <div className="editor-section">
+          <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--cyan-400)', display: 'block', marginBottom: '0.65rem', textTransform: 'uppercase' }}>
+            Graph Editor (Interactive)
           </span>
 
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={togglePausePlay}
-              disabled={!isVisualizing}
-              className={`py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors border ${
-                !isVisualizing ? 'opacity-40 bg-slate-900 border-slate-800 text-slate-500' :
-                isPaused ? 'bg-emerald-950 text-emerald-400 border-emerald-800 hover:bg-emerald-900' : 'bg-amber-950 text-amber-400 border-amber-800 hover:bg-amber-900'
-              }`}
-            >
-              {isPaused ? <Play size={13} /> : <Pause size={13} />}
-              {isPaused ? "Resume" : "Pause"}
-            </button>
-            <button
-              onClick={handleNextStep}
-              disabled={!isVisualizing || !isPaused}
-              className="py-1.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-40 border border-slate-700 text-slate-200 font-bold text-xs rounded-lg flex items-center justify-center gap-1.5 transition-colors"
-            >
-              <ChevronRight size={14} /> Step Next
-            </button>
+          {/* Add Node Tool */}
+          <div className="input-group">
+            <div style={{ display: 'flex', gap: '0.4rem' }}>
+              <input
+                type="text"
+                placeholder="Node Name (e.g., A)"
+                value={newNodeLabel}
+                onChange={(e) => setNewNodeLabel(e.target.value)}
+                disabled={isVisualizing}
+                className="input-field"
+                style={{ padding: '0.4rem 0.5rem', fontSize: '0.85rem' }}
+              />
+              <button
+                onClick={handleAddNode}
+                disabled={isVisualizing}
+                className="btn btn-green"
+                style={{ padding: '0.4rem 0.75rem', width: 'auto' }}
+                title="Add custom node to visualizer"
+              >
+                <Plus size={16} />
+              </button>
+            </div>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between text-xs font-semibold text-slate-400">
-              <span>Step Delay:</span>
-              <span className="text-cyan-400 font-mono">{speed}ms</span>
+          {/* Add Edge Tool */}
+          <div className="input-group" style={{ marginBottom: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+              <select
+                value={edgeFromId}
+                onChange={(e) => setEdgeFromId(e.target.value)}
+                disabled={isVisualizing}
+                className="input-field"
+                style={{ padding: '0.4rem', fontSize: '0.8rem' }}
+              >
+                <option value="">From</option>
+                {nodes.map(n => <option key={n.id} value={n.id}>{n.label}</option>)}
+              </select>
+              <ArrowRight size={14} style={{ color: 'var(--text-gray-500)' }} />
+              <select
+                value={edgeToId}
+                onChange={(e) => setEdgeToId(e.target.value)}
+                disabled={isVisualizing}
+                className="input-field"
+                style={{ padding: '0.4rem', fontSize: '0.8rem' }}
+              >
+                <option value="">To</option>
+                {nodes.map(n => <option key={n.id} value={n.id}>{n.label}</option>)}
+              </select>
+              <button
+                onClick={handleAddEdge}
+                disabled={isVisualizing}
+                className="btn btn-cyan"
+                style={{ padding: '0.4rem', width: 'auto' }}
+              >
+                Connect
+              </button>
             </div>
+          </div>
+
+          {/* Delete Node Tool */}
+          <div className="input-group" style={{ marginBottom: '0' }}>
+            <div style={{ display: 'flex', gap: '0.4rem' }}>
+              <select
+                value={nodeToDeleteId}
+                onChange={(e) => setNodeToDeleteId(e.target.value)}
+                disabled={isVisualizing}
+                className="input-field"
+                style={{ padding: '0.4rem', fontSize: '0.85rem' }}
+              >
+                <option value="">Select Node to Delete</option>
+                {nodes.map(n => <option key={n.id} value={n.id}>{n.label}</option>)}
+              </select>
+              <button
+                onClick={handleDeleteNode}
+                disabled={isVisualizing}
+                className="btn btn-red"
+                style={{ padding: '0.4rem', width: 'auto' }}
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          </div>
+
+          <div style={{ marginTop: '0.5rem' }}>
+            <button
+              onClick={handleClearAll}
+              disabled={isVisualizing}
+              className="btn btn-red"
+              style={{ padding: '0.4rem', fontSize: '0.8rem', gap: '0.3rem' }}
+            >
+              <Trash2 size={14} /> Delete All Nodes
+            </button>
+          </div>
+        </div>
+
+        {error && <div className="error-message">{error}</div>}
+
+        {/* Start / Target Pickers */}
+        <div className="actions-grid">
+          <div>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-gray-400)', display: 'block', marginBottom: '0.25rem', textTransform: 'uppercase', fontWeight: 'bold' }}>Start Node</span>
+            <select
+              value={startNodeId || ""}
+              onChange={(e) => setStartNodeId(Number(e.target.value))}
+              disabled={isVisualizing}
+              className="input-field"
+            >
+              <option value="">Choose...</option>
+              {nodes.map(n => <option key={n.id} value={n.id}>{n.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-gray-400)', display: 'block', marginBottom: '0.25rem', textTransform: 'uppercase', fontWeight: 'bold' }}>Target Node</span>
+            <select
+              value={targetNodeId || ""}
+              onChange={(e) => setTargetNodeId(Number(e.target.value))}
+              disabled={isVisualizing}
+              className="input-field"
+            >
+              <option value="">Choose...</option>
+              {nodes.map(n => <option key={n.id} value={n.id}>{n.label}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* Algorithm Picker */}
+        <div className="input-group">
+          <label htmlFor="algoSelect">Select Algorithm</label>
+          <select
+            id="algoSelect"
+            value={activeAlgo}
+            onChange={(e) => setActiveAlgo(e.target.value)}
+            disabled={isVisualizing}
+            className="input-field"
+          >
+            <option value="bfs">Breadth-First Search (BFS)</option>
+            <option value="dfs">Depth-First Search (DFS)</option>
+          </select>
+        </div>
+
+        <div className="actions-single">
+          <button 
+            onClick={runAlgorithm} 
+            disabled={isVisualizing || !startNodeId || !targetNodeId} 
+            className="btn btn-green"
+          >
+            Execute {activeAlgo.toUpperCase()}
+          </button>
+        </div>
+
+        <hr style={{ borderColor: 'var(--border-gray-700)', margin: '1rem 0' }} />
+
+        <div className="actions-grid">
+          <button
+            onClick={togglePause}
+            disabled={!isVisualizing}
+            className={`btn ${isPaused ? 'btn-resume' : 'btn-pause'}`}
+          >
+            {isPaused ? <Play size={16} /> : <Pause size={16} />}
+            {isPaused ? "Resume" : "Pause"}
+          </button>
+          
+          <button
+            onClick={handleReset}
+            className="btn btn-secondary"
+          >
+            <RefreshCw size={16} />
+            Reset Tree
+          </button>
+        </div>
+
+        {/* --- Language Choice --- */}
+        <div className="input-group">
+          <label htmlFor="language">Code Language</label>
+          <select
+            id="language"
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            disabled={isVisualizing}
+            className="input-field"
+          >
+            <option value="python">Python</option>
+            <option value="cpp">C++</option>
+            <option value="java">Java</option>
+            <option value="c">C</option>
+          </select>
+        </div>
+
+        {/* --- Speed Range --- */}
+        <div className="input-group">
+          <label htmlFor="speed">Visualization Speed</label>
+          <div className="speed-slider-group">
             <input
+              id="speed"
               type="range"
               min="100"
               max="2000"
               step="100"
               value={speed}
               onChange={(e) => setSpeed(Number(e.target.value))}
-              className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+              className="speed-slider"
             />
+            <span className="speed-value">{speed} ms</span>
           </div>
-        </div>
-
-        {/* CUSTOM GRAPH BUILDER TOOLS */}
-        <div className="bg-slate-950 p-4 rounded-xl border border-slate-800/80 flex flex-col gap-3">
-          <span className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1">
-            <Activity size={13} /> Custom Graph Builder
-          </span>
-
-          {/* Add Node */}
-          <div className="flex gap-1.5">
-            <input
-              type="text"
-              placeholder="Node Node (e.g. H)"
-              maxLength={3}
-              value={newNodeLabel}
-              onChange={(e) => setNewNodeLabel(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1 text-xs outline-none focus:border-cyan-500"
-            />
-            <button
-              onClick={addCustomNode}
-              className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold px-3 py-1 rounded text-xs shrink-0 flex items-center gap-1"
-            >
-              <Plus size={12} /> Node
-            </button>
-          </div>
-
-          {/* Add Edge */}
-          <div className="flex flex-col gap-1.5 border-t border-slate-900 pt-2.5">
-            <div className="grid grid-cols-2 gap-1.5">
-              <select
-                value={edgeFrom}
-                onChange={(e) => setEdgeFrom(e.target.value)}
-                className="bg-slate-900 border border-slate-800 rounded p-1 text-[11px] text-slate-300"
-              >
-                <option value="">From...</option>
-                {nodes.map(n => <option key={n.id} value={n.id}>{n.label}</option>)}
-              </select>
-              <select
-                value={edgeTo}
-                onChange={(e) => setEdgeTo(e.target.value)}
-                className="bg-slate-900 border border-slate-800 rounded p-1 text-[11px] text-slate-300"
-              >
-                <option value="">To...</option>
-                {nodes.map(n => <option key={n.id} value={n.id}>{n.label}</option>)}
-              </select>
-            </div>
-
-            <div className="flex items-center justify-between text-[11px] text-slate-400">
-              <label className="flex items-center gap-1 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={edgeDirected}
-                  onChange={(e) => setEdgeDirected(e.target.checked)}
-                  className="rounded text-cyan-600 bg-slate-900 border-slate-800 focus:ring-0"
-                />
-                Directed Edge (Arrow)
-              </label>
-              <button
-                onClick={addCustomEdge}
-                disabled={edgeFrom === "" || edgeTo === ""}
-                className="px-2.5 py-1 bg-cyan-950 text-cyan-300 border border-cyan-800/80 rounded hover:bg-cyan-900 text-[10px] font-bold disabled:opacity-50"
-              >
-                Create Edge
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* GRAPH PRESET TEMPLATES */}
-        <div className="flex flex-col gap-2">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-            <LayoutGrid size={13} /> Grid Layout Templates
-          </span>
-          <div className="grid grid-cols-3 gap-1.5">
-            {[
-              { id: 'tree', label: 'Binary Tree' },
-              { id: 'mesh', label: 'Mesh Grid' },
-              { id: 'cycle', label: 'Ring Cycle' }
-            ].map(preset => (
-              <button
-                key={preset.id}
-                onClick={() => loadPreset(preset.id)}
-                disabled={isVisualizing}
-                className={`py-1.5 px-1 rounded-lg text-[11px] font-semibold border transition-all text-center truncate ${
-                  activePreset === preset.id
-                    ? 'bg-cyan-950 text-cyan-300 border-cyan-800/80 shadow'
-                    : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700 disabled:opacity-40'
-                }`}
-              >
-                {preset.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* FOOTER SYSTEM AUDIO AND CLEAR */}
-        <div className="mt-auto pt-4 border-t border-slate-800/80 flex items-center justify-between gap-2 text-slate-500">
-          <div className="flex gap-2">
-            <button
-              onClick={() => setAudioEnabled(!audioEnabled)}
-              className={`p-2 rounded-lg transition-colors border ${audioEnabled ? 'bg-cyan-950/50 text-cyan-400 border-cyan-900' : 'bg-slate-950 text-slate-600 border-slate-800 hover:bg-slate-900'}`}
-              title={audioEnabled ? "Mute Tones" : "Unmute Tones"}
-            >
-              {audioEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
-            </button>
-            <button
-              onClick={() => setShowNodeCoords(!showNodeCoords)}
-              className={`p-2 rounded-lg transition-colors border ${showNodeCoords ? 'bg-cyan-950/50 text-cyan-400 border-cyan-900' : 'bg-slate-950 text-slate-600 border-slate-800 hover:bg-slate-900'}`}
-              title={showNodeCoords ? "Hide Coordinates" : "Show Coordinates"}
-            >
-              {showNodeCoords ? <Eye size={16} /> : <EyeOff size={16} />}
-            </button>
-          </div>
-
-          <button
-            onClick={resetSimulationStates}
-            className="px-3 py-1.5 bg-slate-950 hover:bg-red-950/20 text-slate-400 hover:text-red-400 border border-slate-800 hover:border-red-900/60 font-semibold text-xs rounded-lg flex items-center gap-1.5 transition-all"
-          >
-            <RotateCcw size={13} /> Reset Graph
-          </button>
         </div>
       </aside>
 
-      {/* --- MAIN DISPLAY WORKSPACE --- */}
-      <main className="flex-1 flex flex-col min-h-0 bg-slate-950">
+      {/* --- Main Content Area --- */}
+      <main className="main-content">
         
-        {/* RUNTIME GLOWING STATUS BAR */}
-        <section className="bg-slate-900/40 p-4 border-b border-slate-900 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className={`w-3 h-3 rounded-full ${
-              statusType === 'error' ? 'bg-rose-500 shadow-rose-500/50 shadow-md' :
-              statusType === 'success' ? 'bg-emerald-500 shadow-emerald-500/50 shadow-md animate-pulse' :
-              isVisualizing ? 'bg-cyan-400 shadow-cyan-400/50 shadow-md animate-ping' : 'bg-slate-500'
-            }`} />
-            <div>
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-widest block">Operational status</span>
-              <p className={`text-sm font-semibold tracking-wide ${
-                statusType === 'error' ? 'text-rose-400' :
-                statusType === 'success' ? 'text-emerald-400' : 'text-slate-200'
-              }`}>{status}</p>
-            </div>
+        {/* --- Visualization Canvas --- */}
+        <section className="visualization-section">
+          <h2 className="section-title">Visualization</h2>
+          
+          <div className="status-bar">
+            <span className={`status-text ${statusColor}`}>
+              {status}
+            </span>
           </div>
+          
+          <div 
+            className="visualization-boxes"
+            ref={canvasRef}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUpOrLeave}
+            onMouseLeave={handleMouseUpOrLeave}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleMouseUpOrLeave}
+          >
+            {/* SVG Connection Edge Overlay */}
+            <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }}>
+              <defs>
+                <marker
+                  id="arrow"
+                  viewBox="0 0 10 10"
+                  refX="25"
+                  refY="5"
+                  markerWidth="6"
+                  markerHeight="6"
+                  orient="auto-start-reverse"
+                >
+                  <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--border-gray-600)" />
+                </marker>
+                <marker
+                  id="arrow-traversed"
+                  viewBox="0 0 10 10"
+                  refX="25"
+                  refY="5"
+                  markerWidth="7"
+                  markerHeight="7"
+                  orient="auto-start-reverse"
+                >
+                  <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--cyan-400)" />
+                </marker>
+              </defs>
 
-          {/* Zoom controls */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-500">Scale Canvas:</span>
-            <div className="bg-slate-900 p-1 rounded-lg border border-slate-800 flex items-center gap-1 text-slate-400">
-              <button onClick={() => setZoom(Math.max(60, zoom - 10))} className="p-1 hover:text-white transition-colors" title="Zoom Out"><ZoomOut size={14} /></button>
-              <span className="text-[10px] font-mono px-1 min-w-[36px] text-center text-slate-300 font-bold">{zoom}%</span>
-              <button onClick={() => setZoom(Math.min(130, zoom + 10))} className="p-1 hover:text-white transition-colors" title="Zoom In"><ZoomIn size={14} /></button>
-              <div className="h-4 w-[1px] bg-slate-800 mx-1" />
-              <button onClick={() => setZoom(100)} className="p-1 hover:text-white text-xs font-bold transition-colors">Reset</button>
-            </div>
-          </div>
-        </section>
+              {edges.map((edge, idx) => {
+                const fromNode = nodes.find(n => n.id === edge.from);
+                const toNode = nodes.find(n => n.id === edge.to);
+                if (!fromNode || !toNode) return null;
 
-        {/* --- GRAPH GRAPHIC CANVAS PANEL --- */}
-        <section className="flex-1 min-h-[350px] relative overflow-auto bg-slate-950 flex items-start justify-center p-6 select-none grid-bg">
-          {nodes.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-slate-500 py-32 gap-3">
-              <Layers size={48} className="text-slate-800" />
-              <div className="text-center">
-                <p className="font-bold text-slate-400">Your network graph is empty.</p>
-                <p className="text-xs text-slate-600 mt-1">Add custom nodes and edges, or apply a preset layout template.</p>
-              </div>
-            </div>
-          ) : (
-            <div
-              ref={canvasRef}
-              style={{
-                width: '600px',
-                height: '500px',
-                transform: `scale(${zoom / 100})`,
-                transformOrigin: 'top center'
-              }}
-              className="relative border border-slate-900 rounded-2xl bg-slate-950/80 p-2 shadow-2xl transition-transform duration-100"
-              onMouseMove={handleCanvasMouseMove}
-              onMouseUp={handleCanvasMouseUpOrLeave}
-              onMouseLeave={handleCanvasMouseUpOrLeave}
-            >
-              {/* SVG Link Layer */}
-              <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
-                <defs>
-                  {/* Arrow marker for directed edges */}
-                  <marker
-                    id="arrowhead"
-                    markerWidth="10"
-                    markerHeight="7"
-                    refX="20"
-                    refY="3.5"
-                    orient="auto"
-                  >
-                    <polygon points="0 0, 10 3.5, 0 7" fill="#475569" />
-                  </marker>
-                  <marker
-                    id="arrowhead-traversed"
-                    markerWidth="10"
-                    markerHeight="7"
-                    refX="20"
-                    refY="3.5"
-                    orient="auto"
-                  >
-                    <polygon points="0 0, 10 3.5, 0 7" fill="#06b6d4" />
-                  </marker>
-                </defs>
-
-                {edges.map((edge, index) => {
-                  const fromNode = nodes.find(n => n.id === edge.from);
-                  const toNode = nodes.find(n => n.id === edge.to);
-                  if (!fromNode || !toNode) return null;
-
-                  const isTraversed = edge.state === 'traversed';
-                  const strokeColor = isTraversed 
-                    ? (algo === 'bfs' ? '#22d3ee' : '#a855f7') 
-                    : '#475569';
-                  const strokeWidth = isTraversed ? '3' : '2';
-
-                  return (
-                    <g key={index}>
-                      <line
-                        x1={fromNode.x}
-                        y1={fromNode.y}
-                        x2={toNode.x}
-                        y2={toNode.y}
-                        stroke={strokeColor}
-                        strokeWidth={strokeWidth}
-                        markerEnd={edge.type === 'directed' ? `url(#${isTraversed ? 'arrowhead-traversed' : 'arrowhead'})` : undefined}
-                        className={isTraversed ? 'animate-flow' : ''}
-                      />
-                    </g>
-                  );
-                })}
-              </svg>
-
-              {/* Node Layer */}
-              {nodes.map(node => {
-                const isStart = node.id === startNodeId;
-                const isTarget = node.id === targetNodeId;
-
-                let borderStyle = "border-slate-700 bg-slate-900 text-slate-100 hover:border-cyan-400";
-                if (node.state === 'visiting') {
-                  borderStyle = "bg-amber-400 text-slate-950 ring-4 ring-amber-300/40 animate-pulse border-amber-300";
-                } else if (node.state === 'active') {
-                  borderStyle = "bg-sky-400 text-slate-950 ring-4 ring-sky-300/40 border-sky-300";
-                } else if (node.state === 'visited') {
-                  borderStyle = algo === 'bfs' 
-                    ? "bg-cyan-600 text-white border-cyan-400 shadow-lg shadow-cyan-950/30"
-                    : "bg-indigo-600 text-white border-indigo-400 shadow-lg shadow-indigo-950/30";
-                } else if (node.state === 'found') {
-                  borderStyle = "bg-emerald-500 text-white ring-4 ring-emerald-300 border-emerald-400";
-                }
-
+                const isTraversed = edge.state === 'traversed';
                 return (
-                  <div
-                    key={node.id}
-                    onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
-                    style={{
-                      left: `${node.x}px`,
-                      top: `${node.y}px`,
-                      transform: 'translate(-50%, -50%)',
-                      cursor: isVisualizing ? 'not-allowed' : 'move'
-                    }}
-                    className={`absolute w-12 h-12 rounded-full border-2 flex flex-col items-center justify-center font-black select-none transition-all duration-300 z-10 ${borderStyle}`}
-                  >
-                    <span className="text-sm">{node.label}</span>
-                    
-                    {/* Start/Target small badges */}
-                    {isStart && (
-                      <span className="absolute -top-3.5 bg-emerald-950 text-emerald-400 border border-emerald-800 text-[8px] px-1 py-0.5 rounded font-black">
-                        START
-                      </span>
-                    )}
-                    {isTarget && (
-                      <span className="absolute -bottom-3.5 bg-rose-950 text-rose-400 border border-rose-800 text-[8px] px-1 py-0.5 rounded font-black">
-                        TARGET
-                      </span>
-                    )}
-
-                    {showNodeCoords && (
-                      <span className="absolute top-10 text-[8px] font-mono text-slate-500 bg-slate-950/80 px-1 rounded">
-                        {Math.round(node.x)},{Math.round(node.y)}
-                      </span>
-                    )}
-                  </div>
+                  <line
+                    key={idx}
+                    x1={`${fromNode.x}%`}
+                    y1={`${fromNode.y}%`}
+                    x2={`${toNode.x}%`}
+                    y2={`${toNode.y}%`}
+                    stroke={isTraversed ? "var(--cyan-400)" : "var(--border-gray-700)"}
+                    strokeWidth={isTraversed ? "3.5" : "1.5"}
+                    markerEnd={`url(#${isTraversed ? 'arrow-traversed' : 'arrow'})`}
+                    style={{ transition: 'stroke 0.3s, stroke-width 0.3s' }}
+                  />
                 );
               })}
-            </div>
-          )}
-        </section>
+            </svg>
 
-        {/* --- LIVE STACK / QUEUE HUD TRACKER --- */}
-        <section className="bg-slate-950 px-6 py-4 border-t border-slate-900 flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-              <Activity size={14} className="text-cyan-400" /> Live Data Structure Monitor: {algo === 'bfs' ? 'Queue (FIFO)' : 'Stack (LIFO)'}
-            </span>
-            <span className="text-[11px] text-slate-500">
-              Peak Size: <strong className="text-slate-300 font-mono">{maxDSSize}</strong> elements
-            </span>
-          </div>
+            {/* Render Draggable Nodes */}
+            {nodes.length === 0 && (
+              <span style={{ color: 'var(--text-gray-500)', zIndex: 1, margin: 'auto' }}>
+                Graph is empty. Use the editor to add nodes and create connections.
+              </span>
+            )}
 
-          <div className="min-h-[50px] bg-slate-900/50 rounded-xl border border-slate-900 flex items-center p-3 gap-2 overflow-x-auto scroll-smooth">
-            {activeDS.length === 0 ? (
-              <span className="text-slate-500 font-mono text-xs italic">Data structure is empty. Initiate simulation.</span>
-            ) : (
-              <div className="flex items-center gap-2">
-                {algo === 'bfs' ? (
-                  // Queue flow left to right (Front of queue on left)
-                  activeDS.map((id, index) => {
-                    const label = nodes.find(n => n.id === id)?.label;
-                    return (
-                      <div key={index} className="flex items-center gap-2">
-                        {index === 0 && <span className="text-[10px] text-cyan-400 font-bold uppercase shrink-0">Front &rarr;</span>}
-                        <div className="bg-cyan-950 text-cyan-300 border border-cyan-800/80 rounded-lg px-3 py-1 font-mono text-xs font-bold shadow-md">
-                          {label}
-                        </div>
-                        {index < activeDS.length - 1 && <span className="text-slate-600 font-mono">&mdash;</span>}
-                      </div>
-                    );
-                  })
-                ) : (
-                  // Stack Flow left to right (Top of stack on right)
-                  activeDS.map((id, index) => {
-                    const label = nodes.find(n => n.id === id)?.label;
-                    return (
-                      <div key={index} className="flex items-center gap-2">
-                        <div className="bg-indigo-950 text-indigo-300 border border-indigo-800/80 rounded-lg px-3 py-1 font-mono text-xs font-bold shadow-md">
-                          {label}
-                        </div>
-                        {index === activeDS.length - 1 && <span className="text-[10px] text-indigo-400 font-bold uppercase shrink-0">&larr; Top</span>}
-                        {index < activeDS.length - 1 && <span className="text-slate-600 font-mono">|</span>}
-                      </div>
-                    );
-                  })
+            {nodes.map(node => (
+              <div
+                key={node.id}
+                className={`box ${node.state || 'default'}`}
+                style={{
+                  position: 'absolute',
+                  left: `${node.x}%`,
+                  top: `${node.y}%`,
+                  transform: 'translate(-50%, -50%)',
+                  zIndex: 1,
+                  cursor: isVisualizing ? 'not-allowed' : 'grab',
+                  width: '3.1rem',
+                  height: '3.1rem',
+                  fontSize: '0.9rem'
+                }}
+                onMouseDown={(e) => handleMouseDown(e, node.id)}
+                onTouchStart={(e) => handleMouseDown(e, node.id)}
+                onClick={() => handleNodeClick(node.id)}
+              >
+                {node.label}
+                {node.id === startNodeId && (
+                  <span style={{ position: 'absolute', top: '-1.25rem', fontSize: '0.6rem', background: 'rgba(34, 197, 94, 0.2)', border: '1px solid var(--green-400)', color: 'var(--green-400)', padding: '1px 4px', borderRadius: '4px', fontWeight: 'bold' }}>START</span>
+                )}
+                {node.id === targetNodeId && (
+                  <span style={{ position: 'absolute', bottom: '-1.25rem', fontSize: '0.6rem', background: 'rgba(239, 68, 68, 0.2)', border: '1px solid var(--red-400)', color: 'var(--red-400)', padding: '1px 4px', borderRadius: '4px', fontWeight: 'bold' }}>TARGET</span>
                 )}
               </div>
-            )}
+            ))}
           </div>
         </section>
 
-        {/* --- LOWER TRACE COMPILER & CONSOLE LOGS --- */}
-        <section className="h-72 bg-slate-900 border-t border-slate-800 flex flex-col md:flex-row select-none">
-          
-          {/* Debug Code Compiler */}
-          <div className="flex-1 border-r border-slate-800 flex flex-col min-w-0">
-            <div className="bg-slate-950 p-2 px-4 border-b border-slate-800 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Code size={15} className="text-cyan-400" />
-                <span className="text-xs font-extrabold text-slate-300 uppercase tracking-wider">Dynamic Trace Compiler</span>
-              </div>
-              
-              <div className="flex items-center gap-1 bg-slate-900 border border-slate-700/80 p-0.5 rounded-lg">
-                {['python', 'cpp', 'java', 'c'].map(lang => (
-                  <button
-                    key={lang}
-                    onClick={() => setLanguage(lang)}
-                    className={`px-2 py-0.5 text-[10px] font-black uppercase rounded transition-colors ${language === lang ? 'bg-cyan-950 text-cyan-400 border border-cyan-800' : 'text-slate-400 hover:text-white'}`}
-                  >
-                    {lang === 'cpp' ? 'C++' : lang}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-auto scroll-smooth p-4 bg-slate-950/80 text-xs">
-              <pre className="font-mono text-slate-300 leading-relaxed">
+        {/* --- Lower Content (Code + Logs) --- */}
+        <div className="lower-content-area">
+          {/* --- Code Trace Window --- */}
+          <section className="code-section">
+            <h2 className="section-title">Code</h2>
+            <div className="code-block">
+              <pre>
                 <code>
-                  {codeSnippets[language][algo].split('\n').map((line, idx) => {
-                    const lineNum = idx + 1;
-                    const isHighlighted = highlightLine === lineNum;
-                    return (
-                      <div
-                        key={idx}
-                        className={`flex items-start gap-3 px-2 py-0.5 -mx-2 transition-all duration-150 ${
-                          isHighlighted ? 'bg-cyan-500/10 border-l-2 border-cyan-400 text-white font-extrabold' : 'opacity-85'
-                        }`}
-                      >
-                        <span className="w-5 text-right text-slate-600 font-mono text-[10px] pr-1">{lineNum}</span>
-                        <div className="flex-1 whitespace-pre">
-                          {colorizeLineCode(line)}
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {codeLines.map((line, idx) => (
+                    <span
+                      key={idx}
+                      className={`code-line
+                        ${highlightLineNum === (idx + 1) ? 'highlight' : ''}
+                        ${(line.trim().startsWith('#') || line.trim().startsWith('//')) ? 'comment' : ''}
+                      `}
+                    >
+                      {line || '\u00A0'}
+                    </span>
+                  ))}
                 </code>
               </pre>
             </div>
-          </div>
+          </section>
 
-          {/* Tab Control (Logs & Stats) */}
-          <div className="w-full md:w-80 xl:w-96 flex flex-col min-w-0">
-            <div className="bg-slate-950 px-2 border-b border-slate-800 flex justify-between">
-              <div className="flex">
-                <button
-                  onClick={() => setActiveTab("debugger")}
-                  className={`p-2 px-4 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 border-b-2 transition-all ${activeTab === 'debugger' ? 'border-cyan-400 text-white' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
-                >
-                  <Terminal size={14} /> Output logs
-                </button>
-                <button
-                  onClick={() => setActiveTab("analysis")}
-                  className={`p-2 px-4 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 border-b-2 transition-all ${activeTab === 'analysis' ? 'border-cyan-400 text-white' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
-                >
-                  <BarChart3 size={14} /> Analytics
-                </button>
-              </div>
-            </div>
-
-            {/* TAB CONTENT: LOG CONSOLE */}
-            {activeTab === 'debugger' ? (
-              <div ref={logsEndRef} className="flex-1 overflow-auto bg-slate-950 p-4 scroll-smooth flex flex-col gap-1 font-mono">
-                {systemLogs.map((log, index) => (
-                  <div key={index} className="text-[11px] text-slate-400 leading-normal flex items-start gap-1">
-                    <span className="text-slate-600">&gt;</span>
-                    <span className={
-                      log.includes('[Trace]') ? 'text-cyan-400 font-medium' :
-                      log.includes('successful') ? 'text-emerald-400 font-bold' :
-                      log.includes('[Error]') ? 'text-rose-400' :
-                      log.includes('[Preset]') ? 'text-amber-400' : 'text-slate-400'
-                    }>{log}</span>
-                  </div>
+          {/* --- Output Log Window --- */}
+          <section className="log-section">
+            <h2 className="section-title">Execution Log</h2>
+            <div className="log-block" ref={logContainerRef}>
+              <ul className="log-list">
+                {executionLog.map((log, idx) => (
+                  <li key={idx} className="log-item">
+                    {log}
+                  </li>
                 ))}
-              </div>
-            ) : (
-              /* TAB CONTENT: ANALYTICS PANEL */
-              <div className="flex-1 overflow-auto bg-slate-950 p-4 flex flex-col gap-3">
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="bg-slate-900/50 p-2.5 rounded-lg border border-slate-800">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Total Nodes</span>
-                    <span className="text-lg font-bold font-mono text-white">{graphAnalytics.totalNodes}</span>
-                  </div>
-                  <div className="bg-slate-900/50 p-2.5 rounded-lg border border-slate-800">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Total Edges</span>
-                    <span className="text-lg font-bold font-mono text-white">{graphAnalytics.totalEdges}</span>
-                  </div>
-                  <div className="bg-slate-900/50 p-2.5 rounded-lg border border-slate-800">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Connectivity</span>
-                    <span className="text-xs font-bold font-mono text-cyan-400">{graphAnalytics.isConnected ? "CONNECTED" : `DISCONNECTED (${graphAnalytics.components} components)`}</span>
-                  </div>
-                  <div className="bg-slate-900/50 p-2.5 rounded-lg border border-slate-800">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Max degree</span>
-                    <span className="text-lg font-bold font-mono text-indigo-400">{graphAnalytics.maxDegree}</span>
-                  </div>
-                </div>
+              </ul>
+            </div>
+          </section>
+        </div>
 
-                <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-800 flex flex-col gap-1.5">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Chronological Visited Sequence</span>
-                  <div className="text-xs font-bold font-mono text-emerald-400 overflow-x-auto whitespace-nowrap scroll-smooth">
-                    {visitedNodesSet.length === 0 ? 'No sequence recorded.' : visitedNodesSet.map(id => nodes.find(n=>n.id===id)?.label).join(' → ')}
-                  </div>
-                </div>
-
-                <div className="p-3 bg-slate-900/20 border border-slate-800/80 rounded-lg flex gap-2 items-start text-slate-400 text-[10px] leading-relaxed">
-                  <Info size={14} className="text-cyan-400 shrink-0 mt-0.5" />
-                  <p>In standard adjacency graph implementations, both BFS and DFS achieve linear time complexity <span className="text-cyan-400 font-mono">O(V + E)</span>, requiring <span className="text-indigo-400 font-mono">O(V)</span> auxiliary space allocation.</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
       </main>
     </div>
   );
