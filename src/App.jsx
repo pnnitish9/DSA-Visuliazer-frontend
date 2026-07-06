@@ -19,6 +19,7 @@ import DoublyLinkedList from "./components/LinkedList/DoublyLinkedList";
 import Stack from "./components/Stack/Stack";
 import Queue from "./components/Queue/Queue";
 import BST from "./components/Trees/BST";
+import AVLTreeVisualizer from "./components/Trees/AVL";
 import BFSDFS from "./components/BFS-DFS/bfsdfs";
 import UserAccount from "./components/UserAccount";
 function App() {
@@ -125,6 +126,14 @@ function App() {
           element={
             <RequireAuth>
               <BST />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/avl"
+          element={
+            <RequireAuth>
+              <AVLTreeVisualizer />
             </RequireAuth>
           }
         />
