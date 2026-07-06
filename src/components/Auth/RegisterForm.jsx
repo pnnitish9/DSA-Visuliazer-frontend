@@ -5,8 +5,6 @@ import "./RegisterForm.css";
 function RegisterForm() {
   const [form, setForm] = useState({
     name: "",
-    gender: "",
-    dob: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -34,8 +32,6 @@ function RegisterForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: form.name,
-          gender: form.gender,
-          dob: form.dob,
           email: form.email,
           password: form.password,
         }),
@@ -65,27 +61,6 @@ function RegisterForm() {
             value={form.name}
             onChange={handleChange}
             placeholder="Enter your full name"
-            required
-            />
-        </div>
-
-        <div className="form-group">
-          <label>Gender</label>
-          <select name="gender" value={form.gender} onChange={handleChange} required>
-            <option value="">Select gender</option>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-            <option value="other">Other</option>
-          </select>
-        </div>
-
-        <div className="form-group">
-          <label>Date of Birth</label>
-          <input
-            type="date"
-            name="dob"
-            value={form.dob}
-            onChange={handleChange}
             required
             />
         </div>
