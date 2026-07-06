@@ -21,6 +21,7 @@ import Queue from "./components/Queue/Queue";
 import BST from "./components/Trees/BST";
 import AVLTreeVisualizer from "./components/Trees/AVL";
 import BFSDFS from "./components/BFS-DFS/bfsdfs";
+import HeapVisualizer from "./components/Search/heap";
 import UserAccount from "./components/UserAccount";
 function App() {
   return (
@@ -142,6 +143,14 @@ function App() {
           element={
             <RequireAuth>
               <BFSDFS/>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/heap"
+          element={
+            <RequireAuth>
+              <HeapVisualizer/>
             </RequireAuth>
           }
         />
