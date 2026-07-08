@@ -18,7 +18,7 @@ export default function DSAVisualizer() {
     { name: "AVL Tree", href: "avl" },
     { name: "DFS & BFS", href: "bfsdfs" },
     { name: "Heap (MaxHeap, MinHeap)", href: "heap" },
-    { name: "Hashing", href: "#" },
+    { name: "Hashing", href: "hashing" },
   ];
 
   return (

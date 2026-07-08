@@ -22,6 +22,7 @@ import BST from "./components/Trees/BST";
 import AVLTreeVisualizer from "./components/Trees/AVL";
 import BFSDFS from "./components/BFS-DFS/bfsdfs";
 import HeapVisualizer from "./components/Search/heap";
+import HashTableVisualizer from "./components/HashTable/hashing";
 import UserAccount from "./components/UserAccount";
 function App() {
   return (
@@ -151,6 +152,14 @@ function App() {
           element={
             <RequireAuth>
               <HeapVisualizer/>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/hashing"
+          element={
+            <RequireAuth>
+              <HashTableVisualizer/>
             </RequireAuth>
           }
         />
