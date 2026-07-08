@@ -383,7 +383,7 @@ const InjectedStyles = () => (
     /* --- Sidebar stat metric tracker panel --- */
     .metric-stats-bar {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(3, 1fr);
       gap: 0.5rem;
       background-color: rgba(15, 23, 42, 0.4);
       padding: 0.6rem;
@@ -568,6 +568,7 @@ export default function LinearSearchVisualizer() {
   // Live Metric Panel indicators
   const [liveIterations, setLiveIterations] = useState(0);
   const [liveComparisons, setLiveComparisons] = useState(0);
+  const [livePasses, setLivePasses] = useState(0);
   const [evaluatedCase, setEvaluatedCase] = useState(null); // 'best' | 'avg' | 'worst' | null
 
   // References for handling async looping cycles safely
@@ -591,6 +592,7 @@ export default function LinearSearchVisualizer() {
         setEvaluatedCase(null);
         setLiveIterations(0);
         setLiveComparisons(0);
+        setLivePasses(0);
       }
     }
   }, [arrayStr, isVisualizing]);
@@ -642,6 +644,7 @@ export default function LinearSearchVisualizer() {
       lineKey: 'init',
       iterations: 0,
       comparisons: 0,
+      passes: 1,
       matchedCase: null
     });
 
@@ -665,6 +668,7 @@ export default function LinearSearchVisualizer() {
         lineKey: 'checking',
         iterations: i + 1,
         comparisons: comparisonsCount,
+        passes: 1,
         matchedCase: null
       });
 
@@ -688,6 +692,7 @@ export default function LinearSearchVisualizer() {
           lineKey: 'found',
           iterations: i + 1,
           comparisons: comparisonsCount,
+          passes: 1,
           matchedCase: caseType
         });
         break;
@@ -704,6 +709,7 @@ export default function LinearSearchVisualizer() {
           lineKey: 'loop',
           iterations: i + 1,
           comparisons: comparisonsCount,
+          passes: 1,
           matchedCase: null
         });
       }
@@ -719,6 +725,7 @@ export default function LinearSearchVisualizer() {
         lineKey: 'not_found',
         iterations: arr.length,
         comparisons: comparisonsCount,
+        passes: 1,
         matchedCase: 'worst'
       });
     }
@@ -748,6 +755,7 @@ export default function LinearSearchVisualizer() {
     setExecutionLog(frame.log);
     setLiveIterations(frame.iterations);
     setLiveComparisons(frame.comparisons);
+    setLivePasses(frame.passes);
     if (frame.matchedCase) {
       setEvaluatedCase(frame.matchedCase);
     }
@@ -814,6 +822,7 @@ export default function LinearSearchVisualizer() {
     setEvaluatedCase(null);
     setLiveIterations(0);
     setLiveComparisons(0);
+    setLivePasses(0);
     setError(null);
     
     const parsed = validateAndParse();
@@ -878,6 +887,10 @@ export default function LinearSearchVisualizer() {
           <div className="metric-stat-item">
             <span className="metric-stat-val">{liveComparisons}</span>
             <span className="metric-stat-label">Comparisons</span>
+          </div>
+          <div className="metric-stat-item">
+            <span className="metric-stat-val">{livePasses}</span>
+            <span className="metric-stat-label">Passes</span>
           </div>
         </div>
 
