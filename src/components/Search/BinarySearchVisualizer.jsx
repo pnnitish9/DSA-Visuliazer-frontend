@@ -617,7 +617,7 @@ export default function BinarySearchVisualizer() {
   const [isPlaying, setIsPlaying] = useState(false);
 
   // Live HUD variables
-  const [liveIterations, setLiveIterations] = useState(0);
+  const [livePasses, setLivePasses] = useState(0);
   const [liveComparisons, setLiveComparisons] = useState(0);
   const [evaluatedCase, setEvaluatedCase] = useState(null); // 'best' | 'avg' | 'worst'
 
@@ -638,7 +638,7 @@ export default function BinarySearchVisualizer() {
       if (parsed) {
         setBoxes(parsed.arr.map(v => ({ value: v, state: 'default' })));
         setEvaluatedCase(null);
-        setLiveIterations(0);
+        setLivePasses(0);
         setLiveComparisons(0);
       }
     }
@@ -694,7 +694,7 @@ export default function BinarySearchVisualizer() {
 
     let left = 0;
     let right = arr.length - 1;
-    let iterationsCount = 0;
+    let passesCount = 0;
     let comparisonsCount = 0;
     let foundIdx = -1;
 
@@ -720,23 +720,23 @@ export default function BinarySearchVisualizer() {
       log: [...initialLog, `[Init] Left boundary: ${left}, Right boundary: ${right}. Searching: ${target}`],
       lineKey: 'init',
       left, right, mid: -1,
-      iterations: 0,
+      passes: 0,
       comparisons: 0,
       matchedCase: null
     });
 
     while (left <= right) {
-      iterationsCount++;
+      passesCount++;
       const currentLog = [...steps[steps.length - 1].log];
 
       // Frame A: Loop Condition Checking
       steps.push({
         boxes: buildBoxStates(left, right, -1),
         status: `Loop Check: Is Left (${left}) <= Right (${right})? Yes.`,
-        log: [...currentLog, `[Iter ${iterationsCount}] Checking bounds: ${left} <= ${right}`],
+        log: [...currentLog, `[Iter ${passesCount}] Checking bounds: ${left} <= ${right}`],
         lineKey: 'loop',
         left, right, mid: -1,
-        iterations: iterationsCount,
+        passes: passesCount,
         comparisons: comparisonsCount,
         matchedCase: null
       });
@@ -750,7 +750,7 @@ export default function BinarySearchVisualizer() {
         log: [...currentLog, `[Mid] Calculated mid-point index ${mid} = ${midVal}`],
         lineKey: 'mid',
         left, right, mid,
-        iterations: iterationsCount,
+        passes: passesCount,
         comparisons: comparisonsCount,
         matchedCase: null
       });
@@ -764,7 +764,7 @@ export default function BinarySearchVisualizer() {
         log: [...currentLog, `[Compare] Evaluating if arr[${mid}] (${midVal}) == ${target}`],
         lineKey: 'check_target',
         left, right, mid,
-        iterations: iterationsCount,
+        passes: passesCount,
         comparisons: comparisonsCount,
         matchedCase: null
       });
@@ -772,16 +772,16 @@ export default function BinarySearchVisualizer() {
       if (midVal === target) {
         foundIdx = mid;
         let caseType = 'avg';
-        if (iterationsCount === 1) caseType = 'best';
-        else if (iterationsCount === Math.floor(Math.log2(arr.length)) + 1) caseType = 'worst';
+        if (passesCount === 1) caseType = 'best';
+        else if (passesCount === Math.floor(Math.log2(arr.length)) + 1) caseType = 'worst';
 
         steps.push({
           boxes: buildBoxStates(left, right, mid, true),
           status: `Match found! Value ${midVal} at index ${mid} is the target.`,
-          log: [...currentLog, `[Success] Target ${target} located at index ${mid} in ${iterationsCount} iterations!`],
+          log: [...currentLog, `[Success] Target ${target} located at index ${mid} in ${passesCount} passes!`],
           lineKey: 'found',
           left, right, mid,
-          iterations: iterationsCount,
+          passes: passesCount,
           comparisons: comparisonsCount,
           matchedCase: caseType
         });
@@ -797,7 +797,7 @@ export default function BinarySearchVisualizer() {
           log: [...currentLog, `[Comparison] ${midVal} < ${target}. Discarding left half (indices <= ${mid}).`],
           lineKey: 'check_less',
           left, right, mid,
-          iterations: iterationsCount,
+          passes: passesCount,
           comparisons: comparisonsCount,
           matchedCase: null
         });
@@ -811,7 +811,7 @@ export default function BinarySearchVisualizer() {
           log: [...currentLog, `[Update] Shifted Left boundary to index ${left}`],
           lineKey: 'update_left',
           left, right, mid: -1,
-          iterations: iterationsCount,
+          passes: passesCount,
           comparisons: comparisonsCount,
           matchedCase: null
         });
@@ -824,7 +824,7 @@ export default function BinarySearchVisualizer() {
           log: [...currentLog, `[Comparison] ${midVal} > ${target}. Discarding right half (indices >= ${mid}).`],
           lineKey: 'check_greater',
           left, right, mid,
-          iterations: iterationsCount,
+          passes: passesCount,
           comparisons: comparisonsCount,
           matchedCase: null
         });
@@ -838,7 +838,7 @@ export default function BinarySearchVisualizer() {
           log: [...currentLog, `[Update] Shifted Right boundary to index ${right}`],
           lineKey: 'update_right',
           left, right, mid: -1,
-          iterations: iterationsCount,
+          passes: passesCount,
           comparisons: comparisonsCount,
           matchedCase: null
         });
@@ -852,7 +852,7 @@ export default function BinarySearchVisualizer() {
         log: [...steps[steps.length - 1].log, `[Failed] Loop terminated. Target missing.`],
         lineKey: 'not_found',
         left, right, mid: -1,
-        iterations: iterationsCount,
+        passes: passesCount,
         comparisons: comparisonsCount,
         matchedCase: 'worst'
       });
@@ -881,7 +881,7 @@ export default function BinarySearchVisualizer() {
     setBoxes(frame.boxes);
     setStatus(frame.status);
     setExecutionLog(frame.log);
-    setLiveIterations(frame.iterations);
+    setLivePasses(frame.passes);
     setLiveComparisons(frame.comparisons);
     if (frame.matchedCase) {
       setEvaluatedCase(frame.matchedCase);
@@ -945,7 +945,7 @@ export default function BinarySearchVisualizer() {
     setCurrentStepIdx(0);
     setHighlightLineNum(-1);
     setEvaluatedCase(null);
-    setLiveIterations(0);
+    setLivePasses(0);
     setLiveComparisons(0);
     setError(null);
 
@@ -1011,8 +1011,8 @@ export default function BinarySearchVisualizer() {
         {/* Real-time Metric Displays */}
         <div className="metric-stats-bar">
           <div className="metric-stat-item">
-            <span className="metric-stat-val">{liveIterations}</span>
-            <span className="metric-stat-label">Iterations</span>
+            <span className="metric-stat-val">{livePasses}</span>
+            <span className="metric-stat-label">Passes</span>
           </div>
           <div className="metric-stat-item">
             <span className="metric-stat-val">{liveComparisons}</span>
