@@ -413,7 +413,7 @@ const InjectedStyles = () => (
     /* --- Sidebar Stat metrics tracker --- */
     .metric-stats-bar {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr;
       gap: 0.5rem;
       background-color: rgba(15, 23, 42, 0.4);
       padding: 0.6rem;
@@ -1008,12 +1008,8 @@ export default function BinarySearchVisualizer() {
           Binary Search
         </h1>
 
-        {/* Real-time Metric Displays */}
+        {/* Real-time Metric Displays showing Comparisons only */}
         <div className="metric-stats-bar">
-          <div className="metric-stat-item">
-            <span className="metric-stat-val">{livePasses}</span>
-            <span className="metric-stat-label">Passes</span>
-          </div>
           <div className="metric-stat-item">
             <span className="metric-stat-val">{liveComparisons}</span>
             <span className="metric-stat-label">Comparisons</span>
