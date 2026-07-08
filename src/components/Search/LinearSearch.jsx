@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, Pause, Play, RefreshCw, Shuffle, ArrowRight, ArrowLeft, Info, HelpCircle } from 'lucide-react';
+import { Search, Pause, Play, RefreshCw, Shuffle, ArrowRight, ArrowLeft, Info } from 'lucide-react';
 
 const InjectedStyles = () => (
   <style>{`
@@ -40,9 +40,6 @@ const InjectedStyles = () => (
 
       --purple-500: #a855f7;
       --purple-600: #9333ea;
-      
-      --pink-500: #ec4899;
-      --pink-600: #db2777;
     }
 
     .visualizer-container {
@@ -62,7 +59,7 @@ const InjectedStyles = () => (
 
     * { box-sizing: border-box; }
 
-    /* --- Sidebar styling matching Image_ed7203 layout --- */
+    /* --- Sidebar layout --- */
     .controls-sidebar {
       width: 100%;
       background-color: var(--bg-dark-800);
@@ -90,7 +87,7 @@ const InjectedStyles = () => (
     }
     .sidebar-title svg { margin-right: 0.75rem; }
 
-    /* --- Form and Input components --- */
+    /* --- Forms & Inputs --- */
     .input-group { margin-bottom: 0.85rem; }
     .input-group label {
       display: block;
@@ -144,7 +141,7 @@ const InjectedStyles = () => (
       margin-bottom: 0.75rem;
     }
 
-    /* --- High quality buttons matching theme standards --- */
+    /* --- Buttons --- */
     .btn {
       padding: 0.6rem;
       border-radius: 0.375rem;
@@ -205,7 +202,7 @@ const InjectedStyles = () => (
       font-size: 0.85rem;
     }
 
-    /* --- Content Pane Framework --- */
+    /* --- Content Frame --- */
     .main-content {
       flex: 1;
       display: flex;
@@ -222,7 +219,7 @@ const InjectedStyles = () => (
       color: var(--text-gray-200);
     }
 
-    /* --- Interactive array containers and status blocks --- */
+    /* --- Visual Canvas --- */
     .visualization-section {
       display: flex;
       flex-direction: column;
@@ -231,7 +228,7 @@ const InjectedStyles = () => (
     .status-bar {
       width: 100%;
       padding: 0.75rem;
-      margin-bottom: 1.25rem;
+      margin-bottom: 2rem;
       background-color: var(--bg-dark-800);
       border: 1px solid var(--border-gray-700);
       border-radius: 0.375rem;
@@ -256,7 +253,7 @@ const InjectedStyles = () => (
       flex: 1;
       background-color: rgba(5, 5, 10, 0.4);
       border-radius: 0.5rem;
-      min-height: 180px;
+      min-height: 220px;
       width: 100%;
       border: 1px solid var(--border-gray-700);
       box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4);
@@ -264,14 +261,15 @@ const InjectedStyles = () => (
       flex-wrap: wrap;
       justify-content: center;
       align-items: center;
-      gap: 1.25rem;
-      padding: 2rem;
+      gap: 1.5rem;
+      padding: 3rem 2rem 2rem 2rem;
     }
 
     .box-wrapper {
       display: flex;
       flex-direction: column;
       align-items: center;
+      position: relative;
       animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
     @keyframes popIn {
@@ -279,7 +277,7 @@ const InjectedStyles = () => (
       to { transform: scale(1); opacity: 1; }
     }
 
-    /* Green pastel circular style nodes aligning with Image_eed3d6.png structure */
+    /* Green circular pastel aesthetics matching styling guides */
     .box {
       width: 3.5rem;
       height: 3.5rem;
@@ -300,14 +298,14 @@ const InjectedStyles = () => (
       color: #385723;
     }
     .box.visiting {
-      background-color: #fef08a;
+      background-color: #fef08a; /* Yellow */
       border-color: #ca8a04;
       color: #854d0e;
       transform: scale(1.15);
       box-shadow: 0 0 15px rgba(234, 179, 8, 0.5);
     }
     .box.found {
-      background-color: #4ade80;
+      background-color: #4ade80; /* Green */
       border-color: #16a34a;
       color: white;
       transform: scale(1.2);
@@ -317,8 +315,8 @@ const InjectedStyles = () => (
       background-color: #f3f4f6;
       border-color: #d1d5db;
       color: #9ca3af;
-      opacity: 0.65;
-      transform: scale(0.95);
+      opacity: 0.4;
+      transform: scale(0.9);
     }
 
     .box-index {
@@ -329,7 +327,7 @@ const InjectedStyles = () => (
       font-weight: bold;
     }
 
-    /* --- Interactive Complexity HUD Cards --- */
+    /* --- Complexity HUD Diagnostic Cards --- */
     .complexity-cards-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
@@ -380,10 +378,10 @@ const InjectedStyles = () => (
       font-weight: bold;
     }
 
-    /* --- Sidebar stat metric tracker panel --- */
+    /* --- Sidebar Stat metrics tracker --- */
     .metric-stats-bar {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: 1fr 1fr;
       gap: 0.5rem;
       background-color: rgba(15, 23, 42, 0.4);
       padding: 0.6rem;
@@ -412,7 +410,7 @@ const InjectedStyles = () => (
       font-weight: 600;
     }
 
-    /* --- Code and execution log split layout --- */
+    /* --- Multi-Pane Log & Code Split --- */
     .lower-content-area {
       display: flex;
       flex-direction: column;
@@ -486,118 +484,111 @@ const codeSnippets = {
   python: `
 def linear_search(arr, target):
     for i in range(len(arr)):
-        # Checking current element
+        # Comparing current element
         if arr[i] == target:
-            # Target found
+            # Match located
             return i
-    # Target not found
+    # Target missing
     return -1
   `.trim(),
   cpp: `
 int linearSearch(int arr[], int n, int target) {
     for (int i = 0; i < n; i++) {
-        // Checking current element
+        // Comparing current element
         if (arr[i] == target) {
-            // Target found
+            // Match located
             return i;
         }
     }
-    // Target not found
+    // Target missing
     return -1;
 }
   `.trim(),
   java: `
 public int linearSearch(int[] arr, int target) {
     for (int i = 0; i < arr.length; i++) {
-        // Checking current element
+        // Comparing current element
         if (arr[i] == target) {
-            // Target found
+            // Match located
             return i;
         }
     }
-    // Target not found
+    // Target missing
     return -1;
 }
   `.trim(),
   javascript: `
 function linearSearch(arr, target) {
     for (let i = 0; i < arr.length; i++) {
-        // Checking current element
+        // Comparing current element
         if (arr[i] === target) {
-            // Target found
+            // Match located
             return i;
         }
     }
-    // Target not found
+    // Target missing
     return -1;
 }
   `.trim()
 };
 
-/* Maps current execution state to specific line indices of multi-language snippets */
+/* Precise Multi-Language line-to-state mapping tracker definitions */
 const LINE_MAPS = {
-  python: { init: 1, loop: 2, checking: 4, found: 6, not_found: 8 },
-  cpp: { init: 1, loop: 2, checking: 4, found: 6, not_found: 10 },
-  java: { init: 1, loop: 2, checking: 4, found: 6, not_found: 10 },
-  javascript: { init: 1, loop: 2, checking: 4, found: 6, not_found: 10 }
+  python: { loop: 2, check: 4, found: 6, not_found: 8 },
+  cpp: { loop: 2, check: 4, found: 6, not_found: 10 },
+  java: { loop: 2, check: 4, found: 6, not_found: 10 },
+  javascript: { loop: 2, check: 4, found: 6, not_found: 10 }
 };
 
-/* Helper sleep routine for automatic stepping */
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
 export default function LinearSearchVisualizer() {
-  const [arrayStr, setArrayStr] = useState("12, 45, 8, 23, 19, 31, 5, 42");
-  const [targetStr, setTargetStr] = useState("19");
+  const [arrayStr, setArrayStr] = useState("5, 12, 3, 8, 1, 9, 4");
+  const [targetStr, setTargetStr] = useState("9");
   const [randomSize, setRandomSize] = useState(10);
   const [language, setLanguage] = useState("python");
-  const [speed, setSpeed] = useState(500);
-  
-  // Custom step metrics and simulation state machines
+  const [speed, setSpeed] = useState(1000);
+
+  // Core Visual State Tracking
   const [boxes, setBoxes] = useState([]);
-  const [status, setStatus] = useState("Ready. Enter custom values or specify size and generate elements.");
-  const [executionLog, setExecutionLog] = useState(["[System] Visualizer loaded. Press Search or manual Next Step."]);
+  const [status, setStatus] = useState("Ready. Specify elements and target, then press Search.");
+  const [executionLog, setExecutionLog] = useState(["[System] Sandbox loaded. Hashing inputs."]);
   const [highlightLineNum, setHighlightLineNum] = useState(-1);
   const [error, setError] = useState(null);
 
-  // Active step indices
+  // Time-frame Pre-computed Simulation states
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
   const [simulationSteps, setSimulationSteps] = useState([]);
   const [isVisualizing, setIsVisualizing] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  // Live Metric Panel indicators
-  const [liveIterations, setLiveIterations] = useState(0);
-  const [liveComparisons, setLiveComparisons] = useState(0);
+  // Live HUD variables (Correct order: Passes on Left, Comparisons on Right)
   const [livePasses, setLivePasses] = useState(0);
-  const [evaluatedCase, setEvaluatedCase] = useState(null); // 'best' | 'avg' | 'worst' | null
+  const [liveComparisons, setLiveComparisons] = useState(0);
+  const [evaluatedCase, setEvaluatedCase] = useState(null); // 'best' | 'avg' | 'worst'
 
-  // References for handling async looping cycles safely
   const timerRef = useRef(null);
   const isPlayingRef = useRef(false);
   const logContainerRef = useRef(null);
 
-  // Auto scroll logs
   useEffect(() => {
     if (logContainerRef.current) {
       logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
     }
   }, [executionLog]);
 
-  // Clean initial boxes configuration on startup or change
+  // Clean initial boxes rendering when string inputs modify
   useEffect(() => {
     if (!isVisualizing) {
       const parsed = validateAndParse();
       if (parsed) {
-        setBoxes(parsed.arr.map(val => ({ value: val, state: 'default' })));
+        setBoxes(parsed.arr.map(v => ({ value: v, state: 'default' })));
         setEvaluatedCase(null);
-        setLiveIterations(0);
-        setLiveComparisons(0);
         setLivePasses(0);
+        setLiveComparisons(0);
       }
     }
   }, [arrayStr, isVisualizing]);
 
-  /* Loop step visual playback handler */
+  /* Control Playback state effects */
   useEffect(() => {
     if (isPlaying) {
       isPlayingRef.current = true;
@@ -619,95 +610,89 @@ export default function LinearSearchVisualizer() {
       .filter((num) => !isNaN(num));
 
     if (!arr.length) {
-      setError("Please specify a valid, non-empty list of numeric values.");
+      setError("Array cannot be empty.");
       return null;
     }
 
     const targetVal = Number(targetStr);
     if (isNaN(targetVal)) {
-      setError("Please enter a valid numeric target value.");
+      setError("Please specify a valid target digit.");
       return null;
     }
 
     return { arr, targetVal };
   };
 
+  /* Complete Step Simulation Precomputation Engine for Linear Search */
   const buildSimulationSteps = (arr, target) => {
     const steps = [];
-    let initialLog = ["[Simulation] Building search frame indices..."];
-    
-    // Step 0: Initialization Frame
+    let initialLog = ["[Simulation] Mapping Linear Search coordinates..."];
+
+    let comparisonsCount = 0;
+    let foundIdx = -1;
+
+    // Helper map box states based on index check
+    const buildBoxStates = (currIdx, statusType) => {
+      return arr.map((val, idx) => {
+        if (statusType === 'found' && idx === currIdx) return { value: val, state: 'found' };
+        if (idx < currIdx) return { value: val, state: 'visited' };
+        if (idx === currIdx) return { value: val, state: 'visiting' };
+        return { value: val, state: 'default' };
+      });
+    };
+
+    // Step 0: Initial Scan state setup
     steps.push({
-      boxes: arr.map(val => ({ value: val, state: 'default' })),
-      status: `Initializing linear scan for target ${target}...`,
-      log: [...initialLog, `[Init] Searching for target: ${target} in array of length ${arr.length}.`],
-      lineKey: 'init',
-      iterations: 0,
+      boxes: buildBoxStates(-1, 'default'),
+      status: `Starting visual search over the array elements. Target: ${target}`,
+      log: [...initialLog, `[Init] Total array length: ${arr.length}. Scan initialized.`],
+      lineKey: 'loop',
       comparisons: 0,
-      passes: 1,
+      passes: 0,
       matchedCase: null
     });
 
-    let foundIdx = -1;
-    let comparisonsCount = 0;
-
     for (let i = 0; i < arr.length; i++) {
-      comparisonsCount++;
       const currentVal = arr[i];
+      const currentLog = [...steps[steps.length - 1].log];
 
-      // Frame A: Target checking/visiting comparison frame
-      const currentLog = [...steps[steps.length - 1].log, `[Step ${i}] Visiting index ${i} (Value: ${currentVal})`];
+      comparisonsCount++;
+
+      // Phase A: Element checking / Comparison
       steps.push({
-        boxes: arr.map((val, idx) => {
-          if (idx === i) return { value: val, state: 'visiting' };
-          if (idx < i) return { value: val, state: 'visited' };
-          return { value: val, state: 'default' };
-        }),
-        status: `Checking index ${i} (Value: ${currentVal}): does it equal target ${target}?`,
-        log: currentLog,
-        lineKey: 'checking',
-        iterations: i + 1,
+        boxes: buildBoxStates(i, 'visiting'),
+        status: `Checking index ${i}. Comparing element value ${currentVal} with target ${target}...`,
+        log: [...currentLog, `[Iteration ${i + 1}] Evaluating if index ${i} (${currentVal}) == ${target}`],
+        lineKey: 'check',
         comparisons: comparisonsCount,
         passes: 1,
         matchedCase: null
       });
 
-      // Frame B: Decision frame
       if (currentVal === target) {
         foundIdx = i;
-        const successLog = [...currentLog, `[Success] Target ${target} verified matching index ${i}!`];
-        
         let caseType = 'avg';
         if (i === 0) caseType = 'best';
         else if (i === arr.length - 1) caseType = 'worst';
 
+        // Phase B1: Located Success Case
         steps.push({
-          boxes: arr.map((val, idx) => {
-            if (idx === i) return { value: val, state: 'found' };
-            if (idx < i) return { value: val, state: 'visited' };
-            return { value: val, state: 'default' };
-          }),
-          status: `Match found! Value ${currentVal} at index ${i} matches target.`,
-          log: successLog,
+          boxes: buildBoxStates(i, 'found'),
+          status: `Match found! Value ${currentVal} at index ${i} matches target ${target}.`,
+          log: [...currentLog, `[Success] Target ${target} successfully located at index ${i}!`],
           lineKey: 'found',
-          iterations: i + 1,
           comparisons: comparisonsCount,
           passes: 1,
           matchedCase: caseType
         });
         break;
       } else {
-        // Frame C: Visited mismatch update
-        const mismatchLog = [...currentLog, `[Mismatch] Value ${currentVal} != ${target}. Continuing search.`];
+        // Phase B2: Mismatch
         steps.push({
-          boxes: arr.map((val, idx) => {
-            if (idx <= i) return { value: val, state: 'visited' };
-            return { value: val, state: 'default' };
-          }),
-          status: `Index ${i} (${currentVal}) does not match target. Stepping to next index...`,
-          log: mismatchLog,
+          boxes: buildBoxStates(i + 1, 'default'),
+          status: `${currentVal} does not equal target ${target}. Continuing search...`,
+          log: [...currentLog, `[Mismatch] ${currentVal} !== ${target}. Index ${i} marked as visited.`],
           lineKey: 'loop',
-          iterations: i + 1,
           comparisons: comparisonsCount,
           passes: 1,
           matchedCase: null
@@ -715,15 +700,12 @@ export default function LinearSearchVisualizer() {
       }
     }
 
-    // Step Final: Target missing completely frame
     if (foundIdx === -1) {
-      const finalLog = [...steps[steps.length - 1].log, `[Completed] Scan complete. Target not found.`];
       steps.push({
         boxes: arr.map(val => ({ value: val, state: 'visited' })),
-        status: `Search complete. Target value ${target} is missing from the list.`,
-        log: finalLog,
+        status: `Search complete. Target value ${target} is not present inside the array.`,
+        log: [...steps[steps.length - 1].log, `[Failed] Scan completed. Target missing.`],
         lineKey: 'not_found',
-        iterations: arr.length,
         comparisons: comparisonsCount,
         passes: 1,
         matchedCase: 'worst'
@@ -733,7 +715,6 @@ export default function LinearSearchVisualizer() {
     return steps;
   };
 
-  /* Playback control loop sequence */
   const runAutoPlayback = async () => {
     if (currentStepIdx < simulationSteps.length - 1) {
       timerRef.current = setTimeout(() => {
@@ -748,23 +729,22 @@ export default function LinearSearchVisualizer() {
 
   const applyStepFrame = (idx) => {
     if (idx < 0 || idx >= simulationSteps.length) return;
-    
+
     const frame = simulationSteps[idx];
     setBoxes(frame.boxes);
     setStatus(frame.status);
     setExecutionLog(frame.log);
-    setLiveIterations(frame.iterations);
     setLiveComparisons(frame.comparisons);
     setLivePasses(frame.passes);
     if (frame.matchedCase) {
       setEvaluatedCase(frame.matchedCase);
     }
 
-    // Highlighting multi-language code lines accurately
-    const lineKey = frame.lineKey;
+    // Highlighting current code line
+    const key = frame.lineKey;
     const mapping = LINE_MAPS[language];
-    if (mapping && mapping[lineKey]) {
-      setHighlightLineNum(mapping[lineKey]);
+    if (mapping && mapping[key]) {
+      setHighlightLineNum(mapping[key]);
     } else {
       setHighlightLineNum(-1);
     }
@@ -772,7 +752,6 @@ export default function LinearSearchVisualizer() {
     setCurrentStepIdx(idx);
   };
 
-  /* Triggers and starts the simulation sequence builder */
   const handleStartSearch = () => {
     const parsed = validateAndParse();
     if (!parsed) return;
@@ -786,13 +765,12 @@ export default function LinearSearchVisualizer() {
     setEvaluatedCase(null);
     applyStepFrame(0);
 
-    // Auto trigger playback
+    // Auto Play trigger
     setIsPlaying(true);
   };
 
   const handleNextStep = () => {
     if (!isVisualizing) {
-      // Build simulation frames first if not run before
       const parsed = validateAndParse();
       if (!parsed) return;
       const steps = buildSimulationSteps(parsed.arr, parsed.targetVal);
@@ -800,7 +778,7 @@ export default function LinearSearchVisualizer() {
       setIsVisualizing(true);
       applyStepFrame(0);
     } else {
-      setIsPlaying(false); // Stop auto playing on manual trigger
+      setIsPlaying(false); // Manual step pauses auto playback
       if (currentStepIdx < simulationSteps.length - 1) {
         applyStepFrame(currentStepIdx + 1);
       }
@@ -809,7 +787,7 @@ export default function LinearSearchVisualizer() {
 
   const handlePrevStep = () => {
     if (!isVisualizing || currentStepIdx === 0) return;
-    setIsPlaying(false); // Stop autoplay
+    setIsPlaying(false);
     applyStepFrame(currentStepIdx - 1);
   };
 
@@ -820,15 +798,14 @@ export default function LinearSearchVisualizer() {
     setCurrentStepIdx(0);
     setHighlightLineNum(-1);
     setEvaluatedCase(null);
-    setLiveIterations(0);
-    setLiveComparisons(0);
     setLivePasses(0);
+    setLiveComparisons(0);
     setError(null);
-    
+
     const parsed = validateAndParse();
     if (parsed) {
-      setBoxes(parsed.arr.map(val => ({ value: val, state: 'default' })));
-      setExecutionLog(["[System] Canvas reset. Press Search to begin scanning."]);
+      setBoxes(parsed.arr.map(v => ({ value: v, state: 'default' })));
+      setExecutionLog(["[System] Canvas reset. Press Search to begin split scan."]);
       setStatus("Ready.");
     }
   };
@@ -837,31 +814,29 @@ export default function LinearSearchVisualizer() {
     if (isVisualizing) handleReset();
 
     const size = Math.max(3, Math.min(25, randomSize));
-    const generated = Array.from({ length: size }, () => Math.floor(Math.random() * 99) + 1);
-    
-    let target = Math.floor(Math.random() * 99) + 1;
+    const rawArr = Array.from({ length: size }, () => Math.floor(Math.random() * 98) + 2);
+
+    let target = Math.floor(Math.random() * 98) + 2;
     if (mode === 'guaranteed') {
-      // Choose an element present in the array
-      target = generated[Math.floor(Math.random() * generated.length)];
+      target = rawArr[Math.floor(Math.random() * rawArr.length)];
     } else if (mode === 'missing') {
-      // Ensure target isn't anywhere in generated list
-      while (generated.includes(target)) {
-        target = Math.floor(Math.random() * 99) + 1;
+      while (rawArr.includes(target)) {
+        target = Math.floor(Math.random() * 98) + 2;
       }
     }
 
-    setArrayStr(generated.join(", "));
+    setArrayStr(rawArr.join(", "));
     setTargetStr(String(target));
     setError(null);
-    setBoxes(generated.map(val => ({ value: val, state: 'default' })));
-    setExecutionLog([`[System] Generated ${size} elements. Mode: ${mode.toUpperCase()}. target: ${target}`]);
-    setStatus("Random array ready.");
+    setBoxes(rawArr.map(v => ({ value: v, state: 'default' })));
+    setExecutionLog([`[System] Generated ${rawArr.length} elements. Mode: ${mode.toUpperCase()}. target: ${target}`]);
+    setStatus("Random elements ready.");
   };
 
   const codeLines = codeSnippets[language].trim().split('\n');
   const statusColor = status.includes("Match found") || status.includes("successful")
     ? "status-found"
-    : status.includes("missing") || status.includes("not found")
+    : status.includes("not found") || status.includes("Missing")
     ? "status-not-found"
     : status.includes("Paused")
     ? "status-paused"
@@ -871,32 +846,28 @@ export default function LinearSearchVisualizer() {
     <div className="visualizer-container">
       <InjectedStyles />
 
-      {/* --- Left Controls Sidebar --- */}
+      {/* --- Controls Sidebar --- */}
       <aside className="controls-sidebar">
         <h1 className="sidebar-title">
           <Search size={30} />
           Linear Search
         </h1>
 
-        {/* Dynamic Metric Display Panels */}
+        {/* Dynamic Metric Display Panels with Passes on Left, Comparisons on Right */}
         <div className="metric-stats-bar">
           <div className="metric-stat-item">
-            <span className="metric-stat-val">{liveIterations}</span>
-            <span className="metric-stat-label">Iterations</span>
+            <span className="metric-stat-val">{livePasses}</span>
+            <span className="metric-stat-label">Passes</span>
           </div>
           <div className="metric-stat-item">
             <span className="metric-stat-val">{liveComparisons}</span>
             <span className="metric-stat-label">Comparisons</span>
           </div>
-          <div className="metric-stat-item">
-            <span className="metric-stat-val">{livePasses}</span>
-            <span className="metric-stat-label">Passes</span>
-          </div>
         </div>
 
-        {/* Input specifications */}
+        {/* Input variables */}
         <div className="input-group">
-          <label htmlFor="array">Array elements</label>
+          <label htmlFor="array">Array Elements</label>
           <textarea
             id="array"
             placeholder="e.g., 5, 12, 3, 8"
@@ -909,7 +880,7 @@ export default function LinearSearchVisualizer() {
         </div>
 
         <div className="input-group">
-          <label htmlFor="target">Target Value</label>
+          <label htmlFor="target">Target Digit</label>
           <input
             id="target"
             type="text"
@@ -923,7 +894,7 @@ export default function LinearSearchVisualizer() {
 
         {error && <div className="error-message">{error}</div>}
 
-        {/* Dynamic Custom Generator Panel */}
+        {/* Dynamic Capacity List Generator */}
         <div style={{
           backgroundColor: 'rgba(15, 23, 42, 0.4)',
           borderRadius: '0.375rem',
@@ -956,33 +927,33 @@ export default function LinearSearchVisualizer() {
               disabled={isVisualizing}
               className="btn btn-secondary"
               style={{ flex: 1, fontSize: '0.7rem', padding: '0.35rem 0' }}
-              title="Generate a completely random target value"
+              title="Generate array with random target"
             >
-              🎲 Random Target
+              🎲 Random
             </button>
             <button
               onClick={() => handleGenerateRandom('guaranteed')}
               disabled={isVisualizing}
               className="btn btn-purple"
               style={{ flex: 1, fontSize: '0.7rem', padding: '0.35rem 0' }}
-              title="Ensure target value exists in array"
+              title="Target is guaranteed to exist inside array"
             >
-              ✨ Guaranteed Match
+              ✨ Match
             </button>
           </div>
         </div>
 
-        {/* Step Visualizer Controllers */}
+        {/* Primary controllers */}
         <div className="actions-single">
           <button
             onClick={handleStartSearch}
             className="btn btn-green"
           >
-            <Search size={18} /> Run Auto Search
+            <Search size={18} /> Execute Search
           </button>
         </div>
 
-        {/* PREV, NEXT, PAUSE, RESET Controls */}
+        {/* Back and forth debuggers */}
         <div className="actions-grid">
           <button
             onClick={handlePrevStep}
@@ -1021,7 +992,7 @@ export default function LinearSearchVisualizer() {
           </button>
         </div>
 
-        {/* Lang specifications */}
+        {/* Configurations */}
         <div className="input-group">
           <label htmlFor="language">Code Language</label>
           <select
@@ -1056,10 +1027,10 @@ export default function LinearSearchVisualizer() {
         </div>
       </aside>
 
-      {/* --- Main Contents Panel --- */}
+      {/* --- Main Content workspace --- */}
       <main className="main-content">
         
-        {/* --- Visual Array Display Canvas --- */}
+        {/* --- Visual Array --- */}
         <section className="visualization-section">
           <h2 className="section-title">Visualization</h2>
 
@@ -1072,12 +1043,12 @@ export default function LinearSearchVisualizer() {
           <div className="visualization-boxes">
             {boxes.length === 0 ? (
               <span style={{ color: 'var(--text-gray-500)', fontSize: '0.9rem' }}>
-                Specify an array to paint elements on the canvas.
+                Provide elements to display them on the board.
               </span>
             ) : (
               boxes.map((box, idx) => (
                 <div key={idx} className="box-wrapper">
-                  <div className={`box ${box.state}`}>
+                  <div className={`box ${box.state || 'default'}`}>
                     {box.value}
                   </div>
                   <span className="box-index">[{idx}]</span>
@@ -1086,7 +1057,7 @@ export default function LinearSearchVisualizer() {
             )}
           </div>
 
-          {/* --- Interactive Complexity and Case Diagnostic Cards --- */}
+          {/* --- Interactive Complexity Case Diagnostics --- */}
           <div className="complexity-cards-grid">
             
             <div className={`complexity-card ${evaluatedCase === 'best' ? 'active-best' : ''}`}>
@@ -1125,7 +1096,7 @@ export default function LinearSearchVisualizer() {
           </div>
         </section>
 
-        {/* --- Code Tracer and Logging Panels --- */}
+        {/* --- Log & Tracer Splits --- */}
         <div className="lower-content-area">
           
           <section className="code-section">
