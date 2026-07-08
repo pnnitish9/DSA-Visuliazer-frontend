@@ -377,11 +377,12 @@ const InjectedStyles = () => (
       border-left: 6px solid var(--border-gray-600);
     }
 
+    /* Verbatim card structure matching image_fab0bf.png */
     .analyzer-hud-card {
       position: absolute;
       top: 1rem;
       right: 1rem;
-      width: 280px;
+      width: 310px;
       background-color: rgba(15, 23, 42, 0.95);
       border: 1.5px solid var(--pink-600);
       border-radius: 0.5rem;
@@ -653,7 +654,7 @@ export default function HashTableVisualizer() {
   const [isPaused, setIsPaused] = useState(false);
   const [error, setError] = useState(null);
 
-  // Persistent HUD diagnostic card layout
+  // Persistent HUD diagnostic card layout with tracing logs
   const [hashDiagnostic, setHashDiagnostic] = useState(null);
 
   const pausedRef = useRef(false);
@@ -764,9 +765,16 @@ export default function HashTableVisualizer() {
     const keyHash = val % tableSize;
     setExecutionLog(prev => [...prev, `[Operation] Requesting insertion of key ${val}. Hash = ${val} % ${tableSize} = ${keyHash}`]);
 
+    let diagnosticSteps = [];
+    setHashDiagnostic({
+      type: hashMode === "chaining" ? "Separate Chaining Insert" : `${probingMode.toUpperCase()} Probing Insert`,
+      key: val,
+      formula: `h(${val}) = ${val} % ${tableSize} = ${keyHash}`,
+      attempts: []
+    });
+
     if (hashMode === "chaining") {
       let currentTable = [...table];
-      // Ensure it is structurally sound
       if (!Array.isArray(currentTable[keyHash])) {
         currentTable[keyHash] = [];
       }
@@ -775,6 +783,16 @@ export default function HashTableVisualizer() {
       highlightLine("chaining", "init");
       setStatus(`Calculating hash slot for ${val}: Slot ${keyHash}`);
       playTone(440, 0.15);
+
+      diagnosticSteps.push({
+        step: 0,
+        slot: keyHash,
+        status: bucket.length > 0 ? `Collision (Chain occupied)` : `Slot Empty`,
+        formula: `Slot = ${keyHash}`,
+        isSuccess: bucket.length === 0
+      });
+      setHashDiagnostic(prev => ({ ...prev, attempts: [...diagnosticSteps] }));
+
       await sleep(speed);
 
       let collisionOccurred = bucket.length > 0;
@@ -788,6 +806,16 @@ export default function HashTableVisualizer() {
         highlightLine("chaining", "loop");
         setStatus(`Traversing chain at index ${keyHash}. Checking node value ${bucket[j].value}...`);
         playTone(440, 0.15);
+
+        diagnosticSteps.push({
+          step: j + 1,
+          slot: keyHash,
+          status: bucket[j].value === val ? "Duplicate match found" : `Checked node: ${bucket[j].value}`,
+          formula: `Chain Position [${j}]`,
+          isSuccess: false
+        });
+        setHashDiagnostic(prev => ({ ...prev, attempts: [...diagnosticSteps] }));
+
         await sleep(speed);
 
         if (bucket[j].value === val) {
@@ -798,6 +826,10 @@ export default function HashTableVisualizer() {
           setStatus(`Value ${val} already exists at index ${keyHash}. Aborting duplicate insertion.`);
           setExecutionLog(prev => [...prev, `[Duplicate] Key ${val} already in hash map.`]);
           playTone(330, 0.25);
+          
+          diagnosticSteps[diagnosticSteps.length - 1].status = "Duplicate found! Canceled.";
+          setHashDiagnostic(prev => ({ ...prev, attempts: [...diagnosticSteps] }));
+
           await sleep(speed * 1.5);
           break;
         }
@@ -807,13 +839,6 @@ export default function HashTableVisualizer() {
         if (collisionOccurred) {
           setExecutionLog(prev => [...prev, `[Collision] Slot ${keyHash} is occupied! Appending node to the list chain.`]);
           setCollisionPositions([keyHash]);
-          setHashDiagnostic({
-            type: "Separate Chaining (List Collision)",
-            key: val,
-            hash: keyHash,
-            status: "Collision Detected",
-            step: `Slot ${keyHash} occupied. Appending key ${val} to back of chain list.`
-          });
           playTone(280, 0.2);
           await sleep(speed);
         }
@@ -827,6 +852,16 @@ export default function HashTableVisualizer() {
         setStatus(`Successfully appended key ${val} into slot list chain ${keyHash}.`);
         setExecutionLog(prev => [...prev, `[Success] Inserted ${val} in chain slot ${keyHash}`]);
         playTone(523.25, 0.25);
+
+        diagnosticSteps.push({
+          step: diagnosticSteps.length,
+          slot: keyHash,
+          status: "Success (Appended to Chain)",
+          formula: `Slot = ${keyHash}`,
+          isSuccess: true
+        });
+        setHashDiagnostic(prev => ({ ...prev, attempts: [...diagnosticSteps] }));
+
         await sleep(speed * 1.5);
       }
     } else {
@@ -851,9 +886,38 @@ export default function HashTableVisualizer() {
         }
 
         playTone(400 + i * 25, 0.15);
-        await sleep(speed * 1.2);
 
         const slotValue = currentTable[probeIdx];
+        let offsetFormula = probingMode === "linear" 
+          ? `i = ${i}` 
+          : probingMode === "quadratic" 
+          ? `i² = ${i * i}` 
+          : `i * h₂(${val}) = ${i} * (${getSecondaryHash(val)}) = ${offset}`;
+        
+        let stepFormula = `(${keyHash} + ${offset}) % ${tableSize} = ${probeIdx}`;
+        let statusMsg = "";
+        let attemptSuccess = false;
+
+        if (slotValue === null || slotValue === "DEL") {
+          statusMsg = slotValue === 'DEL' ? "Tombstone slot" : "Empty slot";
+          attemptSuccess = true;
+        } else if (slotValue === val) {
+          statusMsg = "Duplicate key";
+        } else {
+          statusMsg = `Collision (Val: ${slotValue})`;
+        }
+
+        diagnosticSteps.push({
+          step: i,
+          slot: probeIdx,
+          status: statusMsg,
+          formula: stepFormula,
+          offsetFormula: offsetFormula,
+          isSuccess: attemptSuccess
+        });
+        setHashDiagnostic(prev => ({ ...prev, attempts: [...diagnosticSteps] }));
+
+        await sleep(speed * 1.2);
 
         if (slotValue === null || slotValue === "DEL") {
           foundSpot = probeIdx;
@@ -863,14 +927,6 @@ export default function HashTableVisualizer() {
           setStatus(`Slot ${probeIdx} is free (${slotValue === 'DEL' ? 'Tombstone slot' : 'Empty slot'}). Storing key ${val} here.`);
           setExecutionLog(prev => [...prev, `[Success] Placed key ${val} at slot ${probeIdx} on probe count ${i}`]);
           playTone(523.25, 0.25);
-          
-          setHashDiagnostic({
-            type: `${probingMode.toUpperCase()} Probing Active`,
-            key: val,
-            hash: keyHash,
-            status: "Balanced/Placed",
-            step: `Found empty spot at slot ${probeIdx} on probe sequence step ${i}`
-          });
           
           await sleep(speed * 1.5);
           break;
@@ -886,15 +942,6 @@ export default function HashTableVisualizer() {
           setCollisionPositions([...collisionTracker]);
           setStatus(`Collision at slot ${probeIdx} (occupied by ${slotValue})! Activating re-probe calculation...`);
           setExecutionLog(prev => [...prev, `[Collision] Probe index ${probeIdx} occupied by ${slotValue}`]);
-          
-          setHashDiagnostic({
-            type: `${probingMode.toUpperCase()} Probing Active`,
-            key: val,
-            hash: keyHash,
-            status: "Collision Found",
-            step: `Slot ${probeIdx} is occupied. Computing next offset probe...`
-          });
-
           playTone(300, 0.2);
           await sleep(speed * 1.2);
         }
@@ -904,6 +951,15 @@ export default function HashTableVisualizer() {
         setError("Table Overflow! Hash Table is completely full.");
         setExecutionLog(prev => [...prev, `[Error] Insertion failed. Open addressing table is saturated.`]);
         playTone(200, 0.35);
+
+        diagnosticSteps.push({
+          step: tableSize,
+          slot: keyHash,
+          status: "Saturated / Overflow Fail",
+          formula: "Full Array",
+          isSuccess: false
+        });
+        setHashDiagnostic(prev => ({ ...prev, attempts: [...diagnosticSteps] }));
       }
     }
 
@@ -923,6 +979,14 @@ export default function HashTableVisualizer() {
     const keyHash = val % tableSize;
     setExecutionLog(prev => [...prev, `[Search] Searching for key ${val}. Base slot index: ${keyHash}`]);
 
+    let diagnosticSteps = [];
+    setHashDiagnostic({
+      type: hashMode === "chaining" ? "Separate Chaining Lookup" : `${probingMode.toUpperCase()} Probe Search`,
+      key: val,
+      formula: `h(${val}) = ${val} % ${tableSize} = ${keyHash}`,
+      attempts: []
+    });
+
     if (hashMode === "chaining") {
       let currentTable = [...table];
       if (!Array.isArray(currentTable[keyHash])) {
@@ -932,6 +996,16 @@ export default function HashTableVisualizer() {
       setActiveSlotIdx(keyHash);
       setStatus(`Hashing lookup index for key ${val}: Slot ${keyHash}`);
       playTone(440, 0.15);
+
+      diagnosticSteps.push({
+        step: 0,
+        slot: keyHash,
+        status: bucket.length > 0 ? "Traversing Chain" : "Empty Bucket",
+        formula: `Slot = ${keyHash}`,
+        isSuccess: false
+      });
+      setHashDiagnostic(prev => ({ ...prev, attempts: [...diagnosticSteps] }));
+
       await sleep(speed);
 
       let found = false;
@@ -942,6 +1016,16 @@ export default function HashTableVisualizer() {
         setVisitingChainIdx(j);
         setStatus(`Searching chain at slot ${keyHash}. Matching node ${bucket[j].value}...`);
         playTone(440, 0.15);
+
+        diagnosticSteps.push({
+          step: j + 1,
+          slot: keyHash,
+          status: bucket[j].value === val ? "Key Located!" : `Mismatched Value: ${bucket[j].value}`,
+          formula: `Chain index [${j}]`,
+          isSuccess: bucket[j].value === val
+        });
+        setHashDiagnostic(prev => ({ ...prev, attempts: [...diagnosticSteps] }));
+
         await sleep(speed);
 
         if (bucket[j].value === val) {
@@ -951,15 +1035,6 @@ export default function HashTableVisualizer() {
           setStatus(`Key ${val} found successfully at bucket slot ${keyHash}, chain offset index ${j}!`);
           setExecutionLog(prev => [...prev, `[Found] Target ${val} located in separate chain index ${keyHash}`]);
           playTone(523.25, 0.3);
-          
-          setHashDiagnostic({
-            type: "Separate Chaining Lookup",
-            key: val,
-            hash: keyHash,
-            status: "Key Found",
-            step: `Target located inside slot ${keyHash} list at chain position ${j}`
-          });
-
           await sleep(speed * 1.8);
           break;
         }
@@ -969,6 +1044,16 @@ export default function HashTableVisualizer() {
         setStatus(`Key ${val} is not present in separate chain slot ${keyHash}.`);
         setExecutionLog(prev => [...prev, `[Not Found] Key ${val} is missing.`]);
         playTone(220, 0.3);
+
+        diagnosticSteps.push({
+          step: diagnosticSteps.length,
+          slot: keyHash,
+          status: "Key Missing!",
+          formula: `Unresolved Chain`,
+          isSuccess: false
+        });
+        setHashDiagnostic(prev => ({ ...prev, attempts: [...diagnosticSteps] }));
+
         await sleep(speed * 1.5);
       }
     } else {
@@ -991,24 +1076,45 @@ export default function HashTableVisualizer() {
         }
 
         playTone(400 + i * 25, 0.15);
-        await sleep(speed * 1.2);
 
         const slotValue = table[probeIdx];
+        let offsetFormula = probingMode === "linear" 
+          ? `i = ${i}` 
+          : probingMode === "quadratic" 
+          ? `i² = ${i * i}` 
+          : `i * h₂(${val}) = ${i} * (${getSecondaryHash(val)}) = ${offset}`;
+        
+        let stepFormula = `(${keyHash} + ${offset}) % ${tableSize} = ${probeIdx}`;
+        let statusMsg = "";
+        let isMatch = slotValue === val;
+
+        if (slotValue === val) {
+          statusMsg = "Key Found!";
+        } else if (slotValue === null) {
+          statusMsg = "Empty Slot (Lookup Terminated)";
+        } else if (slotValue === "DEL") {
+          statusMsg = "Tombstone (DEL)";
+        } else {
+          statusMsg = `Mismatch (Value: ${slotValue})`;
+        }
+
+        diagnosticSteps.push({
+          step: i,
+          slot: probeIdx,
+          status: statusMsg,
+          formula: stepFormula,
+          offsetFormula: offsetFormula,
+          isSuccess: isMatch
+        });
+        setHashDiagnostic(prev => ({ ...prev, attempts: [...diagnosticSteps] }));
+
+        await sleep(speed * 1.2);
 
         if (slotValue === val) {
           foundIdx = probeIdx;
           setStatus(`Key ${val} successfully found in probed slot ${probeIdx}!`);
           setExecutionLog(prev => [...prev, `[Found] Key ${val} located in probed slot ${probeIdx}`]);
           playTone(523.25, 0.3);
-          
-          setHashDiagnostic({
-            type: `${probingMode.toUpperCase()} Probe Search`,
-            key: val,
-            hash: keyHash,
-            status: "Key Found",
-            step: `Target key located in probed slot ${probeIdx} on step count ${i}`
-          });
-
           await sleep(speed * 1.8);
           break;
         } else if (slotValue === null) {
@@ -1052,6 +1158,14 @@ export default function HashTableVisualizer() {
     const keyHash = val % tableSize;
     setExecutionLog(prev => [...prev, `[Delete] Requesting removal of key ${val}. Hash index: ${keyHash}`]);
 
+    let diagnosticSteps = [];
+    setHashDiagnostic({
+      type: hashMode === "chaining" ? "Separate Chaining Truncate" : `${probingMode.toUpperCase()} Probe Delete`,
+      key: val,
+      formula: `h(${val}) = ${val} % ${tableSize} = ${keyHash}`,
+      attempts: []
+    });
+
     if (hashMode === "chaining") {
       let currentTable = [...table];
       if (!Array.isArray(currentTable[keyHash])) {
@@ -1061,6 +1175,16 @@ export default function HashTableVisualizer() {
       setActiveSlotIdx(keyHash);
       setStatus(`Calculating hash slot for deleting ${val}: Slot ${keyHash}`);
       playTone(440, 0.15);
+
+      diagnosticSteps.push({
+        step: 0,
+        slot: keyHash,
+        status: bucket.length > 0 ? "Targeting List" : "Empty Bucket",
+        formula: `Slot = ${keyHash}`,
+        isSuccess: false
+      });
+      setHashDiagnostic(prev => ({ ...prev, attempts: [...diagnosticSteps] }));
+
       await sleep(speed);
 
       let foundIdx = -1;
@@ -1071,6 +1195,16 @@ export default function HashTableVisualizer() {
         setVisitingChainIdx(j);
         setStatus(`Checking chain index ${j} in slot ${keyHash} for key ${val}...`);
         playTone(440, 0.15);
+
+        diagnosticSteps.push({
+          step: j + 1,
+          slot: keyHash,
+          status: bucket[j].value === val ? "Key targeted for Delete" : `Mismatch: ${bucket[j].value}`,
+          formula: `Chain index [${j}]`,
+          isSuccess: bucket[j].value === val
+        });
+        setHashDiagnostic(prev => ({ ...prev, attempts: [...diagnosticSteps] }));
+
         await sleep(speed);
 
         if (bucket[j].value === val) {
@@ -1092,20 +1226,31 @@ export default function HashTableVisualizer() {
         setStatus(`Key ${val} successfully deleted and list pointers rewired.`);
         setExecutionLog(prev => [...prev, `[Success] Key ${val} removed from separate chain bucket ${keyHash}`]);
         playTone(440, 0.15);
-        
-        setHashDiagnostic({
-          type: "Separate Chaining Truncate",
-          key: val,
-          hash: keyHash,
-          status: "Key Removed",
-          step: `Deleted key ${val} and updated slot list pointers dynamically.`
+
+        diagnosticSteps.push({
+          step: diagnosticSteps.length,
+          slot: keyHash,
+          status: "Success (Pointers Rewired)",
+          formula: `Removed node from Chain`,
+          isSuccess: true
         });
+        setHashDiagnostic(prev => ({ ...prev, attempts: [...diagnosticSteps] }));
 
         await sleep(speed);
       } else {
         setStatus(`Deletion aborted. Key ${val} is not present in bucket slot ${keyHash}.`);
         setExecutionLog(prev => [...prev, `[Not Found] Key ${val} is missing.`]);
         playTone(220, 0.35);
+
+        diagnosticSteps.push({
+          step: diagnosticSteps.length,
+          slot: keyHash,
+          status: "Key Missing / Aborted",
+          formula: `Deletion Cancelled`,
+          isSuccess: false
+        });
+        setHashDiagnostic(prev => ({ ...prev, attempts: [...diagnosticSteps] }));
+
         await sleep(speed);
       }
     } else {
@@ -1129,9 +1274,39 @@ export default function HashTableVisualizer() {
         }
 
         playTone(400 + i * 25, 0.15);
-        await sleep(speed * 1.2);
 
         const slotValue = currentTable[probeIdx];
+        let offsetFormula = probingMode === "linear" 
+          ? `i = ${i}` 
+          : probingMode === "quadratic" 
+          ? `i² = ${i * i}` 
+          : `i * h₂(${val}) = ${i} * (${getSecondaryHash(val)}) = ${offset}`;
+        
+        let stepFormula = `(${keyHash} + ${offset}) % ${tableSize} = ${probeIdx}`;
+        let statusMsg = "";
+        let isMatch = slotValue === val;
+
+        if (slotValue === val) {
+          statusMsg = "Key matched for deletion";
+        } else if (slotValue === null) {
+          statusMsg = "Empty slot (Abort deletion)";
+        } else if (slotValue === "DEL") {
+          statusMsg = "Tombstone (Skip)";
+        } else {
+          statusMsg = `Collision (occupied by ${slotValue})`;
+        }
+
+        diagnosticSteps.push({
+          step: i,
+          slot: probeIdx,
+          status: statusMsg,
+          formula: stepFormula,
+          offsetFormula: offsetFormula,
+          isSuccess: isMatch
+        });
+        setHashDiagnostic(prev => ({ ...prev, attempts: [...diagnosticSteps] }));
+
+        await sleep(speed * 1.2);
 
         if (slotValue === val) {
           deletedIdx = probeIdx;
@@ -1140,14 +1315,15 @@ export default function HashTableVisualizer() {
           setStatus(`Key ${val} located in probed slot ${probeIdx}. Inserting Tombstone ("DEL") to preserve probing chain integrity.`);
           setExecutionLog(prev => [...prev, `[Deleted] Replaced key ${val} at slot ${probeIdx} with Tombstone 'DEL'`]);
           playTone(261.63, 0.35);
-          
-          setHashDiagnostic({
-            type: `${probingMode.toUpperCase()} Probe Delete`,
-            key: val,
-            hash: keyHash,
-            status: "Key Removed (Tombstone)",
-            step: `Key cleared from probed slot ${probeIdx}. Placed DEL tombstone to retain chaining structure.`
+
+          diagnosticSteps.push({
+            step: i + 1,
+            slot: probeIdx,
+            status: "Success (DEL Tombstone Inserted)",
+            formula: "DEL Placed",
+            isSuccess: true
           });
+          setHashDiagnostic(prev => ({ ...prev, attempts: [...diagnosticSteps] }));
 
           await sleep(speed * 1.8);
           break;
@@ -1245,13 +1421,13 @@ export default function HashTableVisualizer() {
               disabled={isVisualizing}
               className="input-field"
             >
-              <option value="linear">Linear Probing (h + i) % m</option>
-              <option value="quadratic">Quadratic Probing (h + i²) % m</option>
-              <option value="double">Double Hashing (h1 + i * h2) % m</option>
+              <option value="linear">Linear Hashing (h + i) % M</option>
+              <option value="quadratic">Quadratic Hashing (h + i²) % M</option>
+              <option value="double">Double Hashing (h1 + i * h2) % M</option>
             </select>
             {probingMode === "double" && (
               <span style={{ fontSize: '0.725rem', color: 'var(--text-gray-400)', display: 'block', marginTop: '0.35rem', lineHeight: '1.3' }}>
-                Secondary step: h₂(k) = 7 - (k % 7)
+                Secondary formula: h₂(k) = 7 - (k % 7)
               </span>
             )}
           </div>
@@ -1445,21 +1621,60 @@ export default function HashTableVisualizer() {
 
           <div className="visualization-boxes">
             
+            {/* Interactive Index Calculation Panel with History Tracing */}
             {hashDiagnostic && (
               <div className="analyzer-hud-card">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--pink-500)', fontWeight: 'bold', marginBottom: '0.4rem', textTransform: 'uppercase', fontSize: '0.75rem' }}>
-                  <Info size={14} /> Hash Analyzer Active
+                  <Info size={14} /> Index Calculator Active
                 </div>
                 <div style={{ color: '#fff', fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '0.2rem' }}>
-                  Formula: h(k) = k % {tableSize}
+                  Base Hashing: {hashDiagnostic.formula}
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr', gap: '0.2rem', color: 'var(--text-gray-300)', fontSize: '0.75rem' }}>
-                  <span>Target Key:</span><span style={{ color: 'var(--pink-500)', fontWeight: 'bold' }}>{hashDiagnostic.key}</span>
-                  <span>Calculated:</span><span style={{ color: 'var(--cyan-400)' }}>Slot {hashDiagnostic.hash}</span>
-                  <span>Status:</span><span style={{ color: hashDiagnostic.status.includes('Collision') ? 'var(--red-400)' : 'var(--green-400)' }}>{hashDiagnostic.status}</span>
+                <div style={{ color: 'var(--text-gray-300)', fontSize: '0.75rem', marginBottom: '0.4rem' }}>
+                  Target Key: <strong style={{ color: 'var(--pink-500)' }}>{hashDiagnostic.key}</strong>
                 </div>
-                <div style={{ borderTop: '1px solid var(--border-gray-700)', marginTop: '0.4rem', paddingTop: '0.4rem', fontSize: '0.725rem', color: 'var(--yellow-400)', fontStyle: 'italic' }}>
-                  {hashDiagnostic.step}
+
+                <div style={{ maxHeight: '110px', overflowY: 'auto', borderTop: '1px solid var(--border-gray-700)', paddingTop: '0.4rem', marginTop: '0.4rem' }}>
+                  <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-gray-400)', fontWeight: '600', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+                    Calculated Probe Steps (Previous checks):
+                  </span>
+                  {hashDiagnostic.attempts.length === 0 ? (
+                    <div style={{ fontSize: '0.725rem', color: 'var(--text-gray-500)', fontStyle: 'italic' }}>
+                      Calculating primary slot...
+                    </div>
+                  ) : (
+                    hashDiagnostic.attempts.map((attempt, index) => (
+                      <div 
+                        key={index} 
+                        style={{ 
+                          display: 'flex', 
+                          flexDirection: 'column', 
+                          fontSize: '0.725rem', 
+                          backgroundColor: 'rgba(30, 41, 59, 0.4)', 
+                          padding: '0.25rem 0.4rem', 
+                          borderRadius: '0.25rem', 
+                          marginBottom: '0.25rem',
+                          borderLeft: `3px solid ${attempt.isSuccess ? 'var(--green-500)' : 'var(--red-500)'}` 
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#fff', fontWeight: '600' }}>
+                          <span>Attempt {attempt.step}: Slot [{attempt.slot}]</span>
+                          <span style={{ color: attempt.isSuccess ? 'var(--green-400)' : 'var(--red-400)' }}>
+                            {attempt.isSuccess ? '✔ SUCCESS' : '❌ COLLISION'}
+                          </span>
+                        </div>
+                        <div style={{ color: 'var(--text-gray-400)', fontSize: '0.675rem', marginTop: '0.1rem', display: 'flex', justifyContent: 'space-between' }}>
+                          <span>Math: {attempt.formula}</span>
+                          <span>{attempt.status}</span>
+                        </div>
+                        {attempt.offsetFormula && (
+                          <div style={{ color: 'var(--cyan-400)', fontSize: '0.65rem', fontStyle: 'italic' }}>
+                            Offset: {attempt.offsetFormula}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             )}
