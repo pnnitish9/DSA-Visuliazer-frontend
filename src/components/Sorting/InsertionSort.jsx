@@ -14,7 +14,6 @@ import {
 
 const InjectedStyles = () => (
   <style>{`
-    /* --- CSS Custom Variables matching image_0b8f44.png --- */
     :root {
       --bg-dark-950: #0c111c;
       --bg-dark-900: #111827;
@@ -75,7 +74,7 @@ const InjectedStyles = () => (
       }
     }
 
-    /* --- Sidebar Styles --- */
+    /* --- Sidebar Controls Styling --- */
     .controls-sidebar {
       width: 100%;
       background-color: var(--bg-dark-800);
@@ -107,7 +106,7 @@ const InjectedStyles = () => (
       margin-right: 0.75rem;
     }
 
-    /* --- Input Groups & Sliders --- */
+    /* --- Forms, Input Elements, Sliders --- */
     .input-group {
       margin-bottom: 1.25rem;
     }
@@ -158,7 +157,7 @@ const InjectedStyles = () => (
       border-radius: 0.5rem;
     }
 
-    /* --- Buttons --- */
+    /* --- Button and Trigger Layouts --- */
     .actions-grid {
       display: flex;
       flex-direction: column;
@@ -269,7 +268,7 @@ const InjectedStyles = () => (
       font-size: 0.9rem;
     }
 
-    /* --- Visualizer Content Canvas --- */
+    /* --- Main Workspace layout --- */
     .main-content {
       flex: 1;
       display: flex;
@@ -318,7 +317,7 @@ const InjectedStyles = () => (
     .status-sorted { color: var(--green-400); }
     .status-paused { color: var(--yellow-400); }
 
-    /* --- Real-Time Performance Widget --- */
+    /* --- Stats Dashboard Widget --- */
     .stats-dashboard {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -351,6 +350,7 @@ const InjectedStyles = () => (
       color: var(--cyan-400);
     }
 
+    /* --- Visualizer Box Elements --- */
     .visualization-boxes {
       flex: 1;
       display: flex;
@@ -426,7 +426,7 @@ const InjectedStyles = () => (
       opacity: 0.85;
     }
 
-    /* --- Interactive Control Bar underneath Canvas --- */
+    /* --- Interactive Playback underneath Canvas --- */
     .canvas-playback-controls {
       display: flex;
       align-items: center;
@@ -470,7 +470,7 @@ const InjectedStyles = () => (
       font-family: monospace;
     }
 
-    /* --- Scrubbing Progress Slider --- */
+    /* --- Timeline Scrubber UI --- */
     .scrub-timeline-group {
       display: flex;
       flex-direction: column;
@@ -498,23 +498,21 @@ const InjectedStyles = () => (
       border-radius: 50%;
     }
 
-    /* --- Multi-Column Lower Section Layout --- */
+    /* --- Clean 2-Column lower area for Code and Logs --- */
     .lower-content-area {
       display: flex;
       flex-direction: column;
       gap: 1.5rem;
       margin-top: 1.5rem;
-      flex: 1;
     }
 
-    @media (min-width: 1150px) {
+    @media (min-width: 1024px) {
       .lower-content-area {
         display: grid;
-        grid-template-columns: 4fr 3fr 3fr;
+        grid-template-columns: 1fr 1fr;
       }
     }
 
-    /* --- Workspace Panels --- */
     .workspace-section {
       display: flex;
       flex-direction: column;
@@ -531,7 +529,7 @@ const InjectedStyles = () => (
       overflow-y: auto;
     }
 
-    /* --- Code Highlights --- */
+    /* --- Code Line highlights --- */
     .code-block pre {
       margin: 0;
       font-family: 'Fira Code', 'Courier New', monospace;
@@ -557,7 +555,7 @@ const InjectedStyles = () => (
       font-style: italic;
     }
 
-    /* --- Execution Logs --- */
+    /* --- Execution Logs Stream --- */
     .log-list {
       margin: 0;
       padding: 0;
@@ -580,46 +578,60 @@ const InjectedStyles = () => (
       background-color: rgba(6, 182, 212, 0.1);
     }
 
-    /* --- Complexity Analysis Grid --- */
-    .analysis-card {
-      border-bottom: 1px solid var(--bg-dark-800);
-      padding: 0.75rem 0;
+    /* --- EXACT BUBBLE SORT / AUXILIARY SPACE Complexity cards matching image_0c0bc2.png --- */
+    .image-complexity-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+      margin-top: 1.5rem;
+      margin-bottom: 1rem;
     }
 
-    .analysis-card:last-child {
-      border-bottom: none;
+    @media (min-width: 640px) {
+      .image-complexity-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
     }
 
-    .analysis-header {
+    @media (min-width: 1024px) {
+      .image-complexity-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    .image-complexity-card {
+      background-color: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 0.5rem;
+      padding: 1.25rem;
       display: flex;
+      flex-direction: column;
       justify-content: space-between;
-      align-items: center;
-      margin-bottom: 0.35rem;
+      min-height: 110px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     }
 
-    .analysis-label {
-      font-weight: 600;
-      color: var(--text-gray-200);
-      font-size: 0.9rem;
-    }
-
-    .analysis-badge {
-      font-family: monospace;
+    .image-card-header {
+      font-size: 0.65rem;
       font-weight: 700;
-      padding: 0.15rem 0.5rem;
-      border-radius: 0.25rem;
-      font-size: 0.85rem;
+      letter-spacing: 0.08em;
+      color: #9ca3af;
+      text-transform: uppercase;
     }
 
-    .badge-best { background-color: rgba(34, 197, 94, 0.2); color: var(--green-400); }
-    .badge-avg { background-color: rgba(249, 115, 22, 0.2); color: var(--orange-500); }
-    .badge-worst { background-color: rgba(239, 68, 68, 0.2); color: var(--red-400); }
-    .badge-space { background-color: rgba(168, 85, 247, 0.2); color: var(--purple-500); }
+    .image-card-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-top: 0.25rem;
+      margin-bottom: 0.5rem;
+    }
 
-    .analysis-desc {
-      font-size: 0.8rem;
-      color: var(--text-gray-400);
-      line-height: 1.4;
+    .image-card-complexity {
+      font-family: monospace;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #38bdf8;
     }
   `}</style>
 );
@@ -702,14 +714,14 @@ const getHighlightLine = (stepType, lang) => {
   return mappings[lang]?.[stepType] ?? -1;
 };
 
-export default function InsertionSortVisualizer() {
+export default function App() {
   const [language, setLanguage] = useState("python");
   const [speed, setSpeed] = useState(500);
   const [randomSize, setRandomSize] = useState(8);
   const [arrayStr, setArrayStr] = useState("7, 2, 9, 1, 5, 4, 8");
   const [error, setError] = useState(null);
 
-  // Playback & Precomputation state variables
+  // Precomputed Multi-Step States
   const [steps, setSteps] = useState([]);
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -750,7 +762,7 @@ export default function InsertionSortVisualizer() {
       noTransition: false
     }));
 
-    // Step 0: Ready
+    // Step 0: Ready Idle state
     stepsList.push({
       boxes: deepCopy(boxes),
       status: "Enter an array, then press Play or Step Forward.",
@@ -764,7 +776,8 @@ export default function InsertionSortVisualizer() {
     if (n > 0) {
       boxes[0].state = 'sorted';
       logs.push("Index [0] is sorted relative to itself.");
-      // Step 1: Initial element setup
+      
+      // Step 1: Initialize first element
       stepsList.push({
         boxes: deepCopy(boxes),
         status: `Element ${boxes[0].value} at [0] is initially sorted.`,
@@ -778,9 +791,8 @@ export default function InsertionSortVisualizer() {
     let swapsCount = 0;
     let comparisonsCount = 0;
 
-    // Sort loops
+    // Outer sorting loops
     for (let i = 1; i < n; i++) {
-      // Step: Highlight loop initiation
       stepsList.push({
         boxes: deepCopy(boxes),
         status: `Starting pass ${i}. Preparing to insert element at index [${i}].`,
@@ -793,7 +805,6 @@ export default function InsertionSortVisualizer() {
       let j = i;
       logs.push(`Pass ${i}: Set temporary pointer key j = ${i} (value ${boxes[j].value}).`);
       
-      // Step: Highlight key selection
       stepsList.push({
         boxes: deepCopy(boxes),
         status: `Key is ${boxes[j].value} at index [${j}].`,
@@ -803,13 +814,14 @@ export default function InsertionSortVisualizer() {
         comparisons: comparisonsCount
       });
 
+      // Backwards comparison sub-loops
       while (j > 0) {
         comparisonsCount++;
         const leftBox = boxes[j - 1];
         const rightBox = boxes[j];
         const isSmaller = leftBox.value > rightBox.value;
 
-        // Step: Highlight loop evaluation / comparison
+        // Visual State: Comparing
         const compareBoxes = deepCopy(boxes);
         compareBoxes[j - 1].state = 'comparing';
         compareBoxes[j].state = 'comparing';
@@ -826,7 +838,8 @@ export default function InsertionSortVisualizer() {
 
         if (isSmaller) {
           swapsCount++;
-          // Step: Swapping visual displacement step
+          
+          // Visual State: Swap Displacement Animation
           const displaceBoxes = deepCopy(boxes);
           displaceBoxes[j - 1].state = 'swapping';
           displaceBoxes[j].state = 'swapping';
@@ -843,7 +856,7 @@ export default function InsertionSortVisualizer() {
             comparisons: comparisonsCount
           });
 
-          // Step: Snap values physically (instantly resetting visual margins)
+          // Visual State: Snapping instantly inside memory
           const snapBoxes = deepCopy(boxes);
           [snapBoxes[j - 1], snapBoxes[j]] = [snapBoxes[j], snapBoxes[j - 1]];
           snapBoxes[j - 1].translateX = 0;
@@ -862,14 +875,13 @@ export default function InsertionSortVisualizer() {
             comparisons: comparisonsCount
           });
 
-          // Apply physical swap state locally
+          // Local mutation logic sync
           [boxes[j - 1], boxes[j]] = [boxes[j], boxes[j - 1]];
 
-          // Step: Decrement loop variable j
           j--;
           const decrBoxes = deepCopy(boxes);
           decrBoxes.forEach((box, k) => {
-            if (k < i) box.state = 'default'; // reset active temporary states
+            if (k < i) box.state = 'default';
           });
           
           stepsList.push({
@@ -882,7 +894,6 @@ export default function InsertionSortVisualizer() {
           });
 
         } else {
-          // Condition failed, loop terminates for this pass
           logs.push(`Element ${rightBox.value} is in correct relative position. Pass finished.`);
           stepsList.push({
             boxes: deepCopy(boxes),
@@ -896,7 +907,7 @@ export default function InsertionSortVisualizer() {
         }
       }
 
-      // Mark the prefix evaluated portion up to index i as fully sorted
+      // Mark the prefix elements fully sorted up to index i
       for (let k = 0; k <= i; k++) {
         boxes[k].state = 'sorted';
       }
@@ -911,7 +922,7 @@ export default function InsertionSortVisualizer() {
       });
     }
 
-    // Final sorting finished confirmation step
+    // Done Sorting Visual State
     boxes.forEach(box => box.state = 'sorted');
     logs.push("Sorting complete! Insertion sort succeeded.");
     stepsList.push({
@@ -935,11 +946,10 @@ export default function InsertionSortVisualizer() {
     } else {
       setSteps([]);
     }
-    // Automatically stop ongoing autoplay loop
     setIsPlaying(false);
   }, [arrayStr]);
 
-  // Clean timer loops on unmount
+  // Cleanup active timer
   useEffect(() => {
     return () => clearInterval(timerRef.current);
   }, []);
@@ -961,6 +971,7 @@ export default function InsertionSortVisualizer() {
     }
   }, [isPlaying, steps, speed]);
 
+  // Keep logs window scrolled to the absolute bottom
   useEffect(() => {
     if (logContainerRef.current) {
       logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
@@ -969,7 +980,6 @@ export default function InsertionSortVisualizer() {
 
   const toggleAutoplay = () => {
     if (currentStepIdx >= steps.length - 1) {
-      // Re-initialize to step 0 if they click play at the end of sorting
       setCurrentStepIdx(0);
     }
     setIsPlaying(!isPlaying);
@@ -1034,7 +1044,7 @@ export default function InsertionSortVisualizer() {
           Insertion Sort
         </h1>
 
-        {/* Array Text Field Input */}
+        {/* Custom Array Inputs */}
         <div className="input-group">
           <label htmlFor="array">Custom Array Values</label>
           <textarea
@@ -1050,7 +1060,7 @@ export default function InsertionSortVisualizer() {
         
         {error && <div className="error-message">{error}</div>}
 
-        {/* Autoplay & Reset Action triggers */}
+        {/* Autoplay & Playback Triggers */}
         <div className="actions-grid">
           <button
             onClick={toggleAutoplay}
@@ -1069,7 +1079,7 @@ export default function InsertionSortVisualizer() {
           </button>
         </div>
 
-        {/* Array Size Selector for Randomization */}
+        {/* Dynamic Size Slider */}
         <div className="input-group">
           <label htmlFor="random-size-slider">Random Array Size</label>
           <div className="speed-slider-group">
@@ -1088,7 +1098,7 @@ export default function InsertionSortVisualizer() {
           </div>
         </div>
 
-        {/* Generate Button */}
+        {/* Generation Button */}
         <button
           onClick={handleRandomArrayGeneration}
           disabled={isPlaying}
@@ -1098,7 +1108,7 @@ export default function InsertionSortVisualizer() {
           Generate Random Array
         </button>
 
-        {/* Language selection panel */}
+        {/* Target Language Selector */}
         <div className="input-group">
           <label htmlFor="language">Sync Code Snippet Language</label>
           <select
@@ -1133,10 +1143,10 @@ export default function InsertionSortVisualizer() {
         </div>
       </aside>
 
-      {/* --- Main Dashboard Workstation --- */}
+      {/* --- Main Workspace Canvas Dashboard --- */}
       <main className="main-content">
         
-        {/* Top Segment: Status Messages & Dynamic Swaps/Comparisons Statistics */}
+        {/* Dynamic Visualization Arena */}
         <section className="visualization-section">
           <h2 className="section-title">
             Sorting Workspace
@@ -1151,7 +1161,7 @@ export default function InsertionSortVisualizer() {
             </span>
           </div>
 
-          {/* Performance Run Dashboard Metrics Card */}
+          {/* Performance Metrices widgets */}
           <div className="stats-dashboard">
             <div className="stat-card">
               <span className="stat-label">Current Index / Total Steps</span>
@@ -1167,7 +1177,7 @@ export default function InsertionSortVisualizer() {
             </div>
           </div>
           
-          {/* Main Visual Arena Canvas displaying Boxes */}
+          {/* Custom Element Box Grid Canvas */}
           <div className="visualization-boxes">
             {currentStep.boxes.map((box, idx) => (
               <div 
@@ -1183,7 +1193,7 @@ export default function InsertionSortVisualizer() {
             ))}
           </div>
 
-          {/* Stepping controls bar situated underneath the canvas */}
+          {/* Stepping Playback Control layout */}
           <div className="canvas-playback-controls">
             <button 
               className="btn-icon" 
@@ -1210,7 +1220,7 @@ export default function InsertionSortVisualizer() {
             </button>
           </div>
 
-          {/* Timed progress scrubbing slider timeline */}
+          {/* Scrubbing timeline Slider bar */}
           {steps.length > 1 && (
             <div className="scrub-timeline-group">
               <input 
@@ -1229,10 +1239,44 @@ export default function InsertionSortVisualizer() {
           )}
         </section>
 
-        {/* --- Side-by-side Technical Panels (Code, Execution Logs, Complexities) --- */}
+        {/* --- STREAMING_CHUNK: Rendering the Exact Complexity Grid --- */}
+        {/* Exact replicas of image_0c0bc2.png complexity cards layout */}
+        <section className="image-complexity-grid">
+          
+          {/* Best Case Card */}
+          <div className="image-complexity-card">
+            <span className="image-card-header">Insertion Sort</span>
+            <span className="image-card-title">Best Case</span>
+            <span className="image-card-complexity">O(n)</span>
+          </div>
+
+          {/* Average Case Card */}
+          <div className="image-complexity-card">
+            <span className="image-card-header">Insertion Sort</span>
+            <span className="image-card-title">Average Case</span>
+            <span className="image-card-complexity">O(n²)</span>
+          </div>
+
+          {/* Worst Case Card */}
+          <div className="image-complexity-card">
+            <span className="image-card-header">Insertion Sort</span>
+            <span className="image-card-title">Worst Case</span>
+            <span className="image-card-complexity">O(n²)</span>
+          </div>
+
+          {/* Memory / Auxiliary Space Card */}
+          <div className="image-complexity-card">
+            <span className="image-card-header">Auxiliary Space</span>
+            <span className="image-card-title">Memory</span>
+            <span className="image-card-complexity">O(1)</span>
+          </div>
+
+        </section>
+
+        {/* --- Multi-Column Lower Workspace Panels (Code & Execution Logs) --- */}
         <div className="lower-content-area">
           
-          {/* Left Panel: Real-time Code highlighting workspace */}
+          {/* Left Block: Dynamic Synchronized Code Highlighter */}
           <section className="workspace-section">
             <h2 className="section-title">
               <span className="flex items-center gap-1.5">
@@ -1258,7 +1302,7 @@ export default function InsertionSortVisualizer() {
             </div>
           </section>
 
-          {/* Middle Panel: Live updated Execution Log */}
+          {/* Right Block: Live Log Streams Terminal */}
           <section className="workspace-section">
             <h2 className="section-title">
               <span className="flex items-center gap-1.5">
@@ -1276,62 +1320,6 @@ export default function InsertionSortVisualizer() {
                   </li>
                 ))}
               </ul>
-            </div>
-          </section>
-
-          {/* Right Panel: Complexity Analysis and Information Card */}
-          <section className="workspace-section">
-            <h2 className="section-title">
-              <span className="flex items-center gap-1.5">
-                <Info size={18} className="text-cyan-400" /> Complexity Info
-              </span>
-            </h2>
-            <div className="panel-block">
-              
-              {/* Best Case */}
-              <div className="analysis-card">
-                <div className="analysis-header">
-                  <span className="analysis-label">Best Case Time</span>
-                  <span className="analysis-badge badge-best">O(n)</span>
-                </div>
-                <p className="analysis-desc">
-                  Occurs when array is <strong>already sorted</strong>. Loop does constant comparison per element with no shifts or swaps.
-                </p>
-              </div>
-
-              {/* Average Case */}
-              <div className="analysis-card">
-                <div className="analysis-header">
-                  <span className="analysis-label">Average Case Time</span>
-                  <span className="analysis-badge badge-avg">O(n²)</span>
-                </div>
-                <p className="analysis-desc">
-                  Occurs when array items are in <strong>random order</strong>. Each element compared or shifted backward halfway on average.
-                </p>
-              </div>
-
-              {/* Worst Case */}
-              <div className="analysis-card">
-                <div className="analysis-header">
-                  <span className="analysis-label">Worst Case Time</span>
-                  <span className="analysis-badge badge-worst">O(n²)</span>
-                </div>
-                <p className="analysis-desc">
-                  Occurs when array is <strong>sorted in reverse order</strong>. Every item must compare and swap back to the absolute start.
-                </p>
-              </div>
-
-              {/* Space Case */}
-              <div className="analysis-card">
-                <div className="analysis-header">
-                  <span className="analysis-label">Auxiliary Space</span>
-                  <span className="analysis-badge badge-space">O(1)</span>
-                </div>
-                <p className="analysis-desc">
-                  Insertion sort is highly efficient in memory. All swaps and placements take place <strong>in-place</strong> using constant variables.
-                </p>
-              </div>
-
             </div>
           </section>
 
