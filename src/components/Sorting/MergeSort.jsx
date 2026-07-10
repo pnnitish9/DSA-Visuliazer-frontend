@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Combine, Pause, Play, RefreshCw, Shuffle } from 'lucide-react';
+import { RefreshCw, Pause, Play, Shuffle, ChevronLeft, ChevronRight, BookOpen } from 'lucide-react';
 
-// --- In-line CSS Styles ---
 const InjectedStyles = () => (
   <style>{`
     /* --- Global Styles & Variables --- */
@@ -41,9 +40,11 @@ const InjectedStyles = () => (
 
       --purple-500: #a855f7;
       --purple-600: #9333ea;
+      
+      --pink-500: #ec4899;
+      --pink-600: #db2777;
     }
 
-    /* Apply a base font and color to the container */
     .visualizer-container {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
         'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
@@ -52,26 +53,22 @@ const InjectedStyles = () => (
       -moz-osx-font-smoothing: grayscale;
       background-color: var(--bg-dark-900);
       color: var(--text-gray-200);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
     }
 
     * {
       box-sizing: border-box;
     }
 
-    /* --- Main Layout --- */
-    .visualizer-container {
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-    }
-
-    @media (min-width: 1024px) { /* lg breakpoint */
+    @media (min-width: 1024px) {
       .visualizer-container {
         flex-direction: row;
       }
     }
 
-    /* --- Sidebar --- */
+    /* --- Sidebar Controls Styling --- */
     .controls-sidebar {
       width: 100%;
       background-color: var(--bg-dark-800);
@@ -83,17 +80,17 @@ const InjectedStyles = () => (
     @media (min-width: 1024px) {
       .controls-sidebar {
         width: 25%;
-        min-width: 300px;
-        max-width: 350px;
+        min-width: 320px;
+        max-width: 380px;
         min-height: 100vh;
         overflow-y: auto;
       }
     }
 
     .sidebar-title {
-      font-size: 1.875rem; /* 30px */
+      font-size: 1.875rem;
       font-weight: 700;
-      margin: 0 0 2rem 0;
+      margin: 0 0 1.5rem 0;
       color: var(--cyan-400);
       display: flex;
       align-items: center;
@@ -103,14 +100,14 @@ const InjectedStyles = () => (
       margin-right: 0.75rem;
     }
 
-    /* --- Form Elements --- */
+    /* --- Input Elements, Sliders --- */
     .input-group {
-      margin-bottom: 1.5rem;
+      margin-bottom: 1.25rem;
     }
 
     .input-group label {
       display: block;
-      font-size: 0.875rem; /* 14px */
+      font-size: 0.875rem;
       font-weight: 500;
       margin-bottom: 0.5rem;
       color: var(--text-gray-300);
@@ -120,7 +117,7 @@ const InjectedStyles = () => (
       width: 100%;
       padding: 0.75rem;
       background-color: var(--bg-dark-700);
-      border-radius: 0.5rem; /* 8px */
+      border-radius: 0.5rem;
       border: 1px solid var(--border-gray-600);
       color: var(--text-gray-200);
       transition: border-color 0.2s, box-shadow 0.2s;
@@ -140,7 +137,7 @@ const InjectedStyles = () => (
 
     .textarea-field {
       resize: vertical;
-      min-height: 60px;
+      min-height: 55px;
       font-family: inherit;
     }
 
@@ -154,12 +151,12 @@ const InjectedStyles = () => (
       border-radius: 0.5rem;
     }
 
-    /* --- Buttons --- */
+    /* --- Button Triggers --- */
     .actions-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+      display: flex;
+      flex-direction: column;
       gap: 0.75rem;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1.25rem;
     }
 
     .btn {
@@ -188,7 +185,6 @@ const InjectedStyles = () => (
     }
 
     .btn-primary {
-      grid-column: span 2;
       background-color: var(--cyan-600);
       color: white;
     }
@@ -216,11 +212,10 @@ const InjectedStyles = () => (
       width: 100%;
       background-color: var(--purple-600);
       color: white;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1.25rem;
     }
     .btn-random:hover:not(:disabled) { background-color: var(--purple-500); }
 
-    /* --- Slider --- */
     .speed-slider-group {
       display: flex;
       align-items: center;
@@ -261,13 +256,13 @@ const InjectedStyles = () => (
     }
 
     .speed-value {
-      width: 5rem;
+      width: 5.5rem;
       text-align: right;
       color: var(--text-gray-400);
       font-size: 0.9rem;
     }
 
-    /* --- Main Content --- */
+    /* --- Main Content Workspace --- */
     .main-content {
       flex: 1;
       display: flex;
@@ -282,23 +277,19 @@ const InjectedStyles = () => (
     }
 
     .section-title {
-      font-size: 1.5rem; /* 24px */
+      font-size: 1.5rem;
       font-weight: 600;
-      margin: 0 0 1.5rem 0;
+      margin: 0 0 1rem 0;
       color: var(--text-gray-200);
-    }
-
-    /* --- Visualization Area --- */
-    .visualization-section {
       display: flex;
-      flex-direction: column;
-      min-height: 250px;
+      align-items: center;
+      justify-content: space-between;
     }
 
     .status-bar {
       width: 100%;
       padding: 1rem;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1rem;
       background-color: var(--bg-dark-800);
       border: 1px solid var(--border-gray-700);
       border-radius: 0.5rem;
@@ -310,7 +301,7 @@ const InjectedStyles = () => (
     }
 
     .status-text {
-      font-size: 1.125rem; /* 18px */
+      font-size: 1.125rem;
       font-weight: 500;
       transition: color 0.3s;
     }
@@ -320,164 +311,246 @@ const InjectedStyles = () => (
     .status-sorted { color: var(--green-400); }
     .status-paused { color: var(--yellow-400); }
 
-    .visualization-boxes {
-      flex: 1;
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      align-items: flex-start;
-      gap: 0.5rem; /* Reduced gap for sorting */
-      padding: 1rem;
-      background-color: rgba(0, 0, 0, 0.2);
-      border-radius: 0.5rem;
-      min-height: 150px;
-      width: 100%;
+    /* --- Stats Metrics Cards Panel --- */
+    .stats-dashboard {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .stat-card {
+      background-color: var(--bg-dark-950);
       border: 1px solid var(--border-gray-700);
+      border-radius: 0.5rem;
+      padding: 0.75rem;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-gray-500);
+      margin-bottom: 0.25rem;
+    }
+
+    .stat-value {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--cyan-400);
+    }
+
+    /* --- Visual Flowchart Canvas --- */
+    .visualization-canvas-wrapper {
+      background-color: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--border-gray-700);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow-x: auto;
       box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
       position: relative;
     }
-    
-    .merge-area-container {
+
+    .visual-tree-svg {
       width: 100%;
-      min-height: 100px;
-      margin-top: 1.5rem;
-      background-color: rgba(0, 0, 0, 0.2);
-      border: 1px dashed var(--border-gray-600);
-      border-radius: 0.5rem;
-      padding: 1rem;
-      opacity: 0;
-      transition: opacity 0.3s ease-in-out;
-      visibility: hidden; /* Hide when not visible */
-    }
-    
-    .merge-area-container.visible {
-      opacity: 1;
-      visibility: visible;
-    }
-    
-    .merge-area-title {
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--text-gray-400);
-      margin-bottom: 1rem;
-      text-align: center;
-    }
-    
-    .merge-area-boxes {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      align-items: flex-start;
-      gap: 0.5rem;
-      min-height: 70px; /* 56px box + 14px index */
+      max-width: 800px;
+      height: auto;
+      min-height: 520px;
     }
 
-    .box-wrapper {
+    /* --- Node Block Styling --- */
+    .tree-node-group {
+      transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+    }
+
+    .tree-node-box {
+      stroke: var(--border-gray-600);
+      stroke-width: 1.5;
+      rx: 4;
+      ry: 4;
+      transition: fill 0.3s, stroke 0.3s, filter 0.3s;
+    }
+
+    .tree-node-box.state-default {
+      fill: #4e8ff3; /* Classic blue from image_78161c */
+      stroke: #3b82f6;
+    }
+
+    .tree-node-box.state-inactive {
+      fill: rgba(31, 41, 55, 0.4);
+      stroke: var(--border-gray-600);
+      stroke-dasharray: 4,4;
+    }
+
+    .tree-node-box.state-active {
+      fill: #3b82f6;
+      stroke: var(--cyan-400);
+      filter: drop-shadow(0 0 6px rgba(34, 211, 238, 0.6));
+    }
+
+    .tree-node-box.state-comparing {
+      fill: var(--orange-500);
+      stroke: var(--orange-600);
+      filter: drop-shadow(0 0 4px var(--orange-500));
+    }
+
+    .tree-node-box.state-placing {
+      fill: var(--green-500);
+      stroke: var(--green-400);
+      filter: drop-shadow(0 0 6px var(--green-400));
+    }
+
+    .tree-node-box.state-sorted {
+      fill: var(--green-600);
+      stroke: var(--green-500);
+    }
+
+    .tree-node-box.state-faded {
+      fill: rgba(78, 143, 243, 0.35);
+      stroke: rgba(59, 130, 246, 0.3);
+    }
+
+    .tree-node-text {
+      font-size: 13px;
+      font-weight: 700;
+      fill: white;
+      text-anchor: middle;
+      dominant-baseline: middle;
+      user-select: none;
+    }
+
+    .tree-node-text.state-inactive {
+      fill: var(--text-gray-500);
+    }
+
+    /* --- Flow Connectors --- */
+    .connector-line {
+      stroke: #cbd5e1; /* Smooth grey arrow from diagram */
+      stroke-width: 1.5;
+      fill: none;
+      transition: stroke 0.3s, stroke-width 0.3s;
+    }
+
+    .connector-line.active {
+      stroke: var(--cyan-400);
+      stroke-width: 2.2;
+    }
+
+    /* --- Interactive Playback Panel --- */
+    .canvas-playback-controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      margin-top: 1rem;
+      padding: 0.75rem;
+      background-color: var(--bg-dark-800);
+      border: 1px solid var(--border-gray-700);
+      border-radius: 0.5rem;
+    }
+
+    .btn-icon {
+      background-color: var(--bg-dark-700);
+      color: white;
+      border: 1px solid var(--border-gray-600);
+      padding: 0.6rem;
+      border-radius: 0.375rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .btn-icon:hover:not(:disabled) {
+      background-color: var(--bg-dark-600);
+      border-color: var(--cyan-400);
+    }
+
+    .btn-icon:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .playback-tracker {
+      font-size: 0.9rem;
+      color: var(--text-gray-300);
+      min-width: 6rem;
+      text-align: center;
+      font-family: monospace;
+    }
+
+    /* --- Timeline Scrubber Range --- */
+    .scrub-timeline-group {
       display: flex;
       flex-direction: column;
-      align-items: center;
-      transition: opacity 0.3s ease-in-out;
-    }
-    
-    .box-wrapper.faded {
-      opacity: 0.3;
+      gap: 0.25rem;
+      margin-top: 0.75rem;
     }
 
-    .box {
-      width: 3.5rem; /* 56px */
-      height: 3.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.125rem; /* 18px */
-      font-weight: 700;
-      border-radius: 0.5rem;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      transition: all 0.3s ease-in-out;
-      border: 2px solid transparent;
+    .scrub-timeline {
+      width: 100%;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      background: var(--bg-dark-950);
+      border-radius: 3px;
+      outline: none;
+      cursor: pointer;
     }
 
-    .box-index {
-      margin-top: 0.5rem;
-      font-size: 0.875rem; /* 14px */
-      color: var(--text-gray-400);
+    .scrub-timeline::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      background: var(--cyan-400);
+      border-radius: 50%;
     }
 
-    .box.default {
-      background-color: var(--bg-dark-600);
-      color: white;
-      border-color: var(--border-gray-500);
-    }
-    
-    .box.sub-array-left {
-      background-color: var(--yellow-600);
-      color: black;
-      border-color: var(--yellow-400);
-    }
-    
-    .box.sub-array-right {
-      background-color: var(--purple-600);
-      color: white;
-      border-color: var(--purple-500);
-    }
-
-    .box.comparing {
-      background-color: var(--orange-500);
-      color: white;
-      border-color: var(--orange-600);
-      transform: scale(1.1);
-    }
-    
-    .box.placing {
-      background-color: var(--green-500);
-      color: white;
-      border-color: var(--green-400);
-      transform: scale(1.05);
-    }
-
-    .box.sorted {
-      background-color: var(--green-600);
-      color: white;
-      border-color: var(--green-500);
-    }
-
-    /* --- Lower Content Area --- */
+    /* --- Side-by-Side Code and Log Panels --- */
     .lower-content-area {
       display: flex;
       flex-direction: column;
-      gap: 2rem;
-      margin-top: 2rem;
-      flex: 1; /* Allow this area to grow */
+      gap: 1.5rem;
+      margin-top: 1.5rem;
     }
 
     @media (min-width: 1024px) {
       .lower-content-area {
-        flex-direction: row;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
       }
     }
 
-    /* --- Code Area --- */
-    .code-section {
+    .workspace-section {
       display: flex;
       flex-direction: column;
-      flex: 1; 
-      min-height: 300px;
+      min-height: 280px;
     }
 
-    .code-block {
+    .panel-block {
       background-color: var(--bg-dark-950);
-      padding: 1.5rem;
+      padding: 1.25rem;
       border-radius: 0.5rem;
-      overflow-x: auto;
       border: 1px solid var(--border-gray-700);
       box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
       height: 100%;
+      overflow-y: auto;
     }
 
+    /* Code highlighters */
     .code-block pre {
       margin: 0;
       font-family: 'Fira Code', 'Courier New', monospace;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       line-height: 1.6;
     }
 
@@ -485,109 +558,142 @@ const InjectedStyles = () => (
       display: block;
       padding: 0 0.5rem;
       transition: background-color 0.2s;
-      min-height: 1.6em; /* Ensure empty lines have height */
+      min-height: 1.6em;
     }
 
     .code-line.highlight {
-      background-color: rgba(6, 182, 212, 0.2);
-      border-radius: 0.25rem;
+      background-color: rgba(6, 182, 212, 0.25);
+      border-left: 3px solid var(--cyan-400);
+      border-radius: 0 0.25rem 0.25rem 0;
     }
 
     .code-line.comment {
       color: var(--text-gray-500);
       font-style: italic;
     }
-    
-    /* --- Log Section --- */
-    .log-section {
-      display: flex;
-      flex-direction: column;
-      flex: 1; 
-      min-height: 300px;
-    }
 
-    .log-block {
-      background-color: var(--bg-dark-950);
-      padding: 1.5rem;
-      border-radius: 0.5rem;
-      overflow-y: auto;
-      border: 1px solid var(--border-gray-700);
-      box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
-      height: 100%;
-    }
-
-    @media (max-width: 1023px) {
-      .log-block {
-        max-height: 300px; /* Give a max height on mobile */
-      }
-    }
-
+    /* Log list */
     .log-list {
       margin: 0;
       padding: 0;
       list-style-type: none;
       font-family: 'Fira Code', 'Courier New', monospace;
-      font-size: 0.9rem;
-      line-height: 1.6;
+      font-size: 0.825rem;
+      line-height: 1.5;
     }
     
     .log-item {
       padding: 0.25rem 0.5rem;
-      border-bottom: 1px solid var(--bg-dark-700);
+      border-bottom: 1px solid var(--bg-dark-800);
       color: var(--text-gray-300);
       word-break: break-all;
     }
     
     .log-item:last-child {
       border-bottom: none; 
-      color: white; /* Highlight last item */
+      color: white;
+      background-color: rgba(6, 182, 212, 0.1);
+    }
+
+    /* --- Exact Complexity Grid verbatim image_0c0bc2.png --- */
+    .image-complexity-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+      margin-top: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    @media (min-width: 640px) {
+      .image-complexity-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .image-complexity-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    .image-complexity-card {
+      background-color: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 0.5rem;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 110px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    .image-card-header {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: #9ca3af;
+      text-transform: uppercase;
+    }
+
+    .image-card-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-top: 0.25rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .image-card-complexity {
+      font-family: monospace;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #38bdf8;
     }
   `}</style>
 );
 
-
-// --- Helper Functions & Data ---
-
+/* --- Code Snippets Databases --- */
 const codeSnippets = {
   python: `
 def merge_sort(arr, l, r):
-  if l < r:
-    # Find the middle point
-    m = (l + r) // 2
+    if l < r:
+        # Find the middle point
+        m = (l + r) // 2
 
-    # Sort first and second halves
-    merge_sort(arr, l, m)
-    merge_sort(arr, m + 1, r)
+        # Sort first and second halves
+        merge_sort(arr, l, m)
+        merge_sort(arr, m + 1, r)
 
-    # Merge the sorted halves
-    merge(arr, l, m, r)
+        # Merge the sorted halves
+        merge(arr, l, m, r)
 
 def merge(arr, l, m, r):
-  n1 = m - l + 1
-  n2 = r - m
-  L, R = arr[l : m+1], arr[m+1 : r+1]
+    n1 = m - l + 1
+    n2 = r - m
+    L, R = arr[l : m+1], arr[m+1 : r+1]
 
-  i = j = 0
-  k = l
-  while i < n1 and j < n2:
-    if L[i] <= R[j]:
-      arr[k] = L[i]
-      i += 1
-    else:
-      arr[k] = R[j]
-      j += 1
-    k += 1
+    i = j = 0
+    k = l
+    while i < n1 and j < n2:
+        if L[i] <= R[j]:
+            arr[k] = L[i]
+            i += 1
+        else:
+            arr[k] = R[j]
+            j += 1
+        k += 1
 
-  while i < n1:
-    arr[k] = L[i]
-    i += 1
-    k += 1
+    while i < n1:
+        arr[k] = L[i]
+        i += 1
+        k += 1
 
-  while j < n2:
-    arr[k] = R[j]
-    j += 1
-    k += 1
-  `,
+    while j < n2:
+        arr[k] = R[j]
+        j += 1
+        k += 1
+`,
   javascript: `
 function mergeSort(arr, l, r) {
   if (l < r) {
@@ -630,7 +736,7 @@ function merge(arr, l, m, r) {
     j++; k++;
   }
 }
-  `,
+`,
   java: `
 void mergeSort(int arr[], int l, int r) {
   if (l < r) {
@@ -675,7 +781,7 @@ void merge(int arr[], int l, int m, int r) {
     j++; k++;
   }
 }
-  `,
+`,
   cpp: `
 void merge(int arr[], int l, int m, int r) {
   int n1 = m - l + 1;
@@ -716,316 +822,340 @@ void mergeSort(int arr[], int l, int r) {
     merge(arr, l, m, r);
   }
 }
-  `,
+`
 };
 
-/**
- * A utility function to create a delay.
- * @param {number} ms - The number of milliseconds to sleep.
- */
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-/**
- * The core visualization logic for Merge Sort.
- */
-async function visualizeMergeSort(
-  arr,
-  speed,
-  setBoxes,
-  setMergeAreaBoxes, // For the separate merge area
-  setIsMergeAreaVisible,
-  setStatus,
-  setHighlightLineNum,
-  setExecutionLog,
-  pausedRef,
-  isCancelledRef
-) {
-  // --- Setup ---
-  // Create the mutable state array. This is the single source of truth.
-  let boxes = arr.map((value, index) => ({ 
-    value, 
-    state: 'default', 
-    originalIndex: index, // To track boxes
-    isFaded: false, // For focus mode
-  }));
-  setBoxes([...boxes]);
-
-  // --- Pause Helper ---
-  const checkPause = async () => {
-    while (pausedRef.current && !isCancelledRef.current) {
-      setStatus("Paused. Press Resume to continue.");
-      await sleep(100);
-    }
-    if (!isCancelledRef.current) {
-      setStatus("Sorting...");
+const getHighlightLine = (stepType, lang) => {
+  const mappings = {
+    python: {
+      idle: -1,
+      sorted_single: 3,
+      divide: 5,
+      merge_start: 11,
+      merge_init: 15,
+      compare: 21,
+      place: 22,
+      place_left: 30,
+      place_right: 35,
+      paint_back: 11,
+      merge_done: 11
+    },
+    javascript: {
+      idle: -1,
+      sorted_single: 3,
+      divide: 5,
+      merge_start: 11,
+      merge_init: 17,
+      compare: 21,
+      place: 22,
+      place_left: 31,
+      place_right: 35,
+      paint_back: 11,
+      merge_done: 11
+    },
+    java: {
+      idle: -1,
+      sorted_single: 2,
+      divide: 4,
+      merge_start: 10,
+      merge_init: 16,
+      compare: 22,
+      place: 23,
+      place_left: 32,
+      place_right: 36,
+      paint_back: 10,
+      merge_done: 10
+    },
+    cpp: {
+      idle: -1,
+      sorted_single: 34,
+      divide: 35,
+      merge_start: 38,
+      merge_init: 8,
+      compare: 11,
+      place: 12,
+      place_left: 20,
+      place_right: 24,
+      paint_back: 38,
+      merge_done: 38
     }
   };
-  
-  // --- Focus Helper ---
-  const setFocus = (l, r, focus) => {
-    boxes.forEach((box, i) => {
-      box.isFaded = focus ? (i < l || i > r) : false;
+  return mappings[lang]?.[stepType] ?? -1;
+};
+
+const buildSplitNodes = (l, r, maxDepth) => {
+  const nodes = [];
+  const traverse = (currL, currR, level) => {
+    nodes.push({
+      l: currL,
+      r: currR,
+      level,
+      id: `split-${level}-${currL}-${currR}`,
+      type: 'split'
     });
-    setBoxes([...boxes]);
+    if (currL < currR) {
+      let m = Math.floor(currL + (currR - currL) / 2);
+      traverse(currL, m, level + 1);
+      traverse(m + 1, currR, level + 1);
+    } else if (level < maxDepth) {
+      traverse(currL, currR, level + 1);
+    }
   };
+  traverse(l, r, 0);
+  return nodes;
+};
 
-  // --- Merge Function (Inner) ---
-  async function merge(l, m, r) {
-    if (isCancelledRef.current) return;
-    await checkPause();
-    
-    // Show Merge Area
-    setIsMergeAreaVisible(true);
-    setMergeAreaBoxes([]); // Clear it first
+const buildMergeNodes = (splitNodes, maxDepth) => {
+  return splitNodes
+    .filter(n => n.level < maxDepth)
+    .map(n => ({
+      ...n,
+      id: `merge-${n.level}-${n.l}-${n.r}`,
+      type: 'merge'
+    }));
+};
 
-    setExecutionLog(prev => [...prev, `Merging [${l}..${m}] and [${m+1}..${r}]`]);
-    setHighlightLineNum(11); // merge(arr, l, m, r)
+const calculateMaxDepth = (l, r, depth = 0) => {
+  if (l >= r) return depth;
+  let m = Math.floor(l + (r - l) / 2);
+  return Math.max(
+    calculateMaxDepth(l, m, depth + 1),
+    calculateMaxDepth(m + 1, r, depth + 1)
+  );
+};
 
-    // Highlight the sub-arrays being merged in main array
-    for (let i = l; i <= r; i++) {
-      boxes[i].state = (i <= m) ? 'sub-array-left' : 'sub-array-right';
-    }
-    setBoxes([...boxes]);
-    
-    // Create temp sub-arrays from the *current* state of 'boxes'
-    // These are copies of the *box objects*
-    let leftSubArray = boxes.slice(l, m + 1).map(b => ({...b}));
-    let rightSubArray = boxes.slice(m + 1, r + 1).map(b => ({...b}));
-    
-    // Put copies into the merge area
-    let mergeAreaVisual = [...leftSubArray, ...rightSubArray];
-    setMergeAreaBoxes(mergeAreaVisual);
-    
-    await sleep(speed);
-    
-    setHighlightLineNum(13); // L, R = ...
-
-    let i = 0, j = 0;
-    let sortedSubArray = []; // Temp array to hold merge result (box objects)
-    let mergeAreaIndex = 0; // To track where in the merge area we are
-
-    setHighlightLineNum(16); // while i < n1 and j < n2:
-
-    while (i < leftSubArray.length && j < rightSubArray.length) {
-      if (isCancelledRef.current) return;
-      await checkPause();
-
-      setHighlightLineNum(17); // if L[i] <= R[j]:
-      
-      // Visually mark the two boxes being compared *in the merge area*
-      let leftBoxVisualIndex = mergeAreaVisual.findIndex(b => b.originalIndex === leftSubArray[i].originalIndex);
-      let rightBoxVisualIndex = mergeAreaVisual.findIndex(b => b.originalIndex === rightSubArray[j].originalIndex);
-
-      if (leftBoxVisualIndex !== -1) mergeAreaVisual[leftBoxVisualIndex].state = 'comparing';
-      if (rightBoxVisualIndex !== -1) mergeAreaVisual[rightBoxVisualIndex].state = 'comparing';
-      setMergeAreaBoxes([...mergeAreaVisual]);
-      
-      const compareMsg = `Compare: ${leftSubArray[i].value} (L) and ${rightSubArray[j].value} (R)`;
-      setStatus(compareMsg);
-      setExecutionLog(prev => [...prev, compareMsg]);
-      await sleep(speed);
-
-      // Compare the values
-      let winnerBox;
-      if (leftSubArray[i].value <= rightSubArray[j].value) {
-        winnerBox = leftSubArray[i];
-        setHighlightLineNum(18); // arr[k] = L[i]
-        i++;
-      } else {
-        winnerBox = rightSubArray[j];
-        setHighlightLineNum(20); // arr[k] = R[j]
-        j++;
-      }
-      
-      // Mark winner as 'placing' *in merge area* and add to sorted list
-      winnerBox.state = 'placing';
-      sortedSubArray.push(winnerBox);
-      
-      // Update merge area visual: move the winner to the front
-      let winnerVisualIndex = mergeAreaVisual.findIndex(b => b.originalIndex === winnerBox.originalIndex);
-      mergeAreaVisual.splice(winnerVisualIndex, 1); // Remove from old spot
-      mergeAreaVisual.splice(mergeAreaIndex, 0, winnerBox); // Add to sorted spot
-      mergeAreaIndex++;
-      
-      setMergeAreaBoxes([...mergeAreaVisual]);
-      await sleep(speed);
-    }
-
-    // --- Copy remaining elements (visual) ---
-    while (i < leftSubArray.length) {
-      if (isCancelledRef.current) return;
-      await checkPause();
-      setHighlightLineNum(24); // while i < n1:
-      
-      let winnerBox = leftSubArray[i];
-      winnerBox.state = 'placing';
-      sortedSubArray.push(winnerBox);
-      
-      let winnerVisualIndex = mergeAreaVisual.findIndex(b => b.originalIndex === winnerBox.originalIndex);
-      mergeAreaVisual.splice(winnerVisualIndex, 1);
-      mergeAreaVisual.splice(mergeAreaIndex, 0, winnerBox);
-      mergeAreaIndex++;
-      i++;
-      
-      setMergeAreaBoxes([...mergeAreaVisual]);
-      await sleep(speed);
-    }
-
-    while (j < rightSubArray.length) {
-      if (isCancelledRef.current) return;
-      await checkPause();
-      setHighlightLineNum(28); // while j < n2:
-      
-      let winnerBox = rightSubArray[j];
-      winnerBox.state = 'placing';
-      sortedSubArray.push(winnerBox);
-      
-      let winnerVisualIndex = mergeAreaVisual.findIndex(b => b.originalIndex === winnerBox.originalIndex);
-      mergeAreaVisual.splice(winnerVisualIndex, 1);
-      mergeAreaVisual.splice(mergeAreaIndex, 0, winnerBox);
-      mergeAreaIndex++;
-      j++;
-      
-      setMergeAreaBoxes([...mergeAreaVisual]);
-      await sleep(speed);
-    }
-    
-    // --- "Paint" the sortedSubArray back into the main boxes array ---
-    setExecutionLog(prev => [...prev, `Painting merged [${l}..${r}] back to main array`]);
-    await sleep(speed); // Pause to see the fully sorted merge area
-    
-    // Replace the slice in the main 'boxes' array with the sorted objects
-    // This is the fix for the duplicate key error.
-    // It removes the old objects from [l..r] and inserts the new, sorted-by-value objects.
-    boxes.splice(l, r - l + 1, ...sortedSubArray);
-
-    // Now, "paint" them one by one visually
-    for(let p = 0; p < sortedSubArray.length; p++) {
-      if (isCancelledRef.current) return;
-      await checkPause();
-      
-      let sortedBox = sortedSubArray[p]; // This is now equivalent to boxes[l + p]
-      sortedBox.state = 'sorted'; // Set state to sorted
-      
-      setBoxes([...boxes]); // Update React state to show the new 'sorted' state
-      
-      // Also update merge area to show it being "used"
-      if (mergeAreaVisual[p]) { // Safety check
-        mergeAreaVisual[p].state = 'sorted';
-        setMergeAreaBoxes([...mergeAreaVisual]);
-      }
-      
-      await sleep(speed / 2); // Faster paint-back
-    }
-    
-    setExecutionLog(prev => [...prev, `Merge complete for [${l}..${r}]`]);
-    
-    // Hide Merge Area
-    setIsMergeAreaVisible(false);
-    setMergeAreaBoxes([]);
-    await sleep(speed);
-  }
-
-  // --- Sort Function (Recursive Inner) ---
-  async function sort(l, r) {
-    if (l >= r) {
-      // Base case: array of 1 is sorted
-      if (l === r) boxes[l].state = 'sorted';
-      return;
-    }
-    if (isCancelledRef.current) return;
-    await checkPause();
-    setHighlightLineNum(2); // if l < r:
-    
-    // --- DIVIDE ---
-    setFocus(l, r, true); // Fade out non-relevant parts
-    let m = Math.floor(l + (r - l) / 2);
-    setHighlightLineNum(4); // m = (l + r) // 2
-    setExecutionLog(prev => [...prev, `Divide: Focusing on [${l}..${r}], mid at ${m}`]);
-    
-    // Highlight the split
-    for (let i = l; i <= r; i++) {
-      boxes[i].state = (i <= m) ? 'sub-array-left' : 'sub-array-right';
-    }
-    setBoxes([...boxes]);
-    await sleep(speed * 1.5); // Hold to see the divide
-    
-    // Reset state before recursive call
-    for (let i = l; i <= r; i++) {
-        if (boxes[i].state !== 'sorted') boxes[i].state = 'default';
-    }
-    setBoxes([...boxes]);
-
-    setHighlightLineNum(7); // merge_sort(arr, l, m)
-    await sort(l, m);
-    if (isCancelledRef.current) return;
-
-    setHighlightLineNum(8); // merge_sort(arr, m + 1, r)
-    await sort(m + 1, r);
-    if (isCancelledRef.current) return;
-
-    // --- CONQUER ---
-    setFocus(l, r, true); // Re-focus on this range for merging
-    await merge(l, m, r);
-    setFocus(l, r, false); // Un-focus after merge
-  }
-  
-  // --- Start Visualization ---
-  setExecutionLog(["Starting Merge Sort..."]);
-  await sort(0, arr.length - 1);
-
-  // --- Finish ---
-  if (!isCancelledRef.current) {
-    setStatus("Sorting complete!");
-    setExecutionLog(prev => [...prev, "Sorting complete!"]);
-    // Final sorted sweep
-    boxes.forEach(box => {
-      box.state = 'sorted';
-      box.isFaded = false;
-    });
-    setBoxes([...boxes]);
-    setHighlightLineNum(-1);
-  } else {
-    setStatus("Visualization cancelled.");
-    setExecutionLog(prev => [...prev, "Visualization cancelled."]);
-    setHighlightLineNum(-1);
-  }
-}
-
-// --- Main Component ---
-
-export default function MergeSort() {
-  const [arrayStr, setArrayStr] = useState("8, 3, 1, 7, 0, 10, 2");
+export default function App() {
   const [language, setLanguage] = useState("python");
   const [speed, setSpeed] = useState(500);
-  const [status, setStatus] = useState("Enter an array, then press Sort.");
-  const [boxes, setBoxes] = useState([]);
-  const [highlightLineNum, setHighlightLineNum] = useState(-1);
-  const [executionLog, setExecutionLog] = useState([]);
-  
-  // State for the separate merge area
-  const [mergeAreaBoxes, setMergeAreaBoxes] = useState([]);
-  const [isMergeAreaVisible, setIsMergeAreaVisible] = useState(false);
-  
-  const [isVisualizing, setIsVisualizing] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
+  const [randomSize, setRandomSize] = useState(6);
+  // Prefilled array string matching image_78161c exactly for initial impact
+  const [arrayStr, setArrayStr] = useState("6, 5, 12, 10, 9, 1");
   const [error, setError] = useState(null);
 
-  const pausedRef = useRef(false);
-  const isCancelledRef = useRef(false);
+  // Precomputed Step States
+  const [steps, setSteps] = useState([]);
+  const [currentStepIdx, setCurrentStepIdx] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  // Structural details
+  const [splitTree, setSplitTree] = useState([]);
+  const [mergeTree, setMergeTree] = useState([]);
+  const [maxDepthVal, setMaxDepthVal] = useState(0);
+
   const logContainerRef = useRef(null);
+  const timerRef = useRef(null);
 
-  // Auto-scroll log
+  const buildMergeSortFlowSteps = (arr) => {
+    const maxDepth = calculateMaxDepth(0, arr.length - 1);
+    const splitNodes = buildSplitNodes(0, arr.length - 1, maxDepth);
+    const mergeNodes = buildMergeNodes(splitNodes, maxDepth);
+
+    const stepsList = [];
+    const logs = ["Tree compiled. Ready to simulate."];
+
+    // Build absolute initial states for each node
+    const currentSplitStates = {};
+    const currentMergeStates = {};
+
+    splitNodes.forEach(node => {
+      currentSplitStates[node.id] = {
+        values: arr.slice(node.l, node.r + 1),
+        state: 'default',
+        activeIndices: []
+      };
+    });
+
+    mergeNodes.forEach(node => {
+      currentMergeStates[node.id] = {
+        values: [],
+        state: 'inactive',
+        activeIndices: []
+      };
+    });
+
+    let comparisonsCount = 0;
+    let placementsCount = 0;
+
+    const deepCopyStates = (splits, merges) => {
+      const spCopy = {};
+      const mrCopy = {};
+      Object.keys(splits).forEach(k => {
+        spCopy[k] = { ...splits[k], values: [...splits[k].values], activeIndices: [...splits[k].activeIndices] };
+      });
+      Object.keys(merges).forEach(k => {
+        mrCopy[k] = { ...merges[k], values: [...merges[k].values], activeIndices: [...merges[k].activeIndices] };
+      });
+      return { spCopy, mrCopy };
+    };
+
+    const pushStep = (status, stepType, activeNodeId = null) => {
+      const { spCopy, mrCopy } = deepCopyStates(currentSplitStates, currentMergeStates);
+      stepsList.push({
+        splitStates: spCopy,
+        mergeStates: mrCopy,
+        activeNodeId,
+        status,
+        stepType,
+        logs: [...logs],
+        comparisons: comparisonsCount,
+        swaps: placementsCount
+      });
+    };
+
+    // First static step
+    pushStep("Input loaded. Press Play or Step Forward to visualize.", "idle");
+
+    const runFlowMergeSort = (l, r, level) => {
+      const splitId = `split-${level}-${l}-${r}`;
+      currentSplitStates[splitId].state = 'active';
+      logs.push(`Split Phase: Focusing range [${l}..${r}] at level ${level}.`);
+      pushStep(`Splitting range [${l}..${r}]...`, 'divide', splitId);
+
+      if (l >= r) {
+        currentSplitStates[splitId].state = 'default';
+        return;
+      }
+
+      let m = Math.floor(l + (r - l) / 2);
+      currentSplitStates[splitId].state = 'default';
+
+      runFlowMergeSort(l, m, level + 1);
+      runFlowMergeSort(m + 1, r, level + 1);
+
+      // Sourcing pointers for merge
+      const leftSrcId = (level + 1 === maxDepth) ? `split-${maxDepth}-${l}-${m}` : `merge-${level+1}-${l}-${m}`;
+      const rightSrcId = (level + 1 === maxDepth) ? `split-${maxDepth}-${m+1}-${r}` : `merge-${level+1}-${m+1}-${r}`;
+      const targetMergeId = `merge-${level}-${l}-${r}`;
+
+      // Mark sources as focused and target as active empty container
+      if (currentSplitStates[leftSrcId]) currentSplitStates[leftSrcId].state = 'active';
+      if (currentSplitStates[rightSrcId]) currentSplitStates[rightSrcId].state = 'active';
+      if (currentMergeStates[leftSrcId]) currentMergeStates[leftSrcId].state = 'active';
+      if (currentMergeStates[rightSrcId]) currentMergeStates[rightSrcId].state = 'active';
+
+      currentMergeStates[targetMergeId].state = 'active';
+      currentMergeStates[targetMergeId].values = [];
+
+      logs.push(`Conquer Phase: Merging sub-arrays [${l}..${m}] and [${m+1}..${r}] into target merge node.`);
+      pushStep(`Conquer: Preparing to merge Left [${l}..${m}] and Right [${m+1}..${r}]...`, 'merge_start', targetMergeId);
+
+      const leftVals = (level + 1 === maxDepth) ? currentSplitStates[leftSrcId].values : currentMergeStates[leftSrcId].values;
+      const rightVals = (level + 1 === maxDepth) ? currentSplitStates[rightSrcId].values : currentMergeStates[rightSrcId].values;
+
+      let i = 0, j = 0;
+      const tempSorted = [];
+
+      while (i < leftVals.length && j < rightVals.length) {
+        comparisonsCount++;
+
+        // Visual comparing indicators
+        if (currentSplitStates[leftSrcId]) currentSplitStates[leftSrcId].activeIndices = [i];
+        if (currentSplitStates[rightSrcId]) currentSplitStates[rightSrcId].activeIndices = [j];
+        if (currentMergeStates[leftSrcId]) currentMergeStates[leftSrcId].activeIndices = [i];
+        if (currentMergeStates[rightSrcId]) currentMergeStates[rightSrcId].activeIndices = [j];
+
+        if (currentSplitStates[leftSrcId]) currentSplitStates[leftSrcId].state = 'comparing';
+        if (currentSplitStates[rightSrcId]) currentSplitStates[rightSrcId].state = 'comparing';
+        if (currentMergeStates[leftSrcId]) currentMergeStates[leftSrcId].state = 'comparing';
+        if (currentMergeStates[rightSrcId]) currentMergeStates[rightSrcId].state = 'comparing';
+
+        logs.push(`Compare: Left value ${leftVals[i]} vs Right value ${rightVals[j]}.`);
+        pushStep(`Comparing elements: ${leftVals[i]} (Left) and ${rightVals[j]} (Right).`, 'compare', targetMergeId);
+
+        let winner;
+        if (leftVals[i] <= rightVals[j]) {
+          winner = leftVals[i];
+          i++;
+        } else {
+          winner = rightVals[j];
+          j++;
+        }
+
+        placementsCount++;
+        tempSorted.push(winner);
+        currentMergeStates[targetMergeId].values = [...tempSorted];
+        currentMergeStates[targetMergeId].activeIndices = [tempSorted.length - 1];
+
+        // Reset compare state
+        if (currentSplitStates[leftSrcId]) currentSplitStates[leftSrcId].state = 'active';
+        if (currentSplitStates[rightSrcId]) currentSplitStates[rightSrcId].state = 'active';
+        if (currentMergeStates[leftSrcId]) currentMergeStates[leftSrcId].state = 'active';
+        if (currentMergeStates[rightSrcId]) currentMergeStates[rightSrcId].state = 'active';
+
+        if (currentSplitStates[leftSrcId]) currentSplitStates[leftSrcId].activeIndices = [];
+        if (currentSplitStates[rightSrcId]) currentSplitStates[rightSrcId].activeIndices = [];
+        if (currentMergeStates[leftSrcId]) currentMergeStates[leftSrcId].activeIndices = [];
+        if (currentMergeStates[rightSrcId]) currentMergeStates[rightSrcId].activeIndices = [];
+
+        logs.push(`Placed smaller element ${winner} into target sorted sub-array.`);
+        pushStep(`Selected ${winner} and placed it into the sorted sub-array.`, 'place', targetMergeId);
+        currentMergeStates[targetMergeId].activeIndices = [];
+      }
+
+      while (i < leftVals.length) {
+        placementsCount++;
+        let winner = leftVals[i];
+        tempSorted.push(winner);
+        currentMergeStates[targetMergeId].values = [...tempSorted];
+        currentMergeStates[targetMergeId].activeIndices = [tempSorted.length - 1];
+        i++;
+
+        logs.push(`Copy Left remaining element ${winner} to target sub-array.`);
+        pushStep(`Moving remaining Left element ${winner} to the sorted sub-array.`, 'place_left', targetMergeId);
+        currentMergeStates[targetMergeId].activeIndices = [];
+      }
+
+      while (j < rightVals.length) {
+        placementsCount++;
+        let winner = rightVals[j];
+        tempSorted.push(winner);
+        currentMergeStates[targetMergeId].values = [...tempSorted];
+        currentMergeStates[targetMergeId].activeIndices = [tempSorted.length - 1];
+        j++;
+
+        logs.push(`Copy Right remaining element ${winner} to target sub-array.`);
+        pushStep(`Moving remaining Right element ${winner} to the sorted sub-array.`, 'place_right', targetMergeId);
+        currentMergeStates[targetMergeId].activeIndices = [];
+      }
+
+      // Restore backgrounds to sorted
+      if (currentSplitStates[leftSrcId]) currentSplitStates[leftSrcId].state = 'default';
+      if (currentSplitStates[rightSrcId]) currentSplitStates[rightSrcId].state = 'default';
+      if (currentMergeStates[leftSrcId]) currentMergeStates[leftSrcId].state = 'default';
+      if (currentMergeStates[rightSrcId]) currentMergeStates[rightSrcId].state = 'default';
+
+      currentMergeStates[targetMergeId].state = 'sorted';
+      logs.push(`Successfully merged segment covering indexes [${l}..${r}].`);
+      pushStep(`Successfully merged range [${l}..${r}].`, 'merge_done', targetMergeId);
+    };
+
+    runFlowMergeSort(0, arr.length - 1, 0);
+
+    // Final complete sorted step
+    logs.push("Sorting fully completed! All nodes in merge tree solved.");
+    const finalSplitCopy = {};
+    const finalMergeCopy = {};
+    splitNodes.forEach(node => {
+      finalSplitCopy[node.id] = { values: arr.slice(node.l, node.r + 1), state: 'default', activeIndices: [] };
+    });
+    mergeNodes.forEach(node => {
+      finalMergeCopy[node.id] = { values: arr.slice(node.l, node.r + 1), state: 'sorted', activeIndices: [] };
+    });
+    stepsList.push({
+      splitStates: finalSplitCopy,
+      mergeStates: finalMergeCopy,
+      activeNodeId: null,
+      status: `Sorting complete! Total Comparisons: ${comparisonsCount}, Placements: ${placementsCount}.`,
+      stepType: 'idle',
+      logs: [...logs],
+      comparisons: comparisonsCount,
+      swaps: placementsCount
+    });
+
+    return { stepsList, splitNodes, mergeNodes, maxDepth };
+  };
+
   useEffect(() => {
-    if (logContainerRef.current) {
-      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
-    }
-  }, [executionLog]);
-
-  /**
-   * Cleans and validates the input array.
-   */
-  const validateInputs = () => {
     setError(null);
     const arr = arrayStr
       .split(/[, ]+/)
@@ -1034,164 +1164,154 @@ export default function MergeSort() {
 
     if (!arr.length) {
       setError("Please enter a valid, non-empty array of numbers.");
-      return null;
+      setSteps([]);
+      return;
     }
     
-    if (arr.length > 20) {
-      setError("Please use 20 elements or less for a better visualization.");
-      return null;
+    if (arr.length > 8) {
+      setError("Please use 8 elements or less for clear flowchart visualization.");
+      setSteps([]);
+      return;
     }
 
-    return arr;
-  };
-  
-  // Effect to update boxes on arrayStr change (when not visualizing)
-  // This effect runs when the user manually changes the array string.
+    // Safely generate flowchart sequence steps
+    const { stepsList, splitNodes, mergeNodes, maxDepth } = buildMergeSortFlowSteps(arr);
+    setSplitTree(splitNodes);
+    setMergeTree(mergeNodes);
+    setMaxDepthVal(maxDepth);
+    setSteps(stepsList);
+    setCurrentStepIdx(0);
+    setIsPlaying(false);
+  }, [arrayStr]);
+
+  // Autoplay handler cleanup
   useEffect(() => {
-    // Only update if not currently sorting.
-    // This prevents user input from messing up an active sort.
-    if (!isVisualizing) { 
-      const arr = validateInputs();
-      if (arr) {
-        setBoxes(arr.map((value, index) => ({ 
-          value, 
-          state: 'default', 
-          originalIndex: index,
-          isFaded: false
-        })));
-      } else {
-        setBoxes([]);
-      }
-    }
-    // We ONLY want this to re-run when arrayStr changes.
-    // Removing isVisualizing from deps prevents the array from
-    // resetting after the sort completes.
-  }, [arrayStr]); // ** FIX: Only depends on arrayStr **
+    return () => clearInterval(timerRef.current);
+  }, []);
 
-  /**
-   * Starts the visualization process.
-   */
-  const handleStart = async () => {
-    const arr = validateInputs();
-    if (!arr) return;
-
-    isCancelledRef.current = false;
-    pausedRef.current = false;
-    setIsPaused(false);
-    setIsVisualizing(true);
-    setStatus("Starting...");
-    setHighlightLineNum(-1);
-    setExecutionLog([]);
-    setMergeAreaBoxes([]);
-    setIsMergeAreaVisible(false);
-
-    await visualizeMergeSort(
-      arr,
-      speed,
-      setBoxes,
-      setMergeAreaBoxes,
-      setIsMergeAreaVisible,
-      setStatus,
-      setHighlightLineNum,
-      setExecutionLog,
-      pausedRef,
-      isCancelledRef
-    );
-
-    setIsVisualizing(false);
-    setIsPaused(false);
-    // Do not hide merge area, let it stay visible with the final step
-    // setIsMergeAreaVisible(false);
-  };
-
-  /**
-   * Toggles the pause state.
-   */
-  const togglePause = () => {
-    const newPausedState = !isPaused;
-    setIsPaused(newPausedState);
-    pausedRef.current = newPausedState;
-    if (newPausedState) {
-      setExecutionLog(prev => [...prev, "Paused."]);
+  useEffect(() => {
+    if (isPlaying) {
+      clearInterval(timerRef.current);
+      timerRef.current = setInterval(() => {
+        setCurrentStepIdx((prevIdx) => {
+          if (prevIdx >= steps.length - 1) {
+            setIsPlaying(false);
+            return prevIdx;
+          }
+          return prevIdx + 1;
+        });
+      }, speed);
     } else {
-      setExecutionLog(prev => [...prev, "Resuming..."]);
+      clearInterval(timerRef.current);
+    }
+  }, [isPlaying, steps, speed]);
+
+  useEffect(() => {
+    if (logContainerRef.current) {
+      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+    }
+  }, [currentStepIdx, steps]);
+
+  const toggleAutoplay = () => {
+    if (currentStepIdx >= steps.length - 1) {
+      setCurrentStepIdx(0);
+    }
+    setIsPlaying(!isPlaying);
+  };
+
+  const handleStepForward = () => {
+    setIsPlaying(false);
+    if (currentStepIdx < steps.length - 1) {
+      setCurrentStepIdx(currentStepIdx + 1);
     }
   };
 
-  /**
-   * Resets the visualizer.
-   */
+  const handleStepBackward = () => {
+    setIsPlaying(false);
+    if (currentStepIdx > 0) {
+      setCurrentStepIdx(currentStepIdx - 1);
+    }
+  };
+
   const handleReset = () => {
-    isCancelledRef.current = true;
-    setIsVisualizing(false);
-    setIsPaused(false);
-    pausedRef.current = false;
-    
-    setError(null);
-    setStatus("Enter an array, then press Sort.");
-    setHighlightLineNum(-1);
-    setExecutionLog([]);
-    setMergeAreaBoxes([]);
-    setIsMergeAreaVisible(false);
-
-    const arr = validateInputs();
-    if (arr) {
-      setBoxes(arr.map((value, index) => ({ 
-        value, 
-        state: 'default', 
-        originalIndex: index,
-        isFaded: false 
-      })));
-    } else {
-      setBoxes([]);
-    }
+    setIsPlaying(false);
+    setCurrentStepIdx(0);
   };
 
-  /**
-   * Generates a random array.
-   */
-  const handleRandomArray = () => {
-    if (isVisualizing) return;
-    const size = Math.floor(Math.random() * 10) + 8; // 8-17 elements
-    const arr = Array.from({ length: size }, () =>
-      Math.floor(Math.random() * 100)
+  const handleRandomArrayGeneration = () => {
+    setIsPlaying(false);
+    const arr = Array.from({ length: randomSize }, () =>
+      Math.floor(Math.random() * 95) + 5
     );
-    
     setArrayStr(arr.join(", "));
-    setExecutionLog([]);
-    setMergeAreaBoxes([]);
-    setIsMergeAreaVisible(false);
   };
 
-  const codeLines = codeSnippets[language].trim().split('\n');
-  
-  const statusColor = status.includes("complete")
+  const currentStep = steps[currentStepIdx] || {
+    splitStates: {},
+    mergeStates: {},
+    status: "No steps loaded.",
+    stepType: 'idle',
+    logs: [],
+    swaps: 0,
+    comparisons: 0
+  };
+
+  const statusColor = currentStep.status.includes("complete")
     ? "status-sorted"
-    : status.includes("Sorting")
+    : (currentStep.status.includes("Comparing") || currentStep.status.includes("Placing") || currentStep.status.includes("Splitting"))
     ? "status-sorting"
-    : status.includes("Paused")
-    ? "status-paused"
+    : isPlaying
+    ? "status-sorting"
     : "status-default";
+
+  const rawCode = codeSnippets[language] || "";
+  const codeLines = rawCode.trim().split('\n');
+  const activeLine = getHighlightLine(currentStep.stepType, language);
+
+  // Pure SVG scaling width parameters
+  const svgWidth = 800;
+  const levelHeight = 75; 
+  const topMargin = 40;
+  const leftMargin = 55;
+  const rightMargin = 55;
+  const boxWidth = 32;
+  const boxHeight = 28;
+
+  // Pure state reading without mutating or setting values
+  const parsedArray = arrayStr
+    .split(/[, ]+/)
+    .map(Number)
+    .filter((num) => !isNaN(num));
+  const N = parsedArray.length || 1;
+
+  const getX = (l, r) => {
+    const frac = N > 1 ? (l + r) / (2 * (N - 1)) : 0.5;
+    return leftMargin + frac * (svgWidth - leftMargin - rightMargin);
+  };
+
+  const getY = (rowIdx) => {
+    return topMargin + rowIdx * levelHeight;
+  };
 
   return (
     <div className="visualizer-container">
       <InjectedStyles />
       
-      {/* --- Controls Sidebar --- */}
+      {}
       <aside className="controls-sidebar">
         <h1 className="sidebar-title">
-          <Combine size={30} />
+          <BookOpen size={30} />
           Merge Sort
         </h1>
 
         <div className="input-group">
-          <label htmlFor="array">Array</label>
+          <label htmlFor="array">Custom Array Values</label>
           <textarea
             id="array"
-            placeholder="e.g., 8, 3, 1, 7"
+            placeholder="e.g., 6, 5, 12, 10, 9, 1"
             value={arrayStr}
             onChange={(e) => setArrayStr(e.target.value)}
-            disabled={isVisualizing}
+            disabled={isPlaying}
             rows="3"
             className="input-field textarea-field"
           />
@@ -1199,24 +1319,14 @@ export default function MergeSort() {
         
         {error && <div className="error-message">{error}</div>}
 
-        {/* --- Actions --- */}
         <div className="actions-grid">
           <button
-            onClick={handleStart}
-            disabled={isVisualizing}
-            className="btn btn-primary"
+            onClick={toggleAutoplay}
+            disabled={!!error}
+            className={`btn ${isPlaying ? 'btn-pause' : 'btn-resume'} w-full`}
           >
-            <Combine size={18} />
-            Sort
-          </button>
-
-          <button
-            onClick={togglePause}
-            disabled={!isVisualizing}
-            className={`btn ${isPaused ? 'btn-resume' : 'btn-pause'}`}
-          >
-            {isPaused ? <Play size={18} /> : <Pause size={18} />}
-            {isPaused ? "Resume" : "Pause"}
+            {isPlaying ? <Pause size={18} /> : <Play size={18} />}
+            {isPlaying ? "Pause Sorting" : "Play Autoplay"}
           </button>
           
           <button
@@ -1224,27 +1334,43 @@ export default function MergeSort() {
             className="btn btn-secondary"
           >
             <RefreshCw size={18} />
-            Reset
+            Reset Sorting
           </button>
         </div>
 
+        <div className="input-group">
+          <label htmlFor="random-size-slider">Random Array Size</label>
+          <div className="speed-slider-group">
+            <input
+              id="random-size-slider"
+              type="range"
+              min="3"
+              max="8"
+              step="1"
+              value={randomSize}
+              onChange={(e) => setRandomSize(Number(e.target.value))}
+              disabled={isPlaying}
+              className="speed-slider"
+            />
+            <span className="speed-value">{randomSize} items</span>
+          </div>
+        </div>
+
         <button
-            onClick={handleRandomArray}
-            disabled={isVisualizing}
-            className="btn btn-random"
-          >
-            <Shuffle size={18} />
-            Generate Random Array
+          onClick={handleRandomArrayGeneration}
+          disabled={isPlaying}
+          className="btn btn-random"
+        >
+          <Shuffle size={18} />
+          Generate Random Array
         </button>
 
-        {/* --- Settings --- */}
         <div className="input-group">
-          <label htmlFor="language">Code Language</label>
+          <label htmlFor="language">Sync Code Snippet Language</label>
           <select
             id="language"
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
-            disabled={isVisualizing}
             className="input-field"
           >
             <option value="python">Python</option>
@@ -1255,17 +1381,16 @@ export default function MergeSort() {
         </div>
 
         <div className="input-group">
-          <label htmlFor="speed">Visualization Speed</label>
+          <label htmlFor="speed">Autoplay Speed Delay</label>
           <div className="speed-slider-group">
             <input
               id="speed"
               type="range"
-              min="50"
-              max="1500"
-              step="50"
+              min="100"
+              max="2000"
+              step="100"
               value={speed}
               onChange={(e) => setSpeed(Number(e.target.value))}
-              disabled={isVisualizing}
               className="speed-slider"
             />
             <span className="speed-value">{speed} ms</span>
@@ -1273,69 +1398,345 @@ export default function MergeSort() {
         </div>
       </aside>
 
-      {/* --- Main Content Area --- */}
+      {/* --- Main Content Workspace --- */}
       <main className="main-content">
         
-        {/* --- Visualization Area --- */}
         <section className="visualization-section">
-          <h2 className="section-title">Visualization</h2>
+          <h2 className="section-title">
+            Sorting Workspace
+            <span className="text-xs text-gray-500 font-mono">
+              Flowchart Mode Active
+            </span>
+          </h2>
           
           <div className="status-bar">
             <span className={`status-text ${statusColor}`}>
-              {status}
+              {currentStep.status}
             </span>
           </div>
-          
-          {/* This is the main array */ }
-          <div className="visualization-boxes">
-            {boxes.map((box, idx) => (
-              <div 
-                key={box.originalIndex} 
-                className={`box-wrapper ${box.isFaded ? 'faded' : ''}`}
-              >
-                <div
-                  className={`box ${box.state}`}
-                >
-                  {box.value}
-                </div>
-                <span className="box-index">[{idx}]</span>
-              </div>
-            ))}
+
+          <div className="stats-dashboard">
+            <div className="stat-card">
+              <span className="stat-label">Comparisons Done</span>
+              <span className="stat-value">{currentStep.comparisons}</span>
+            </div>
+            <div className="stat-card">
+              <span className="stat-label">Placements Executed</span>
+              <span className="stat-value">{currentStep.swaps}</span>
+            </div>
           </div>
           
-          {/* This is the separate merge area */ }
-          <div 
-            className={`merge-area-container ${isMergeAreaVisible ? 'visible' : ''}`}
-          >
-            <div className="merge-area-title">Merge Area</div>
-            <div className="merge-area-boxes">
-              {mergeAreaBoxes.map((box, idx) => (
-                <div key={box.originalIndex} className="box-wrapper">
-                  <div
-                    className={`box ${box.state}`}
-                  >
-                    {box.value}
-                  </div>
-                  {/* Index is not as important here, so we omit it */}
-                </div>
-              ))}
+          {}
+          <div className="visualization-canvas-wrapper">
+            <svg 
+              className="visual-tree-svg" 
+              viewBox={`0 0 ${svgWidth} ${(maxDepthVal * 2 * levelHeight) + topMargin + 50}`}
+              fill="none" 
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <defs>
+                <marker 
+                  id="arrow" 
+                  viewBox="0 0 10 10" 
+                  refX="6" 
+                  refY="5" 
+                  markerWidth="6" 
+                  markerHeight="6" 
+                  orient="auto-start-reverse"
+                >
+                  <path d="M 0 1 L 10 5 L 0 9 z" fill="#cbd5e1" />
+                </marker>
+                <marker 
+                  id="arrow-active" 
+                  viewBox="0 0 10 10" 
+                  refX="6" 
+                  refY="5" 
+                  markerWidth="6" 
+                  markerHeight="6" 
+                  orient="auto-start-reverse"
+                >
+                  <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--cyan-400)" />
+                </marker>
+              </defs>
+
+              {/* --- Flow Connector Lines --- */}
+              <g className="tree-connectors">
+                {/* 1. Split Tree Connectors */}
+                {splitTree.map((node) => {
+                  if (node.level >= maxDepthVal) return null;
+                  
+                  const startX = getX(node.l, node.r);
+                  const startY = getY(node.level) + boxHeight / 2;
+
+                  if (node.l < node.r) {
+                    const m = Math.floor(node.l + (node.r - node.l) / 2);
+                    const leftX = getX(node.l, m);
+                    const leftY = getY(node.level + 1) - boxHeight / 2;
+                    const isLeftActive = currentStep.activeNodeId === `split-${node.level + 1}-${node.l}-${m}`;
+                    
+                    const rightX = getX(m + 1, node.r);
+                    const rightY = getY(node.level + 1) - boxHeight / 2;
+                    const isRightActive = currentStep.activeNodeId === `split-${node.level + 1}-${m + 1}-${node.r}`;
+
+                    return (
+                      <g key={`split-conns-${node.id}`}>
+                        <line 
+                          x1={startX} y1={startY} x2={leftX} y2={leftY} 
+                          className={`connector-line ${isLeftActive ? 'active' : ''}`}
+                          markerEnd={`url(#${isLeftActive ? 'arrow-active' : 'arrow'})`}
+                        />
+                        <line 
+                          x1={startX} y1={startY} x2={rightX} y2={rightY} 
+                          className={`connector-line ${isRightActive ? 'active' : ''}`}
+                          markerEnd={`url(#${isRightActive ? 'arrow-active' : 'arrow'})`}
+                        />
+                      </g>
+                    );
+                  } else {
+                    const targetX = getX(node.l, node.r);
+                    const targetY = getY(node.level + 1) - boxHeight / 2;
+                    const isChildActive = currentStep.activeNodeId === `split-${node.level + 1}-${node.l}-${node.r}`;
+                    
+                    return (
+                      <line 
+                        key={`split-vertical-${node.id}`}
+                        x1={startX} y1={startY} x2={targetX} y2={targetY} 
+                        className={`connector-line ${isChildActive ? 'active' : ''}`}
+                        markerEnd={`url(#${isChildActive ? 'arrow-active' : 'arrow'})`}
+                      />
+                    );
+                  }
+                })}
+
+                {/* 2. Merge Tree Connectors */}
+                {mergeTree.map((node) => {
+                  const targetRow = maxDepthVal + (maxDepthVal - node.level);
+                  const endX = getX(node.l, node.r);
+                  const endY = getY(targetRow) - boxHeight / 2;
+
+                  if (node.l < node.r) {
+                    const m = Math.floor(node.l + (node.r - node.l) / 2);
+                    const sourceRow = targetRow - 1;
+
+                    const leftX = getX(node.l, m);
+                    const leftY = getY(sourceRow) + boxHeight / 2;
+
+                    const rightX = getX(m + 1, node.r);
+                    const rightY = getY(sourceRow) + boxHeight / 2;
+
+                    // Declare targetMergeId FIRST to prevent Temporal Dead Zone Reference Errors
+                    const targetMergeId = `merge-${node.level}-${node.l}-${node.r}`;
+                    const isTargetActive = currentStep.activeNodeId === targetMergeId;
+
+                    return (
+                      <g key={`merge-conns-${node.id}`}>
+                        <line 
+                          x1={leftX} y1={leftY} x2={endX} y2={endY} 
+                          className={`connector-line ${isTargetActive ? 'active' : ''}`}
+                          markerEnd={`url(#${isTargetActive ? 'arrow-active' : 'arrow'})`}
+                        />
+                        <line 
+                          x1={rightX} y1={rightY} x2={endX} y2={endY} 
+                          className={`connector-line ${isTargetActive ? 'active' : ''}`}
+                          markerEnd={`url(#${isTargetActive ? 'arrow-active' : 'arrow'})`}
+                        />
+                      </g>
+                    );
+                  } else {
+                    const targetRow = maxDepthVal + (maxDepthVal - node.level);
+                    const sourceRow = targetRow - 1;
+                    const startX = getX(node.l, node.r);
+                    const startY = getY(sourceRow) + boxHeight / 2;
+                    const endX = getX(node.l, node.r);
+                    const endY = getY(targetRow) - boxHeight / 2;
+                    
+                    const isChildActive = currentStep.activeNodeId && currentStep.activeNodeId.includes(`-${node.l}-${node.r}`);
+
+                    return (
+                      <line 
+                        key={`merge-vertical-${node.id}`}
+                        x1={startX} y1={startY} x2={endX} y2={endY} 
+                        className={`connector-line ${isChildActive ? 'active' : ''}`}
+                        markerEnd={`url(#${isChildActive ? 'arrow-active' : 'arrow'})`}
+                      />
+                    );
+                  }
+                })}
+              </g>
+
+              {/* --- Flow Nodes Render (Split & Merge Layers) --- */}
+              <g className="tree-nodes">
+                {/* 1. Upper Split Tree Layer */}
+                {splitTree.map((node) => {
+                  const nodeState = currentStep.splitStates[node.id] || { values: [], state: 'inactive', activeIndices: [] };
+                  const K = nodeState.values.length;
+                  const centerX = getX(node.l, node.r);
+                  const centerY = getY(node.level);
+                  const startX = centerX - (K * boxWidth) / 2;
+
+                  return (
+                    <g key={node.id} className="tree-node-group">
+                      {nodeState.values.map((val, idx) => {
+                        const boxX = startX + idx * boxWidth;
+                        const boxY = centerY - boxHeight / 2;
+                        const isElemComparing = nodeState.activeIndices.includes(idx);
+                        
+                        let currentBoxStateClass = `state-${nodeState.state}`;
+                        if (isElemComparing) currentBoxStateClass = 'state-comparing';
+
+                        return (
+                          <g key={`${node.id}-box-${idx}`}>
+                            <rect 
+                              x={boxX} y={boxY} 
+                              width={boxWidth} height={boxHeight} 
+                              className={`tree-node-box ${currentBoxStateClass}`}
+                            />
+                            <text 
+                              x={boxX + boxWidth / 2} y={boxY + boxHeight / 2} 
+                              className="tree-node-text"
+                            >
+                              {val}
+                            </text>
+                          </g>
+                        );
+                      })}
+                    </g>
+                  );
+                })}
+
+                {/* 2. Lower Merge Tree Layer */}
+                {mergeTree.map((node) => {
+                  const nodeState = currentStep.mergeStates[node.id] || { values: [], state: 'inactive', activeIndices: [] };
+                  const targetRow = maxDepthVal + (maxDepthVal - node.level);
+                  
+                  const K = node.r - node.l + 1;
+                  const centerX = getX(node.l, node.r);
+                  const centerY = getY(targetRow);
+                  const startX = centerX - (K * boxWidth) / 2;
+
+                  return (
+                    <g key={node.id} className="tree-node-group">
+                      {Array.from({ length: K }).map((_, idx) => {
+                        const boxX = startX + idx * boxWidth;
+                        const boxY = centerY - boxHeight / 2;
+                        const hasVal = nodeState.values[idx] !== undefined;
+                        const isPlacedJustNow = nodeState.activeIndices.includes(idx);
+
+                        let currentBoxStateClass = `state-${nodeState.state}`;
+                        if (!hasVal) currentBoxStateClass = 'state-inactive';
+                        if (isPlacedJustNow) currentBoxStateClass = 'state-placing';
+
+                        return (
+                          <g key={`${node.id}-box-${idx}`}>
+                            <rect 
+                              x={boxX} y={boxY} 
+                              width={boxWidth} height={boxHeight} 
+                              className={`tree-node-box ${currentBoxStateClass}`}
+                            />
+                            <text 
+                              x={boxX + boxWidth / 2} y={boxY + boxHeight / 2} 
+                              className={`tree-node-text ${!hasVal ? 'state-inactive' : ''}`}
+                            >
+                              {hasVal ? nodeState.values[idx] : '?'}
+                            </text>
+                          </g>
+                        );
+                      })}
+                    </g>
+                  );
+                })}
+              </g>
+            </svg>
+          </div>
+
+          {/* Stepping Playback Control panel */}
+          <div className="canvas-playback-controls">
+            <button 
+              className="btn-icon" 
+              onClick={handleStepBackward} 
+              disabled={currentStepIdx === 0}
+              title="Step Backward"
+            >
+              <ChevronLeft size={20} />
+              <span className="text-xs font-semibold ml-1">Prev</span>
+            </button>
+
+            <span className="playback-tracker">
+              Step {currentStepIdx}
+            </span>
+
+            <button 
+              className="btn-icon" 
+              onClick={handleStepForward} 
+              disabled={currentStepIdx >= steps.length - 1}
+              title="Step Forward"
+            >
+              <span className="text-xs font-semibold mr-1">Next</span>
+              <ChevronRight size={20} />
+            </button>
+          </div>
+
+          {steps.length > 1 && (
+            <div className="scrub-timeline-group">
+              <input 
+                type="range"
+                min="0"
+                max={steps.length - 1}
+                value={currentStepIdx}
+                onChange={(e) => {
+                  setIsPlaying(false);
+                  setCurrentStepIdx(Number(e.target.value));
+                }}
+                className="scrub-timeline"
+                title="Drag to Scrub Timeline Steps"
+              />
             </div>
+          )}
+        </section>
+
+        {}
+        <section className="image-complexity-grid">
+          <div className="image-complexity-card">
+            <span className="image-card-header">Merge Sort</span>
+            <span className="image-card-title">Best Case</span>
+            <span className="image-card-complexity">O(n log n)</span>
+          </div>
+
+          <div className="image-complexity-card">
+            <span className="image-card-header">Merge Sort</span>
+            <span className="image-card-title">Average Case</span>
+            <span className="image-card-complexity">O(n log n)</span>
+          </div>
+
+          <div className="image-complexity-card">
+            <span className="image-card-header">Merge Sort</span>
+            <span className="image-card-title">Worst Case</span>
+            <span className="image-card-complexity">O(n log n)</span>
+          </div>
+
+          <div className="image-complexity-card">
+            <span className="image-card-header">Auxiliary Space</span>
+            <span className="image-card-title">Memory</span>
+            <span className="image-card-complexity">O(n)</span>
           </div>
         </section>
 
-        {/* --- Lower Content Area (Code & Log) --- */}
+        {}
         <div className="lower-content-area">
-          {/* --- Code Area --- */}
-          <section className="code-section">
-            <h2 className="section-title">Code</h2>
-            <div className="code-block">
+          <section className="workspace-section">
+            <h2 className="section-title">
+              <span className="flex items-center gap-1.5">
+                Merge Sort Code Highlight
+              </span>
+            </h2>
+            <div className="panel-block code-block">
               <pre>
                 <code>
                   {codeLines.map((line, idx) => (
                     <span
                       key={idx}
                       className={`code-line
-                        ${highlightLineNum === (idx + 1) ? 'highlight' : ''}
+                        ${activeLine === (idx + 1) ? 'highlight' : ''}
                         ${(line.trim().startsWith('#') || line.trim().startsWith('//')) ? 'comment' : ''}
                       `}
                     >
@@ -1347,12 +1748,18 @@ export default function MergeSort() {
             </div>
           </section>
 
-          {/* --- Execution Log --- */}
-          <section className="log-section">
-            <h2 className="section-title">Execution Log</h2>
-            <div className="log-block" ref={logContainerRef}>
+          <section className="workspace-section">
+            <h2 className="section-title">
+              <span className="flex items-center gap-1.5">
+                Log Streams
+              </span>
+            </h2>
+            <div className="panel-block" ref={logContainerRef}>
               <ul className="log-list">
-                {executionLog.map((log, idx) => (
+                {currentStep.logs.length === 0 && (
+                  <li className="log-item text-gray-500">Awaiting steps to build...</li>
+                )}
+                {currentStep.logs.map((log, idx) => (
                   <li key={idx} className="log-item">
                     {log}
                   </li>
