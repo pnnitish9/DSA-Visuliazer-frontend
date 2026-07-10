@@ -320,7 +320,7 @@ const InjectedStyles = () => (
     /* --- Stats Dashboard Widget --- */
     .stats-dashboard {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(2, 1fr);
       gap: 1rem;
       margin-bottom: 1rem;
     }
@@ -1163,10 +1163,6 @@ export default function App() {
 
           {/* Performance Metrices widgets */}
           <div className="stats-dashboard">
-            <div className="stat-card">
-              <span className="stat-label">Current Index / Total Steps</span>
-              <span className="stat-value">{currentStepIdx} / {Math.max(steps.length - 1, 0)}</span>
-            </div>
             <div className="stat-card">
               <span className="stat-label">Comparisons Done</span>
               <span className="stat-value">{currentStep.comparisons}</span>
