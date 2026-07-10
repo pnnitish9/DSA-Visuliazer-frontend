@@ -1,27 +1,37 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { SortAsc, Pause, Play, RefreshCw, ArrowRight, ArrowLeft } from 'lucide-react';
+import { 
+  ArrowDownUp, 
+  Pause, 
+  Play, 
+  RefreshCw, 
+  Shuffle, 
+  ChevronLeft, 
+  ChevronRight, 
+  Activity, 
+  BookOpen
+} from 'lucide-react';
 
 const InjectedStyles = () => (
   <style>{`
     :root {
-      --bg-dark-950: #0a0f1d;
-      --bg-dark-900: #0f172a;
-      --bg-dark-800: #1e293b;
-      --bg-dark-700: #334155;
-      --bg-dark-600: #475569;
-      --bg-dark-500: #64748b;
+      --bg-dark-950: #0c111c;
+      --bg-dark-900: #111827;
+      --bg-dark-800: #1f2937;
+      --bg-dark-700: #374151;
+      --bg-dark-600: #4b5563;
+      --bg-dark-500: #6b7280;
       
-      --text-gray-200: #f1f5f9;
-      --text-gray-300: #cbd5e1;
-      --text-gray-400: #94a3b8;
-      --text-gray-500: #64748b;
+      --text-gray-200: #e5e7eb;
+      --text-gray-300: #d1d5db;
+      --text-gray-400: #9ca3af;
+      --text-gray-500: #6b7280;
 
-      --border-gray-600: #475569;
-      --border-gray-700: #334155;
+      --border-gray-600: #4b5563;
+      --border-gray-700: #374151;
 
-      --cyan-400: #38bdf8;
-      --cyan-500: #0ea5e9;
-      --cyan-600: #0284c7;
+      --cyan-400: #22d3ee;
+      --cyan-500: #06b6d4;
+      --cyan-600: #0891b2;
       
       --green-400: #4ade80;
       --green-500: #22c55e;
@@ -33,7 +43,6 @@ const InjectedStyles = () => (
       
       --red-400: #f87171;
       --red-500: #ef4444;
-      --red-600: #dc2626;
 
       --orange-500: #f97316;
       --orange-600: #ea580c;
@@ -53,432 +62,575 @@ const InjectedStyles = () => (
       flex-direction: column;
       min-height: 100vh;
     }
-    @media (min-width: 1024px) {
-      .visualizer-container { flex-direction: row; }
+
+    * {
+      box-sizing: border-box;
     }
 
-    * { box-sizing: border-box; }
+    @media (min-width: 1024px) {
+      .visualizer-container {
+        flex-direction: row;
+      }
+    }
 
-    /* --- Sidebar layout --- */
+    /* --- Sidebar Controls Styling --- */
     .controls-sidebar {
       width: 100%;
       background-color: var(--bg-dark-800);
       padding: 1.5rem;
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
       z-index: 10;
     }
+
     @media (min-width: 1024px) {
       .controls-sidebar {
         width: 25%;
         min-width: 320px;
-        max-width: 360px;
+        max-width: 380px;
         min-height: 100vh;
         overflow-y: auto;
       }
     }
 
     .sidebar-title {
-      font-size: 1.6rem;
+      font-size: 1.875rem;
       font-weight: 700;
       margin: 0 0 1.5rem 0;
       color: var(--cyan-400);
       display: flex;
       align-items: center;
     }
-    .sidebar-title svg { margin-right: 0.75rem; }
 
-    /* --- Forms & Inputs --- */
-    .input-group { margin-bottom: 0.85rem; }
+    .sidebar-title svg {
+      margin-right: 0.75rem;
+    }
+
+    /* --- Forms, Input Elements, Sliders --- */
+    .input-group {
+      margin-bottom: 1.25rem;
+    }
+
     .input-group label {
       display: block;
-      font-size: 0.8rem;
-      font-weight: 600;
-      margin-bottom: 0.35rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
       color: var(--text-gray-300);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
     }
+
     .input-field {
       width: 100%;
-      padding: 0.6rem 0.75rem;
+      padding: 0.75rem;
       background-color: var(--bg-dark-700);
-      border-radius: 0.375rem;
+      border-radius: 0.5rem;
       border: 1px solid var(--border-gray-600);
       color: var(--text-gray-200);
       transition: border-color 0.2s, box-shadow 0.2s;
-      font-size: 0.9rem;
+      font-size: 1rem;
     }
+
     .input-field:focus {
       outline: none;
       border-color: var(--cyan-500);
       box-shadow: 0 0 0 2px var(--cyan-500);
     }
-    .input-field:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .input-field:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
 
     .textarea-field {
       resize: vertical;
-      min-height: 50px;
-      font-family: monospace;
+      min-height: 55px;
+      font-family: inherit;
     }
 
     .error-message {
       color: var(--red-400);
-      font-size: 0.8rem;
+      font-size: 0.875rem;
       margin-bottom: 1rem;
-      padding: 0.6rem;
+      padding: 0.75rem;
       background-color: rgba(248, 113, 113, 0.1);
       border: 1px solid var(--red-400);
-      border-radius: 0.375rem;
+      border-radius: 0.5rem;
     }
 
+    /* --- Button and Trigger Layouts --- */
     .actions-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.5rem;
-      margin-bottom: 0.75rem;
-    }
-    .actions-single {
-      margin-bottom: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
     }
 
-    /* --- Custom Action Buttons --- */
     .btn {
-      padding: 0.6rem;
-      border-radius: 0.375rem;
+      padding: 0.75rem;
+      border-radius: 0.5rem;
       font-weight: 600;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 0.4rem;
+      gap: 0.5rem;
       transition: all 0.2s;
       cursor: pointer;
       border: none;
-      font-size: 0.85rem;
+      font-size: 0.9rem;
       text-align: center;
-      width: 100%;
     }
-    .btn svg { width: 16px; height: 16px; }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    .btn-cyan { background-color: var(--cyan-600); color: white; }
-    .btn-cyan:hover:not(:disabled) { background-color: var(--cyan-500); }
-    .btn-green { background-color: var(--green-600); color: white; }
-    .btn-green:hover:not(:disabled) { background-color: var(--green-500); }
-    .btn-red { background-color: var(--red-600); color: white; }
-    .btn-red:hover:not(:disabled) { background-color: var(--red-500); }
-    .btn-pause { background-color: var(--yellow-600); color: black; }
+    .btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background-color: var(--cyan-600);
+      color: white;
+    }
+    .btn-primary:hover:not(:disabled) { background-color: var(--cyan-500); }
+
+    .btn-pause {
+      background-color: var(--yellow-600);
+      color: black;
+    }
     .btn-pause:hover:not(:disabled) { background-color: var(--yellow-500); }
-    .btn-resume { background-color: var(--green-600); color: white; }
-    .btn-resume:hover:not(:disabled) { background-color: var(--green-500); }
-    .btn-secondary { background-color: var(--bg-dark-600); color: white; }
-    .btn-secondary:hover:not(:disabled) { background-color: var(--bg-dark-500); }
-    .btn-purple { background-color: var(--purple-600); color: white; }
-    .btn-purple:hover:not(:disabled) { background-color: var(--purple-500); }
 
-    .speed-slider-group { display: flex; align-items: center; gap: 1rem; }
+    .btn-resume {
+      background-color: var(--green-600);
+      color: white;
+    }
+    .btn-resume:hover:not(:disabled) { background-color: var(--green-500); }
+
+    .btn-secondary {
+      background-color: var(--bg-dark-600);
+      color: white;
+    }
+    .btn-secondary:hover:not(:disabled) { background-color: var(--bg-dark-500); }
+
+    .btn-random {
+      width: 100%;
+      background-color: var(--purple-600);
+      color: white;
+      margin-bottom: 1.25rem;
+    }
+    .btn-random:hover:not(:disabled) { background-color: var(--purple-500); }
+
+    .speed-slider-group {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
     .speed-slider {
       width: 100%;
       -webkit-appearance: none;
       appearance: none;
-      height: 6px;
+      height: 8px;
       background: var(--bg-dark-700);
-      border-radius: 3px;
+      border-radius: 5px;
       outline: none;
       opacity: 0.9;
+      transition: opacity .2s;
     }
+    .speed-slider:hover { opacity: 1; }
+    .speed-slider:disabled { opacity: 0.5; }
+
     .speed-slider::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      width: 16px;
-      height: 16px;
+      width: 20px;
+      height: 20px;
       background: var(--cyan-500);
       border-radius: 50%;
       cursor: pointer;
     }
-    .speed-value {
-      width: 4rem;
-      text-align: right;
-      color: var(--text-gray-400);
-      font-size: 0.85rem;
+
+    .speed-slider::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      background: var(--cyan-500);
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
     }
 
-    /* --- Content Frame --- */
+    .speed-value {
+      width: 5.5rem;
+      text-align: right;
+      color: var(--text-gray-400);
+      font-size: 0.9rem;
+    }
+
+    /* --- Main Workspace layout --- */
     .main-content {
       flex: 1;
       display: flex;
       flex-direction: column;
       padding: 1.5rem;
     }
+
     @media (min-width: 768px) {
-      .main-content { padding: 2rem; }
+      .main-content {
+        padding: 2.5rem;
+      }
     }
+
     .section-title {
-      font-size: 1.25rem;
+      font-size: 1.5rem;
       font-weight: 600;
       margin: 0 0 1rem 0;
       color: var(--text-gray-200);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
 
-    /* --- Visual Canvas --- */
-    .visualization-section {
-      display: flex;
-      flex-direction: column;
-      min-height: 250px;
-    }
     .status-bar {
       width: 100%;
-      padding: 0.75rem;
-      margin-bottom: 2rem;
+      padding: 1rem;
+      margin-bottom: 1rem;
       background-color: var(--bg-dark-800);
       border: 1px solid var(--border-gray-700);
-      border-radius: 0.375rem;
+      border-radius: 0.5rem;
       text-align: center;
-      min-height: 46px;
+      min-height: 58px;
       display: flex;
       align-items: center;
       justify-content: center;
     }
+
     .status-text {
-      font-size: 1rem;
+      font-size: 1.125rem;
       font-weight: 500;
       transition: color 0.3s;
     }
+
     .status-default { color: var(--cyan-400); }
     .status-sorting { color: var(--yellow-400); }
     .status-sorted { color: var(--green-400); }
     .status-paused { color: var(--yellow-400); }
 
-    .visualization-boxes {
-      position: relative;
-      flex: 1;
-      background-color: rgba(5, 5, 10, 0.4);
-      border-radius: 0.5rem;
-      min-height: 240px;
-      width: 100%;
-      border: 1px solid var(--border-gray-700);
-      box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4);
-      display: flex;
-      flex-wrap: nowrap;
-      overflow-x: auto;
-      justify-content: center;
-      align-items: center;
-      gap: 1.5rem;
-      padding: 4rem 2rem 4rem 2rem;
+    /* --- Stats Dashboard Widget --- */
+    .stats-dashboard {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin-bottom: 1rem;
     }
 
-    /* --- Stabilized Position Transformers --- */
+    .stat-card {
+      background-color: var(--bg-dark-950);
+      border: 1px solid var(--border-gray-700);
+      border-radius: 0.5rem;
+      padding: 0.75rem;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-gray-500);
+      margin-bottom: 0.25rem;
+    }
+
+    .stat-value {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--cyan-400);
+    }
+
+    /* --- Visualizer Box Elements --- */
+    .visualization-boxes {
+      flex: 1;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 2.5rem 1rem;
+      background-color: rgba(0, 0, 0, 0.25);
+      border-radius: 0.5rem;
+      min-height: 180px;
+      width: 100%;
+      border: 1px solid var(--border-gray-700);
+      box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
+      position: relative;
+    }
+
     .box-wrapper {
       display: flex;
       flex-direction: column;
       align-items: center;
-      position: relative;
-      animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-      transition: transform var(--swap-speed, 400ms) cubic-bezier(0.25, 0.8, 0.25, 1);
-      transform: translate(0, 0);
+      transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
     }
 
-    @keyframes popIn {
-      from { transform: scale(0.7) translateY(10px); opacity: 0; }
-      to { transform: scale(1) translateY(0); opacity: 1; }
+    .box-wrapper.no-transition {
+      transition: none;
     }
 
-    /* Verbatim green circular pastel aesthetics aligning with preceding files */
     .box {
       width: 3.5rem;
       height: 3.5rem;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.1rem;
+      font-size: 1.125rem;
       font-weight: 700;
-      border-radius: 50%;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
-      transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s, color 0.3s;
-      border: 2.5px solid transparent;
-      user-select: none;
-    }
-    .box.default {
-      background-color: #e2f0d9;
-      border-color: #8cc07e;
-      color: #385723;
-    }
-    .box.comparing {
-      background-color: #fef08a; /* Yellow */
-      border-color: #ca8a04;
-      color: #854d0e;
-      transform: scale(1.1);
-      box-shadow: 0 0 15px rgba(234, 179, 8, 0.5);
-    }
-    .box.swapping {
-      background-color: #fed7aa; /* Orange */
-      border-color: #ea580c;
-      color: #7c2d12;
-      box-shadow: 0 0 15px rgba(249, 115, 22, 0.5);
-    }
-    .box.sorted {
-      background-color: #4ade80; /* Green */
-      border-color: #16a34a;
-      color: white;
-      opacity: 0.95;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      transition: all 0.3s ease-in-out;
+      border: 2px solid transparent;
     }
 
     .box-index {
-      margin-top: 0.4rem;
-      font-family: monospace;
-      font-size: 0.75rem;
+      margin-top: 0.5rem;
+      font-size: 0.875rem;
       color: var(--text-gray-400);
-      font-weight: bold;
     }
 
-    /* --- Complexity HUD Diagnostic Cards --- */
-    .complexity-cards-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-      gap: 0.75rem;
-      margin-top: 1rem;
-    }
-    .complexity-card {
-      background-color: var(--bg-dark-800);
-      border: 1.5px solid var(--border-gray-700);
-      border-radius: 0.5rem;
-      padding: 0.6rem 0.85rem;
-      transition: all 0.3s ease;
-      position: relative;
-    }
-    .complexity-card.active-best {
-      border-color: var(--green-500);
-      background-color: rgba(34, 197, 94, 0.08);
-      box-shadow: 0 0 12px rgba(34, 197, 94, 0.25);
-    }
-    .complexity-card.active-avg {
-      border-color: var(--cyan-500);
-      background-color: rgba(14, 165, 233, 0.08);
-      box-shadow: 0 0 12px rgba(14, 165, 233, 0.25);
-    }
-    .complexity-card.active-worst {
-      border-color: var(--orange-500);
-      background-color: rgba(249, 115, 22, 0.08);
-      box-shadow: 0 0 12px rgba(249, 115, 22, 0.25);
-    }
-    .complexity-label {
-      font-size: 0.65rem;
-      font-weight: 700;
-      color: var(--text-gray-400);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-    .complexity-title {
-      font-size: 0.95rem;
-      font-weight: 800;
+    .box.default {
+      background-color: var(--bg-dark-600);
       color: white;
-      margin: 0.15rem 0;
-    }
-    .complexity-badge {
-      display: inline-block;
-      font-size: 0.7rem;
-      font-family: monospace;
-      color: var(--cyan-400);
-      font-weight: bold;
+      border-color: var(--border-gray-500);
     }
 
-    /* --- Sidebar Stat metrics tracker --- */
-    .metric-stats-bar {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.5rem;
-      background-color: rgba(15, 23, 42, 0.4);
-      padding: 0.6rem;
-      border-radius: 0.375rem;
-      border: 1px solid var(--border-gray-700);
-      margin-bottom: 0.85rem;
+    .box.comparing {
+      background-color: var(--yellow-500);
+      color: black;
+      border-color: var(--yellow-400);
+      transform: scale(1.08);
     }
-    .metric-stat-item {
+    
+    .box.swapping {
+      background-color: var(--orange-500);
+      color: white;
+      border-color: var(--orange-600);
+      transform: scale(1.12);
+    }
+
+    .box.sorted {
+      background-color: var(--green-600);
+      color: white;
+      border-color: var(--green-500);
+      opacity: 0.85;
+    }
+
+    /* --- Interactive Playback underneath Canvas --- */
+    .canvas-playback-controls {
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      text-align: center;
-    }
-    .metric-stat-val {
-      font-size: 1.15rem;
-      font-weight: 800;
-      color: var(--cyan-400);
-      font-family: monospace;
-    }
-    .metric-stat-label {
-      font-size: 0.65rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--text-gray-400);
-      font-weight: 600;
+      gap: 1rem;
+      margin-top: 1rem;
+      padding: 0.75rem;
+      background-color: var(--bg-dark-800);
+      border: 1px solid var(--border-gray-700);
+      border-radius: 0.5rem;
     }
 
-    /* --- Multi-Pane Log & Code Split --- */
+    .btn-icon {
+      background-color: var(--bg-dark-700);
+      color: white;
+      border: 1px solid var(--border-gray-600);
+      padding: 0.6rem;
+      border-radius: 0.375rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .btn-icon:hover:not(:disabled) {
+      background-color: var(--bg-dark-600);
+      border-color: var(--cyan-400);
+    }
+
+    .btn-icon:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .playback-tracker {
+      font-size: 0.9rem;
+      color: var(--text-gray-300);
+      min-width: 6rem;
+      text-align: center;
+      font-family: monospace;
+    }
+
+    /* --- Timeline Scrubber UI --- */
+    .scrub-timeline-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      margin-top: 0.75rem;
+    }
+
+    .scrub-timeline {
+      width: 100%;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      background: var(--bg-dark-950);
+      border-radius: 3px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .scrub-timeline::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      background: var(--cyan-400);
+      border-radius: 50%;
+    }
+
+    /* --- Clean 2-Column lower area for Code and Logs --- */
     .lower-content-area {
       display: flex;
       flex-direction: column;
       gap: 1.5rem;
       margin-top: 1.5rem;
-      flex: 1;
-    }
-    @media (min-width: 1024px) {
-      .lower-content-area { flex-direction: row; }
     }
 
-    .code-section, .log-section {
+    @media (min-width: 1024px) {
+      .lower-content-area {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .workspace-section {
       display: flex;
       flex-direction: column;
-      flex: 1; 
       min-height: 280px;
     }
-    .code-block, .log-block {
+
+    .panel-block {
       background-color: var(--bg-dark-950);
       padding: 1.25rem;
       border-radius: 0.5rem;
       border: 1px solid var(--border-gray-700);
+      box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
       height: 100%;
-      overflow: auto;
-    }
-    @media (max-width: 1023px) {
-      .log-block { max-height: 250px; }
+      overflow-y: auto;
     }
 
+    /* --- Code Line highlights --- */
     .code-block pre {
       margin: 0;
       font-family: 'Fira Code', 'Courier New', monospace;
       font-size: 0.85rem;
-      line-height: 1.5;
+      line-height: 1.6;
     }
+
     .code-line {
       display: block;
       padding: 0 0.5rem;
       transition: background-color 0.2s;
+      min-height: 1.6em;
     }
+
     .code-line.highlight {
-      background-color: rgba(6, 182, 212, 0.2);
-      border-radius: 0.25rem;
+      background-color: rgba(6, 182, 212, 0.25);
+      border-left: 3px solid var(--cyan-400);
+      border-radius: 0 0.25rem 0.25rem 0;
     }
+
     .code-line.comment {
       color: var(--text-gray-500);
       font-style: italic;
     }
-    
+
+    /* --- Execution Logs Stream --- */
     .log-list {
       margin: 0;
       padding: 0;
       list-style-type: none;
       font-family: 'Fira Code', 'Courier New', monospace;
-      font-size: 0.85rem;
+      font-size: 0.825rem;
       line-height: 1.5;
     }
+    
     .log-item {
-      padding: 0.2rem 0.5rem;
-      border-bottom: 1px solid var(--bg-dark-700);
+      padding: 0.25rem 0.5rem;
+      border-bottom: 1px solid var(--bg-dark-800);
       color: var(--text-gray-300);
+      word-break: break-all;
     }
+    
     .log-item:last-child {
       border-bottom: none; 
       color: white;
+      background-color: rgba(6, 182, 212, 0.1);
+    }
+
+    /* --- EXACT BUBBLE SORT / AUXILIARY SPACE Complexity cards matching image_0c0bc2.png --- */
+    .image-complexity-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+      margin-top: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    @media (min-width: 640px) {
+      .image-complexity-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .image-complexity-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    .image-complexity-card {
+      background-color: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 0.5rem;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 110px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    .image-card-header {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: #9ca3af;
+      text-transform: uppercase;
+    }
+
+    .image-card-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-top: 0.25rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .image-card-complexity {
+      font-family: monospace;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #38bdf8;
     }
   `}</style>
 );
@@ -490,149 +642,94 @@ def bubble_sort(arr):
     for i in range(n):
         swapped = False
         for j in range(0, n - i - 1):
-            # Comparing adjacent elements
+            # Compare elements
             if arr[j] > arr[j + 1]:
+                # Swap
                 arr[j], arr[j + 1] = arr[j + 1], arr[j]
                 swapped = True
         if not swapped:
             break
-  `.trim(),
-  cpp: `
-void bubbleSort(int arr[], int n) {
-    for (int i = 0; i < n; i++) {
-        bool swapped = false;
-        for (int j = 0; j < n - i - 1; j++) {
-            // Comparing adjacent elements
-            if (arr[j] > arr[j + 1]) {
-                swap(arr[j], arr[j + 1]);
-                swapped = true;
-            }
-        }
-        if (!swapped) {
-            break;
-        }
-    }
-}
-  `.trim(),
-  java: `
-public void bubbleSort(int[] arr) {
-    n = arr.length;
-    for (int i = 0; i < n; i++) {
-        boolean swapped = false;
-        for (int j = 0; j < n - i - 1; j++) {
-            // Comparing adjacent elements
-            if (arr[j] > arr[j + 1]) {
-                int temp = arr[j];
-                arr[j] = arr[j + 1];
-                arr[j + 1] = temp;
-                swapped = true;
-            }
-        }
-        if (!swapped) {
-            break;
-        }
-    }
-}
-  `.trim(),
+`,
   javascript: `
 function bubbleSort(arr) {
-    let n = arr.length;
-    for (let i = 0; i < n; i++) {
-        let swapped = false;
-        for (let j = 0; j < n - i - 1; j++) {
-            // Comparing adjacent elements
-            if (arr[j] > arr[j + 1]) {
-                [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
-                swapped = true;
-            }
-        }
-        if (!swapped) {
-            break;
-        }
-    }
-}
-  `.trim()
-};
-
-/* Precise Multi-Language line highlight mappings to match steps exactly */
-const LINE_MAPS = {
-  python: { outer_loop: 3, swapped_init: 4, inner_loop: 5, compare: 7, swap: 8, early_break: 10 },
-  cpp: { outer_loop: 2, swapped_init: 3, inner_loop: 4, compare: 6, swap: 7, early_break: 11 },
-  java: { outer_loop: 3, swapped_init: 4, inner_loop: 5, compare: 7, swap: 8, early_break: 14 },
-  javascript: { outer_loop: 3, swapped_init: 4, inner_loop: 5, compare: 7, swap: 8, early_break: 12 }
-};
-
-export default function BubbleSortVisualizer() {
-  const [arrayStr, setArrayStr] = useState("8, 3, 1, 6, 4, 10, 2");
-  const [randomSize, setRandomSize] = useState(8);
-  const [language, setLanguage] = useState("python");
-  const [speed, setSpeed] = useState(1000);
-
-  // Core Visual State Tracking
-  const [boxes, setBoxes] = useState([]);
-  const [status, setStatus] = useState("Ready. Specify elements, then press Sort.");
-  const [executionLog, setExecutionLog] = useState(["[System] Sandbox loaded. Hashing inputs."]);
-  const [highlightLineNum, setHighlightLineNum] = useState(-1);
-  const [error, setError] = useState(null);
-
-  // Time-frame Pre-computed Simulation states
-  const [currentStepIdx, setCurrentStepIdx] = useState(0);
-  const [simulationSteps, setSimulationSteps] = useState([]);
-  const [isVisualizing, setIsVisualizing] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-
-  // Live HUD metrics
-  const [liveComparisons, setLiveComparisons] = useState(0);
-  const [liveSwaps, setLiveSwaps] = useState(0);
-  const [evaluatedCase, setEvaluatedCase] = useState(null); // 'best' | 'avg' | 'worst'
-
-  const timerRef = useRef(null);
-  const isPlayingRef = useRef(false);
-  const logContainerRef = useRef(null);
-
-  useEffect(() => {
-    if (logContainerRef.current) {
-      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
-    }
-  }, [executionLog]);
-
-  /* STREAMING_CHUNK: Initializing rich box state models... */
-  // Clean initial boxes render on parameter updates
-  useEffect(() => {
-    if (!isVisualizing) {
-      const arr = validateAndParse();
-      if (arr) {
-        setBoxes(arr.map((v, idx) => ({
-          value: v,
-          state: 'default',
-          id: `node-${idx}-${v}-${Math.random()}`,
-          initialIdx: idx,
-          currentIdx: idx,
-          translateX: '0rem',
-          translateY: '0rem'
-        })));
-        setEvaluatedCase(null);
-        setLiveComparisons(0);
-        setLiveSwaps(0);
+  let n = arr.length;
+  for (let i = 0; i < n; i++) {
+    let swapped = false;
+    for (let j = 0; j < n - i - 1; j++) {
+      // Compare elements
+      if (arr[j] > arr[j + 1]) {
+        // Swap
+        [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
+        swapped = true;
       }
     }
-  }, [arrayStr, isVisualizing]);
-
-  /* Control Playback state effects */
-  useEffect(() => {
-    if (isPlaying) {
-      isPlayingRef.current = true;
-      runAutoPlayback();
-    } else {
-      isPlayingRef.current = false;
-      if (timerRef.current) clearTimeout(timerRef.current);
+    if (!swapped) break;
+  }
+}
+`,
+  java: `
+void bubbleSort(int arr[]) {
+  int n = arr.length;
+  for (int i = 0; i < n; i++) {
+    boolean swapped = false;
+    for (int j = 0; j < n - i - 1; j++) {
+      // Compare elements
+      if (arr[j] > arr[j + 1]) {
+        // Swap
+        int temp = arr[j];
+        arr[j] = arr[j + 1];
+        arr[j + 1] = temp;
+        swapped = true;
+      }
     }
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, [isPlaying, currentStepIdx, simulationSteps]);
+    if (!swapped) break;
+  }
+}
+`,
+  cpp: `
+void bubbleSort(int arr[], int n) {
+  for (int i = 0; i < n; i++) {
+    bool swapped = false;
+    for (int j = 0; j < n - i - 1; j++) {
+      // Compare elements
+      if (arr[j] > arr[j + 1]) {
+        // Swap
+        swap(arr[j], arr[j + 1]);
+        swapped = true;
+      }
+    }
+    if (!swapped) break;
+  }
+}
+`
+};
 
-  const validateAndParse = () => {
+const getHighlightLine = (stepType, lang) => {
+  const mappings = {
+    python: { outer: 4, init: 5, inner: 6, compare: 8, swap: 10, swapped_true: 11, check_swapped: 12 },
+    javascript: { outer: 4, init: 5, inner: 6, compare: 8, swap: 10, swapped_true: 11, check_swapped: 13 },
+    java: { outer: 4, init: 5, inner: 6, compare: 8, swap: 11, swapped_true: 14, check_swapped: 17 },
+    cpp: { outer: 3, init: 4, inner: 5, compare: 7, swap: 9, swapped_true: 10, check_swapped: 13 }
+  };
+  return mappings[lang]?.[stepType] ?? -1;
+};
+
+export default function App() {
+  const [language, setLanguage] = useState("python");
+  const [speed, setSpeed] = useState(500);
+  const [randomSize, setRandomSize] = useState(8);
+  const [arrayStr, setArrayStr] = useState("7, 2, 9, 1, 5, 4, 8");
+  const [error, setError] = useState(null);
+
+  // Precomputed Multi-Step States
+  const [steps, setSteps] = useState([]);
+  const [currentStepIdx, setCurrentStepIdx] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  const logContainerRef = useRef(null);
+  const timerRef = useRef(null);
+
+  const validateInputs = () => {
     setError(null);
     const arr = arrayStr
       .split(/[, ]+/)
@@ -640,567 +737,388 @@ export default function BubbleSortVisualizer() {
       .filter((num) => !isNaN(num));
 
     if (!arr.length) {
-      setError("Array cannot be empty.");
+      setError("Please enter a valid, non-empty array of numbers.");
       return null;
     }
-
-    if (arr.length > 25) {
-      setError("Maximum limit is 25 elements for visualization clarity.");
+    
+    if (arr.length > 20) {
+      setError("Please use 20 elements or less for optimum visual clarity.");
       return null;
     }
 
     return arr;
   };
 
-  /* STREAMING_CHUNK: Compiling absolute positioning simulation frames for straight swap tracks... */
-  const buildSimulationSteps = (richBoxes) => {
-    const steps = [];
-    let initialLog = ["[Simulation] Compiling Bubble Sort state frames..."];
+  const buildVisualizationSteps = (arr) => {
+    const stepsList = [];
+    const logs = ["Visualization compiled. Ready to run."];
+    const deepCopy = (items) => items.map(item => ({ ...item }));
 
-    let comparisonsCount = 0;
-    let swapsCount = 0;
-    let n = richBoxes.length;
-
-    // Use a physical working list that gets modified during sorting passes to track index shifts
-    let workingArray = richBoxes.map((b, idx) => ({
-      ...b,
-      initialIdx: idx,
-      currentIdx: idx,
-      state: 'default'
+    let boxes = arr.map((value, index) => ({
+      value,
+      state: 'default',
+      index,
+      translateX: 0,
+      noTransition: false
     }));
 
-    // Helper map of visual translations tied uniquely to unchanging DOM order
-    const generateFrameBoxes = (stateModifierFn) => {
-      workingArray.forEach((node, currentPos) => {
-        node.currentIdx = currentPos;
-      });
+    let n = boxes.length;
+    let swapsCount = 0;
+    let comparisonsCount = 0;
 
-      return richBoxes.map((originalNode) => {
-        const activeNode = workingArray.find(b => b.id === originalNode.id);
-        
-        let state = activeNode.state;
-        let translateX = (activeNode.currentIdx - activeNode.initialIdx) * 5.0; // center-to-center standard distance (3.5rem + 1.5rem gap)
-        let translateY = 0;
-
-        if (stateModifierFn) {
-          const overrides = stateModifierFn(activeNode);
-          if (overrides) {
-            if (overrides.state !== undefined) state = overrides.state;
-            if (overrides.translateX !== undefined) translateX = overrides.translateX;
-            if (overrides.translateY !== undefined) translateY = overrides.translateY;
-          }
-        }
-
-        return {
-          ...originalNode,
-          state,
-          currentIdx: activeNode.currentIdx,
-          translateX: `${translateX}rem`,
-          translateY: `${translateY}rem`
-        };
-      });
-    };
-
-    // Step 0: Initial Frame
-    steps.push({
-      boxes: generateFrameBoxes(),
-      status: `Initializing Bubble Sort workflow. Total elements: ${n}`,
-      log: [...initialLog, `[Init] Process started with array: [${workingArray.map(b => b.value).join(', ')}]`],
-      lineKey: 'outer_loop',
-      comparisons: 0,
+    // Step 0: Ready Idle state
+    stepsList.push({
+      boxes: deepCopy(boxes),
+      status: "Enter an array, then press Play or Step Forward.",
+      stepType: 'idle',
+      logs: [...logs],
       swaps: 0,
-      matchedCase: null
+      comparisons: 0
     });
 
     for (let i = 0; i < n; i++) {
-      let swapped = false;
-      const passLog = [...steps[steps.length - 1].log];
-
-      // Outer Loop Entry Frame
-      steps.push({
-        boxes: generateFrameBoxes((node) => {
-          if (node.currentIdx >= n - i) {
-            return { state: 'sorted' };
-          }
-          return { state: 'default' };
-        }),
-        status: `Outer Loop iteration i = ${i}. Setting swapped = false.`,
-        log: [...passLog, `[Pass ${i + 1}] Commencing inner comparisons scans.`],
-        lineKey: 'swapped_init',
-        comparisons: comparisonsCount,
+      logs.push(`Pass ${i + 1}: Starting pass over unsorted elements.`);
+      
+      // Step Type: Outer loop boundary initialization
+      stepsList.push({
+        boxes: deepCopy(boxes),
+        status: `Starting pass ${i + 1}. Preparing to bubble up element.`,
+        stepType: 'outer',
+        logs: [...logs],
         swaps: swapsCount,
-        matchedCase: null
+        comparisons: comparisonsCount
       });
 
-      for (let j = 0; j < n - i - 1; j++) {
-        const compareLog = [...steps[steps.length - 1].log];
+      // swapped = False
+      logs.push(`Pass ${i + 1}: Initialized swapped = False.`);
+      stepsList.push({
+        boxes: deepCopy(boxes),
+        status: `Initialized swapped tracker to False.`,
+        stepType: 'init',
+        logs: [...logs],
+        swaps: swapsCount,
+        comparisons: comparisonsCount
+      });
 
-        // 1. Comparison Highlight Frame
-        comparisonsCount++;
-        steps.push({
-          boxes: generateFrameBoxes((node) => {
-            if (node.currentIdx >= n - i) {
-              return { state: 'sorted' };
-            }
-            if (node.currentIdx === j || node.currentIdx === j + 1) {
-              return { state: 'comparing' };
-            }
-            return { state: 'default' };
-          }),
-          status: `Comparing index ${j} (${workingArray[j].value}) and index ${j + 1} (${workingArray[j + 1].value}).`,
-          log: [...compareLog, `[Compare] Checking if ${workingArray[j].value} > ${workingArray[j+1].value}`],
-          lineKey: 'compare',
-          comparisons: comparisonsCount,
+      let swappedInThisPass = false;
+
+      for (let j = 0; j < n - i - 1; j++) {
+        // Step Type: Inner loop pointer initialization
+        stepsList.push({
+          boxes: deepCopy(boxes),
+          status: `Inner loop indexing element j = ${j}.`,
+          stepType: 'inner',
+          logs: [...logs],
           swaps: swapsCount,
-          matchedCase: null
+          comparisons: comparisonsCount
         });
 
-        if (workingArray[j].value > workingArray[j + 1].value) {
-          swapped = true;
+        comparisonsCount++;
+        const leftBox = boxes[j];
+        const rightBox = boxes[j + 1];
+        const needsSwap = leftBox.value > rightBox.value;
+
+        // Visual State: Comparing elements
+        const compareBoxes = deepCopy(boxes);
+        compareBoxes[j].state = 'comparing';
+        compareBoxes[j + 1].state = 'comparing';
+        logs.push(`Compare: Is [${j}] (${leftBox.value}) > [${j + 1}] (${rightBox.value})? ${needsSwap ? "Yes" : "No"}`);
+
+        stepsList.push({
+          boxes: compareBoxes,
+          status: `Comparing: ${leftBox.value} > ${rightBox.value}? ${needsSwap ? "Yes" : "No"}`,
+          stepType: 'compare',
+          logs: [...logs],
+          swaps: swapsCount,
+          comparisons: comparisonsCount
+        });
+
+        if (needsSwap) {
           swapsCount++;
-          const swapLog = [...steps[steps.length - 1].log];
+          swappedInThisPass = true;
 
-          // 2. Parallel Horizontal Straight Swap Tracks Frame (image_3a26c0.png)
-          steps.push({
-            boxes: generateFrameBoxes((node) => {
-              if (node.currentIdx >= n - i) {
-                return { state: 'sorted' };
-              }
-              // Left node moves right on upper track pointing right
-              if (node.currentIdx === j) {
-                return {
-                  state: 'swapping',
-                  translateX: (j + 1 - node.initialIdx) * 5.0,
-                  translateY: -0.4
-                };
-              }
-              // Right node moves left on lower track pointing left
-              if (node.currentIdx === j + 1) {
-                return {
-                  state: 'swapping',
-                  translateX: (j - node.initialIdx) * 5.0,
-                  translateY: 0.4
-                };
-              }
-              return { state: 'default' };
-            }),
-            status: `Swapping values: Node ${workingArray[j].value} slides right on upper track, and Node ${workingArray[j + 1].value} slides left on lower track parallelly.`,
-            log: [...swapLog, `[Swap] Swapping values: ${workingArray[j].value} <-> ${workingArray[j+1].value}`],
-            lineKey: 'swap',
-            comparisons: comparisonsCount,
+          // Visual State: Swap Displacement Animation
+          const displaceBoxes = deepCopy(boxes);
+          displaceBoxes[j].state = 'swapping';
+          displaceBoxes[j + 1].state = 'swapping';
+          displaceBoxes[j].translateX = '4rem'; 
+          displaceBoxes[j + 1].translateX = '-4rem';
+          logs.push(`Swap: Shifting ${leftBox.value} to index [${j + 1}] and ${rightBox.value} to index [${j}].`);
+
+          stepsList.push({
+            boxes: displaceBoxes,
+            status: `Swapping ${leftBox.value} and ${rightBox.value}`,
+            stepType: 'swap',
+            logs: [...logs],
             swaps: swapsCount,
-            matchedCase: null
+            comparisons: comparisonsCount
           });
 
-          // Physically swap within coordinate memory
-          let temp = workingArray[j];
-          workingArray[j] = workingArray[j + 1];
-          workingArray[j + 1] = temp;
+          // Visual State: Snapping instantly inside memory
+          const snapBoxes = deepCopy(boxes);
+          [snapBoxes[j], snapBoxes[j + 1]] = [snapBoxes[j + 1], snapBoxes[j]];
+          snapBoxes[j].translateX = 0;
+          snapBoxes[j + 1].translateX = 0;
+          snapBoxes[j].noTransition = true;
+          snapBoxes[j + 1].noTransition = true;
+          snapBoxes[j].state = 'swapping';
+          snapBoxes[j + 1].state = 'swapping';
 
-          // 3. Post-Swap Frame (Align coordinates with standard center line)
-          steps.push({
-            boxes: generateFrameBoxes((node) => {
-              if (node.currentIdx >= n - i) {
-                return { state: 'sorted' };
-              }
-              if (node.currentIdx === j || node.currentIdx === j + 1) {
-                return { state: 'swapping' };
-              }
-              return { state: 'default' };
-            }),
-            status: `Coordinates synchronized cleanly. No layout blinking.`,
-            log: [...swapLog, `[Swap Resolved] Physical elements swapped inside memory matrix.`],
-            lineKey: 'inner_loop',
-            comparisons: comparisonsCount,
+          stepsList.push({
+            boxes: snapBoxes,
+            status: `Elements swapped in memory array.`,
+            stepType: 'swap',
+            logs: [...logs],
             swaps: swapsCount,
-            matchedCase: null
+            comparisons: comparisonsCount
           });
 
+          // Mutating the main copy for subsequent iterations
+          [boxes[j], boxes[j + 1]] = [boxes[j + 1], boxes[j]];
+
+          // Visual State: swapped = True
+          const trackingState = deepCopy(boxes);
+          trackingState[j].state = 'default';
+          trackingState[j + 1].state = 'default';
+          logs.push(`Tracking: Set swapped = True.`);
+          stepsList.push({
+            boxes: trackingState,
+            status: `Set swapped flag to True because a swap occurred.`,
+            stepType: 'swapped_true',
+            logs: [...logs],
+            swaps: swapsCount,
+            comparisons: comparisonsCount
+          });
         } else {
-          // No swap frame
-          steps.push({
-            boxes: generateFrameBoxes((node) => {
-              if (node.currentIdx >= n - i) {
-                return { state: 'sorted' };
-              }
-              if (node.currentIdx === j || node.currentIdx === j + 1) {
-                return { state: 'comparing' };
-              }
-              return { state: 'default' };
-            }),
-            status: `No swap needed: ${workingArray[j].value} is not greater than ${workingArray[j+1].value}.`,
-            log: [...compareLog, `[No Swap] Condition false. Skipping swap logic.`],
-            lineKey: 'inner_loop',
-            comparisons: comparisonsCount,
-            swaps: swapsCount,
-            matchedCase: null
-          });
+          logs.push(`No Swap: Elements already in relative order.`);
         }
       }
 
-      // Mark bubble-end element as sorted
-      let finalSortedIdx = n - i - 1;
-      workingArray[finalSortedIdx].state = 'sorted';
+      // Bubble sort guarantees the element at (n - i - 1) reaches its sorted spot
+      boxes[n - i - 1].state = 'sorted';
+      logs.push(`Pass ${i + 1} complete. Element ${boxes[n - i - 1].value} is bubbled and fully sorted.`);
 
-      steps.push({
-        boxes: generateFrameBoxes((node) => {
-          if (node.currentIdx >= finalSortedIdx) {
-            return { state: 'sorted' };
-          }
-          return { state: 'default' };
-        }),
-        status: `Pass completed. Element ${workingArray[finalSortedIdx].value} placed at terminal sorted index.`,
-        log: [...steps[steps.length - 1].log, `[Pass Completed] element ${workingArray[finalSortedIdx].value} guaranteed sorted.`],
-        lineKey: 'outer_loop',
-        comparisons: comparisonsCount,
+      // Check if optimized break should trigger
+      stepsList.push({
+        boxes: deepCopy(boxes),
+        status: `Evaluating early termination optimization check: swapped = ${swappedInThisPass ? "True" : "False"}.`,
+        stepType: 'check_swapped',
+        logs: [...logs],
         swaps: swapsCount,
-        matchedCase: null
+        comparisons: comparisonsCount
       });
 
-      if (!swapped) {
-        // Optimization: Early termination triggered
-        steps.push({
-          boxes: generateFrameBoxes(() => ({ state: 'sorted' })),
-          status: "Early exit! Zero swaps executed in this pass. Array is fully sorted.",
-          log: [...steps[steps.length - 1].log, `[Optimization Trigger] Early exit executed. Array already sorted.`],
-          lineKey: 'early_break',
-          comparisons: comparisonsCount,
-          swaps: swapsCount,
-          matchedCase: 'best'
-        });
+      if (!swappedInThisPass) {
+        logs.push("Optimization triggered: No swaps occurred in this pass. Array is fully sorted early!");
         break;
       }
     }
 
-    // Standard complete frame
-    let finalLog = [...steps[steps.length - 1].log, `[Complete] Sort finished successfully.`];
-    let finalCase = 'avg';
-    if (swapsCount === 0) finalCase = 'best';
-    else if (swapsCount === (n * (n - 1)) / 2) finalCase = 'worst';
-
-    steps.push({
-      boxes: generateFrameBoxes(() => ({ state: 'sorted' })),
-      status: "Sorting finalized! All elements resolved into ascending order.",
-      log: finalLog,
-      lineKey: 'done',
-      comparisons: comparisonsCount,
+    // Mark everything sorted at the end
+    boxes.forEach(box => box.state = 'sorted');
+    logs.push("Sorting complete! Bubble Sort succeeded.");
+    stepsList.push({
+      boxes: deepCopy(boxes),
+      status: `Sorting complete! Total Swaps: ${swapsCount}, Total Comparisons: ${comparisonsCount}.`,
+      stepType: 'idle',
+      logs: [...logs],
       swaps: swapsCount,
-      matchedCase: finalCase
+      comparisons: comparisonsCount
     });
 
-    return steps;
+    return stepsList;
   };
 
-  /* PLAYBACK CONTROLLERS */
-  const runAutoPlayback = async () => {
-    if (currentStepIdx < simulationSteps.length - 1) {
-      timerRef.current = setTimeout(() => {
-        if (isPlayingRef.current) {
-          applyStepFrame(currentStepIdx + 1);
-        }
+  useEffect(() => {
+    const arr = validateInputs();
+    if (arr) {
+      const compiledSteps = buildVisualizationSteps(arr);
+      setSteps(compiledSteps);
+      setCurrentStepIdx(0);
+    } else {
+      setSteps([]);
+    }
+    setIsPlaying(false);
+  }, [arrayStr]);
+
+  // Cleanup active timer on unmount
+  useEffect(() => {
+    return () => clearInterval(timerRef.current);
+  }, []);
+
+  useEffect(() => {
+    if (isPlaying) {
+      clearInterval(timerRef.current);
+      timerRef.current = setInterval(() => {
+        setCurrentStepIdx((prevIdx) => {
+          if (prevIdx >= steps.length - 1) {
+            setIsPlaying(false);
+            return prevIdx;
+          }
+          return prevIdx + 1;
+        });
       }, speed);
     } else {
-      setIsPlaying(false);
+      clearInterval(timerRef.current);
     }
+  }, [isPlaying, steps, speed]);
+
+  // Keep logs window scrolled to bottom
+  useEffect(() => {
+    if (logContainerRef.current) {
+      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+    }
+  }, [currentStepIdx, steps]);
+
+  const toggleAutoplay = () => {
+    if (currentStepIdx >= steps.length - 1) {
+      setCurrentStepIdx(0);
+    }
+    setIsPlaying(!isPlaying);
   };
 
-  const applyStepFrame = (idx) => {
-    if (idx < 0 || idx >= simulationSteps.length) return;
-
-    const frame = simulationSteps[idx];
-    setBoxes(frame.boxes);
-    setStatus(frame.status);
-    setExecutionLog(frame.log);
-    setLiveComparisons(frame.comparisons);
-    setLiveSwaps(frame.swaps);
-    if (frame.matchedCase) {
-      setEvaluatedCase(frame.matchedCase);
-    }
-
-    // Syncing code-tracker highlight
-    const key = frame.lineKey;
-    const mapping = LINE_MAPS[language];
-    if (mapping && mapping[key]) {
-      setHighlightLineNum(mapping[key]);
-    } else {
-      setHighlightLineNum(-1);
-    }
-
-    setCurrentStepIdx(idx);
-  };
-
-  const handleStartSort = () => {
-    const arr = validateAndParse();
-    if (!arr) return;
-
-    const richBoxes = arr.map((v, idx) => ({
-      value: v,
-      state: 'default',
-      id: `node-${idx}-${v}-${Math.random()}`,
-      initialIdx: idx,
-      currentIdx: idx,
-      translateX: '0rem',
-      translateY: '0rem'
-    }));
-
-    const steps = buildSimulationSteps(richBoxes);
-    setSimulationSteps(steps);
-    setIsVisualizing(true);
-    setCurrentStepIdx(0);
-    setEvaluatedCase(null);
-    setIsPlaying(true);
-  };
-
-  const handleNextStep = () => {
-    if (!isVisualizing) {
-      const arr = validateAndParse();
-      if (!arr) return;
-      const richBoxes = arr.map((v, idx) => ({
-        value: v,
-        state: 'default',
-        id: `node-${idx}-${v}-${Math.random()}`,
-        initialIdx: idx,
-        currentIdx: idx,
-        translateX: '0rem',
-        translateY: '0rem'
-      }));
-      const steps = buildSimulationSteps(richBoxes);
-      setSimulationSteps(steps);
-      setIsVisualizing(true);
-      applyStepFrame(0);
-    } else {
-      setIsPlaying(false); 
-      if (currentStepIdx < simulationSteps.length - 1) {
-        applyStepFrame(currentStepIdx + 1);
-      }
-    }
-  };
-
-  const handlePrevStep = () => {
-    if (!isVisualizing || currentStepIdx === 0) return;
+  const handleStepForward = () => {
     setIsPlaying(false);
-    applyStepFrame(currentStepIdx - 1);
+    if (currentStepIdx < steps.length - 1) {
+      setCurrentStepIdx(currentStepIdx + 1);
+    }
+  };
+
+  const handleStepBackward = () => {
+    setIsPlaying(false);
+    if (currentStepIdx > 0) {
+      setCurrentStepIdx(currentStepIdx - 1);
+    }
   };
 
   const handleReset = () => {
-    if (timerRef.current) clearTimeout(timerRef.current);
     setIsPlaying(false);
-    setIsVisualizing(false);
     setCurrentStepIdx(0);
-    setHighlightLineNum(-1);
-    setEvaluatedCase(null);
-    setLiveComparisons(0);
-    setLiveSwaps(0);
-    setError(null);
-
-    const arr = validateAndParse();
-    if (arr) {
-      setBoxes(arr.map((v, idx) => ({
-        value: v,
-        state: 'default',
-        id: `node-${idx}-${v}-${Math.random()}`,
-        initialIdx: idx,
-        currentIdx: idx,
-        translateX: '0rem',
-        translateY: '0rem'
-      })));
-      setExecutionLog(["[System] Canvas reset. Press Sort to run compilation."]);
-      setStatus("Ready.");
-    }
   };
 
-  const handleGenerateRandom = (mode = 'normal') => {
-    if (isVisualizing) handleReset();
-
-    const size = Math.max(3, Math.min(25, randomSize));
-    let arr = Array.from({ length: size }, () => Math.floor(Math.random() * 95) + 5);
-
-    if (mode === 'sorted') {
-      arr = [...arr].sort((a, b) => a - b);
-    } else if (mode === 'reverse') {
-      arr = [...arr].sort((a, b) => b - a);
-    }
-
+  const handleRandomArrayGeneration = () => {
+    setIsPlaying(false);
+    const arr = Array.from({ length: randomSize }, () =>
+      Math.floor(Math.random() * 95) + 5
+    );
     setArrayStr(arr.join(", "));
-    setError(null);
-    setBoxes(arr.map((v, idx) => ({
-      value: v,
-      state: 'default',
-      id: `node-${idx}-${v}-${Math.random()}`,
-      initialIdx: idx,
-      currentIdx: idx,
-      translateX: '0rem',
-      translateY: '0rem'
-    })));
-    setExecutionLog([`[System] Generated ${arr.length} elements. Mode: ${mode.toUpperCase()}`]);
-    setStatus("Random elements ready.");
   };
 
-  const codeLines = codeSnippets[language].trim().split('\n');
-  const statusColor = status.includes("finalized") || status.includes("complete")
+  const currentStep = steps[currentStepIdx] || {
+    boxes: [],
+    status: "No steps loaded.",
+    stepType: 'idle',
+    logs: [],
+    swaps: 0,
+    comparisons: 0
+  };
+
+  const statusColor = currentStep.status.includes("complete")
     ? "status-sorted"
-    : status.includes("Swapping") || status.includes("Comparing")
+    : (currentStep.status.includes("Preparing") || currentStep.status.includes("Comparing") || currentStep.status.includes("Swapping"))
     ? "status-sorting"
-    : status.includes("Paused")
-    ? "status-paused"
+    : isPlaying
+    ? "status-sorting"
     : "status-default";
 
-  // Force render boxes sorted by their stable initial rendering index to completely bypass DOM relocation jumps
-  const stableRenderedBoxes = [...boxes].sort((a, b) => a.initialIdx - b.initialIdx);
+  const rawCode = codeSnippets[language] || "";
+  const codeLines = rawCode.trim().split('\n');
+  const activeLine = getHighlightLine(currentStep.stepType, language);
 
   return (
     <div className="visualizer-container">
       <InjectedStyles />
-
-      {/* --- Controls Sidebar --- */}
+      
+      {/* --- Sidebar Configuration Panels --- */}
       <aside className="controls-sidebar">
         <h1 className="sidebar-title">
-          <SortAsc size={30} />
+          <ArrowDownUp size={30} />
           Bubble Sort
         </h1>
 
-        {/* Real-time Metric Displays */}
-        <div className="metric-stats-bar">
-          <div className="metric-stat-item">
-            <span className="metric-stat-val">{liveComparisons}</span>
-            <span className="metric-stat-label">Comparisons</span>
-          </div>
-          <div className="metric-stat-item">
-            <span className="metric-stat-val">{liveSwaps}</span>
-            <span className="metric-stat-label">Swaps</span>
-          </div>
-        </div>
-
-        {/* Input parameters */}
+        {/* Custom Array Inputs */}
         <div className="input-group">
-          <label htmlFor="array">Array Elements</label>
+          <label htmlFor="array">Custom Array Values</label>
           <textarea
             id="array"
-            placeholder="e.g., 8, 3, 1, 6"
+            placeholder="e.g., 7, 2, 9, 1, 5"
             value={arrayStr}
             onChange={(e) => setArrayStr(e.target.value)}
-            disabled={isVisualizing}
-            rows="2"
+            disabled={isPlaying}
+            rows="3"
             className="input-field textarea-field"
           />
         </div>
-
+        
         {error && <div className="error-message">{error}</div>}
 
-        {/* Dynamic Capacity List Generator */}
-        <div style={{
-          backgroundColor: 'rgba(15, 23, 42, 0.4)',
-          borderRadius: '0.375rem',
-          padding: '0.75rem',
-          border: '1px solid var(--border-gray-700)',
-          marginBottom: '1rem'
-        }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--cyan-400)', display: 'block', marginBottom: '0.5rem', textTransform: 'uppercase' }}>
-            Array Generator
-          </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-            <span style={{ fontSize: '0.7rem', color: 'var(--text-gray-300)' }}>Capacity:</span>
-            <input
-              type="range"
-              min="3"
-              max="25"
-              value={randomSize}
-              onChange={(e) => setRandomSize(Number(e.target.value))}
-              disabled={isVisualizing}
-              className="speed-slider"
-              style={{ flex: 1 }}
-            />
-            <span style={{ fontSize: '0.8rem', width: '1.5rem', textAlign: 'right', fontWeight: 'bold', color: 'var(--cyan-400)' }}>
-              {randomSize}
-            </span>
-          </div>
-          <div style={{ display: 'flex', gap: '0.3rem' }}>
-            <button
-              onClick={() => handleGenerateRandom('normal')}
-              disabled={isVisualizing}
-              className="btn btn-secondary"
-              style={{ flex: 1, padding: '0.35rem 0', minHeight: '1.75rem', fontSize: '0.7rem' }}
-              title="Generate random unsorted array"
-            >
-              🎲 Random
-            </button>
-            <button
-              onClick={() => handleGenerateRandom('sorted')}
-              disabled={isVisualizing}
-              className="btn btn-purple"
-              style={{ flex: 1, padding: '0.35rem 0', minHeight: '1.75rem', fontSize: '0.7rem' }}
-              title="Generate sorted array (Ideal for Best Case tests)"
-            >
-              ✨ Best
-            </button>
-          </div>
-        </div>
-
-        {/* Primary controllers */}
-        <div className="actions-single">
-          <button
-            onClick={handleStartSort}
-            className="btn btn-green"
-          >
-            <SortAsc size={18} /> Sort Array
-          </button>
-        </div>
+        {/* Autoplay & Playback Triggers */}
         <div className="actions-grid">
           <button
-            onClick={handlePrevStep}
-            disabled={!isVisualizing || currentStepIdx === 0}
-            className="btn btn-secondary"
-            title="Step Backward"
+            onClick={toggleAutoplay}
+            className={`btn ${isPlaying ? 'btn-pause' : 'btn-resume'} w-full`}
           >
-            <ArrowLeft size={16} /> Prev
+            {isPlaying ? <Pause size={18} /> : <Play size={18} />}
+            {isPlaying ? "Pause Sorting" : "Play Autoplay"}
           </button>
-          <button
-            onClick={handleNextStep}
-            disabled={isVisualizing && currentStepIdx === simulationSteps.length - 1}
-            className="btn btn-cyan"
-            title="Step Forward"
-          >
-            Next <ArrowRight size={16} />
-          </button>
-        </div>
-
-        <div className="actions-grid">
-          <button
-            onClick={() => setIsPlaying(!isPlaying)}
-            disabled={!isVisualizing}
-            className={`btn ${isPlaying ? 'btn-pause' : 'btn-resume'}`}
-          >
-            {isPlaying ? <Pause size={16} /> : <Play size={16} />}
-            {isPlaying ? "Pause" : "Play"}
-          </button>
-
+          
           <button
             onClick={handleReset}
             className="btn btn-secondary"
           >
-            <RefreshCw size={16} /> Reset
+            <RefreshCw size={18} />
+            Reset Sorting
           </button>
         </div>
 
-        {/* Configurations */}
+        {/* Dynamic Size Slider */}
         <div className="input-group">
-          <label htmlFor="language">Code Language</label>
+          <label htmlFor="random-size-slider">Random Array Size</label>
+          <div className="speed-slider-group">
+            <input
+              id="random-size-slider"
+              type="range"
+              min="3"
+              max="15"
+              step="1"
+              value={randomSize}
+              onChange={(e) => setRandomSize(Number(e.target.value))}
+              disabled={isPlaying}
+              className="speed-slider"
+            />
+            <span className="speed-value">{randomSize} items</span>
+          </div>
+        </div>
+
+        {/* Generation Button */}
+        <button
+          onClick={handleRandomArrayGeneration}
+          disabled={isPlaying}
+          className="btn btn-random"
+        >
+          <Shuffle size={18} />
+          Generate Random Array
+        </button>
+
+        {/* Target Language Selector */}
+        <div className="input-group">
+          <label htmlFor="language">Sync Code Snippet Language</label>
           <select
             id="language"
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
-            disabled={isVisualizing}
             className="input-field"
           >
             <option value="python">Python</option>
-            <option value="cpp">C++</option>
-            <option value="java">Java</option>
             <option value="javascript">JavaScript</option>
+            <option value="java">Java</option>
+            <option value="cpp">C++</option>
           </select>
         </div>
 
+        {/* Speed Adjustment panel */}
         <div className="input-group">
-          <label htmlFor="speed">Playback Speed</label>
+          <label htmlFor="speed">Autoplay Speed Delay</label>
           <div className="speed-slider-group">
             <input
               id="speed"
@@ -1217,103 +1135,150 @@ export default function BubbleSortVisualizer() {
         </div>
       </aside>
 
-      {/* --- Main Content workspace --- */}
+      {/* --- STREAMING_CHUNK:Rendering the main content... */}
       <main className="main-content">
         
-        {/* --- Visual Element Grid --- */}
+        {/* Dynamic Visualization Arena */}
         <section className="visualization-section">
-          <h2 className="section-title">Visualization</h2>
-
+          <h2 className="section-title">
+            Sorting Workspace
+            <span className="text-xs text-gray-500 font-mono">
+              Step Mode Ready
+            </span>
+          </h2>
+          
           <div className="status-bar">
             <span className={`status-text ${statusColor}`}>
-              {status}
+              {currentStep.status}
             </span>
           </div>
 
+          {/* Performance Metrices widgets */}
+          <div className="stats-dashboard">
+            <div className="stat-card">
+              <span className="stat-label">Comparisons Done</span>
+              <span className="stat-value">{currentStep.comparisons}</span>
+            </div>
+            <div className="stat-card">
+              <span className="stat-label">Swaps Executed</span>
+              <span className="stat-value">{currentStep.swaps}</span>
+            </div>
+          </div>
+          
+          {/* Custom Element Box Grid Canvas */}
           <div className="visualization-boxes">
-            {stableRenderedBoxes.length === 0 ? (
-              <span style={{ color: 'var(--text-gray-500)', fontSize: '0.9rem' }}>
-                Provide inputs to display elements on the board.
-              </span>
-            ) : (
-              stableRenderedBoxes.map((box) => {
-                // Ensure dynamic transform durations cleanly match user selected play speeds
-                const customSwapSpeed = `${speed * 0.45}ms`;
-                const styleObj = {
-                  '--swap-speed': customSwapSpeed,
-                  transform: `translate(${box.translateX || '0rem'}, ${box.translateY || '0rem'})`
-                };
-
-                return (
-                  <div
-                    key={box.id}
-                    className="box-wrapper"
-                    style={styleObj}
-                  >
-                    <div className={`box ${box.state}`}>
-                      {box.value}
-                    </div>
-                    {/* Index tags update live reflecting logical coordinates */}
-                    <span className="box-index">[{box.currentIdx}]</span>
-                  </div>
-                );
-              })
-            )}
+            {currentStep.boxes.map((box, idx) => (
+              <div 
+                key={`${box.index}-${idx}`} 
+                className={`box-wrapper ${box.noTransition ? 'no-transition' : ''}`} 
+                style={{ transform: `translateX(${box.translateX || 0})` }}
+              >
+                <div className={`box ${box.state}`}>
+                  {box.value}
+                </div>
+                <span className="box-index">[{idx}]</span>
+              </div>
+            ))}
           </div>
 
-          {/* --- Interactive Complexity Case Diagnostics --- */}
-          <div className="complexity-cards-grid">
-            
-            <div className={`complexity-card ${evaluatedCase === 'best' ? 'active-best' : ''}`}>
-              <div className="complexity-label">Bubble Sort</div>
-              <div className="complexity-title">Best Case</div>
-              <div className="complexity-badge">O(n)</div>
-              {evaluatedCase === 'best' && (
-                <span style={{ position: 'absolute', top: '0.4rem', right: '0.4rem', fontSize: '0.6rem', padding: '1px 4px', background: 'var(--green-600)', borderRadius: '3px', fontWeight: 'bold' }}>ACTIVE</span>
-              )}
-            </div>
+          {/* Stepping Playback Control layout */}
+          <div className="canvas-playback-controls">
+            <button 
+              className="btn-icon" 
+              onClick={handleStepBackward} 
+              disabled={currentStepIdx === 0}
+              title="Step Backward"
+            >
+              <ChevronLeft size={20} />
+              <span className="text-xs font-semibold ml-1">Prev</span>
+            </button>
 
-            <div className={`complexity-card ${evaluatedCase === 'avg' ? 'active-avg' : ''}`}>
-              <div className="complexity-label">Bubble Sort</div>
-              <div className="complexity-title">Average Case</div>
-              <div className="complexity-badge">O(n²)</div>
-              {evaluatedCase === 'avg' && (
-                <span style={{ position: 'absolute', top: '0.4rem', right: '0.4rem', fontSize: '0.6rem', padding: '1px 4px', background: 'var(--cyan-600)', borderRadius: '3px', fontWeight: 'bold' }}>ACTIVE</span>
-              )}
-            </div>
+            <span className="playback-tracker">
+              Step {currentStepIdx}
+            </span>
 
-            <div className={`complexity-card ${evaluatedCase === 'worst' ? 'active-worst' : ''}`}>
-              <div className="complexity-label">Bubble Sort</div>
-              <div className="complexity-title">Worst Case</div>
-              <div className="complexity-badge">O(n²)</div>
-              {evaluatedCase === 'worst' && (
-                <span style={{ position: 'absolute', top: '0.4rem', right: '0.4rem', fontSize: '0.6rem', padding: '1px 4px', background: 'var(--orange-600)', borderRadius: '3px', fontWeight: 'bold' }}>ACTIVE</span>
-              )}
-            </div>
-
-            <div className="complexity-card">
-              <div className="complexity-label">Auxiliary Space</div>
-              <div className="complexity-title">Memory</div>
-              <div className="complexity-badge">O(1)</div>
-            </div>
-
+            <button 
+              className="btn-icon" 
+              onClick={handleStepForward} 
+              disabled={currentStepIdx >= steps.length - 1}
+              title="Step Forward"
+            >
+              <span className="text-xs font-semibold mr-1">Next</span>
+              <ChevronRight size={20} />
+            </button>
           </div>
+
+          {/* Scrubbing timeline Slider bar */}
+          {steps.length > 1 && (
+            <div className="scrub-timeline-group">
+              <input 
+                type="range"
+                min="0"
+                max={steps.length - 1}
+                value={currentStepIdx}
+                onChange={(e) => {
+                  setIsPlaying(false);
+                  setCurrentStepIdx(Number(e.target.value));
+                }}
+                className="scrub-timeline"
+                title="Drag to Scrub Timeline Steps"
+              />
+            </div>
+          )}
         </section>
 
-        {/* --- Log & Tracer Splits --- */}
+        {/* --- STREAMING_CHUNK: Rendering Complexity Cards from image_0c0bc2.png --- */}
+        <section className="image-complexity-grid">
+          
+          {/* Best Case Card */}
+          <div className="image-complexity-card">
+            <span className="image-card-header">Bubble Sort</span>
+            <span className="image-card-title">Best Case</span>
+            <span className="image-card-complexity">O(n)</span>
+          </div>
+
+          {/* Average Case Card */}
+          <div className="image-complexity-card">
+            <span className="image-card-header">Bubble Sort</span>
+            <span className="image-card-title">Average Case</span>
+            <span className="image-card-complexity">O(n²)</span>
+          </div>
+
+          {/* Worst Case Card */}
+          <div className="image-complexity-card">
+            <span className="image-card-header">Bubble Sort</span>
+            <span className="image-card-title">Worst Case</span>
+            <span className="image-card-complexity">O(n²)</span>
+          </div>
+
+          {/* Memory / Auxiliary Space Card */}
+          <div className="image-complexity-card">
+            <span className="image-card-header">Auxiliary Space</span>
+            <span className="image-card-title">Memory</span>
+            <span className="image-card-complexity">O(1)</span>
+          </div>
+
+        </section>
+
+        {/* --- Multi-Column Lower Workspace Panels (Code & Execution Logs) --- */}
         <div className="lower-content-area">
           
-          <section className="code-section">
-            <h2 className="section-title">Code Tracker</h2>
-            <div className="code-block">
+          {/* Left Block: Dynamic Synchronized Code Highlighter */}
+          <section className="workspace-section">
+            <h2 className="section-title">
+              <span className="flex items-center gap-1.5">
+                <BookOpen size={18} className="text-cyan-400" /> Code Highlight
+              </span>
+            </h2>
+            <div className="panel-block code-block">
               <pre>
                 <code>
                   {codeLines.map((line, idx) => (
                     <span
                       key={idx}
                       className={`code-line
-                        ${highlightLineNum === (idx + 1) ? 'highlight' : ''}
-                        ${(line.trim().startsWith('#') || line.trim().startsWith('//') || line.trim().startsWith('def ') || line.trim().startsWith('function ')) ? 'comment' : ''}
+                        ${activeLine === (idx + 1) ? 'highlight' : ''}
+                        ${(line.trim().startsWith('#') || line.trim().startsWith('//')) ? 'comment' : ''}
                       `}
                     >
                       {line || '\u00A0'}
@@ -1324,11 +1289,19 @@ export default function BubbleSortVisualizer() {
             </div>
           </section>
 
-          <section className="log-section">
-            <h2 className="section-title">Execution Log</h2>
-            <div className="log-block" ref={logContainerRef}>
+          {/* Right Block: Live Log Streams Terminal */}
+          <section className="workspace-section">
+            <h2 className="section-title">
+              <span className="flex items-center gap-1.5">
+                <Activity size={18} className="text-cyan-400" /> Log Streams
+              </span>
+            </h2>
+            <div className="panel-block" ref={logContainerRef}>
               <ul className="log-list">
-                {executionLog.map((log, idx) => (
+                {currentStep.logs.length === 0 && (
+                  <li className="log-item text-gray-500">Awaiting steps to build...</li>
+                )}
+                {currentStep.logs.map((log, idx) => (
                   <li key={idx} className="log-item">
                     {log}
                   </li>
