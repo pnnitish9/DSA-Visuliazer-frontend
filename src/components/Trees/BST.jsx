@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { GitFork, Pause, Play, RefreshCw, Search } from 'lucide-react';
+import { GitFork, Pause, Play, RefreshCw, Search, ChevronLeft, ChevronRight, Shuffle, Trash2 } from 'lucide-react';
 
 const InjectedStyles = () => (
   <style>{`
@@ -173,6 +173,8 @@ const InjectedStyles = () => (
     .btn-resume:hover:not(:disabled) { background-color: var(--green-500); }
     .btn-secondary { background-color: var(--bg-dark-600); color: white; }
     .btn-secondary:hover:not(:disabled) { background-color: var(--bg-dark-500); }
+    .btn-purple { background-color: var(--purple-600); color: white; }
+    .btn-purple:hover:not(:disabled) { background-color: var(--purple-500); }
 
     .speed-slider-group { display: flex; align-items: center; gap: 1rem; }
     .speed-slider {
@@ -245,6 +247,7 @@ const InjectedStyles = () => (
     .status-not-found { color: var(--red-400); }
     .status-paused { color: var(--yellow-400); }
 
+    /* Responsive SVG Scrollable Area */
     .visualization-boxes {
       position: relative;
       flex: 1;
@@ -254,94 +257,232 @@ const InjectedStyles = () => (
       width: 100%;
       border: 1px solid var(--border-gray-700);
       box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4);
-      overflow: hidden;
+      overflow: auto; /* Enable dynamic panning/scrolling when tree is deep */
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    .tree-svg-container {
+      width: 100%;
+      min-width: 600px; /* Minimum horizontal boundary before horizontal scroll triggers */
+      transition: height 0.3s ease;
     }
 
     /* --- GORGEOUS CIRCLE NODES MIRRORING image_eed3d6.png --- */
-    .tree-circle-node {
-      width: 3.25rem;
-      height: 3.25rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.15rem;
-      font-weight: 600;
-      border-radius: 50%;
-      transition: background-color 0.3s, border-color 0.3s, transform 0.3s, box-shadow 0.3s;
-      user-select: none;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
-      animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    .tree-circle-group {
+      cursor: pointer;
     }
-    @keyframes popIn {
-      from { transform: translate(-50%, -50%) scale(0.6); opacity: 0; }
-      to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    
+    .tree-circle-bg {
+      stroke-width: 2.5;
+      transition: fill 0.3s, stroke 0.3s, filter 0.3s;
     }
-
+    
     /* Verbatim green style from image_eed3d6.png */
-    .tree-circle-node.default {
-      background-color: #e2f0d9;
-      border: 2.5px solid #8cc07e;
-      color: #385723;
+    .tree-circle-bg.default {
+      fill: #e2f0d9;
+      stroke: #8cc07e;
     }
 
-    .tree-circle-node.visiting {
-      background-color: #fef08a; /* yellow-200 */
-      border: 2.5px solid #ca8a04; /* yellow-600 */
-      color: #854d0e; /* yellow-900 */
-      transform: translate(-50%, -50%) scale(1.12);
-      box-shadow: 0 0 15px rgba(234, 179, 8, 0.6);
+    .tree-circle-bg.visiting {
+      fill: #fef08a; /* yellow-200 */
+      stroke: #ca8a04; /* yellow-600 */
+      filter: drop-shadow(0 0 8px rgba(234, 179, 8, 0.7));
     }
-    .tree-circle-node.pre-op {
-      background-color: #fed7aa; /* orange-200 */
-      border: 2.5px solid #ea580c; /* orange-600 */
-      color: #7c2d12; /* orange-900 */
-      transform: translate(-50%, -50%) scale(1.12);
-      box-shadow: 0 0 15px rgba(249, 115, 22, 0.6);
+    
+    .tree-circle-bg.pre-op {
+      fill: #fed7aa; /* orange-200 */
+      stroke: #ea580c; /* orange-600 */
+      filter: drop-shadow(0 0 8px rgba(249, 115, 22, 0.7));
     }
-    .tree-circle-node.found {
-      background-color: #4ade80; /* green-400 */
-      border: 2.5px solid #16a34a; /* green-600 */
-      color: #ffffff;
-      transform: translate(-50%, -50%) scale(1.18);
-      box-shadow: 0 0 20px rgba(34, 197, 94, 0.7);
+    
+    .tree-circle-bg.found {
+      fill: #4ade80; /* green-400 */
+      stroke: #16a34a; /* green-600 */
+      filter: drop-shadow(0 0 10px rgba(34, 197, 94, 0.8));
     }
-    .tree-circle-node.deleting {
-      background-color: #fca5a5; /* red-300 */
-      border: 2.5px solid #dc2626; /* red-600 */
-      color: #7f1d1d; /* red-900 */
-      transform: translate(-50%, -50%) scale(0.85);
-      opacity: 0.7;
+    
+    .tree-circle-bg.deleting {
+      fill: #fca5a5; /* red-300 */
+      stroke: #dc2626; /* red-600 */
+      opacity: 0.8;
     }
+
+    .tree-circle-text {
+      font-size: 14px;
+      font-weight: 700;
+      text-anchor: middle;
+      dominant-baseline: central;
+      user-select: none;
+    }
+    .tree-circle-text.default { fill: #385723; }
+    .tree-circle-text.visiting { fill: #854d0e; }
+    .tree-circle-text.pre-op { fill: #7c2d12; }
+    .tree-circle-text.found { fill: #ffffff; }
+    .tree-circle-text.deleting { fill: #7f1d1d; }
 
     @keyframes flow-descent {
-      to {
-        stroke-dashoffset: -20;
-      }
+      to { stroke-dashoffset: -20; }
     }
     @keyframes flow-ascent {
-      to {
-        stroke-dashoffset: 20;
-      }
+      to { stroke-dashoffset: 20; }
     }
     
     .traversal-descent-line {
-      stroke: #22c55e; /* vibrant green */
+      stroke: #22c55e;
       stroke-width: 4;
       stroke-dasharray: 6, 4;
       stroke-linecap: round;
       animation: flow-descent 0.5s linear infinite;
       filter: drop-shadow(0 0 6px rgba(34, 197, 94, 0.8));
-      opacity: 0.95;
     }
     
     .traversal-ascent-line {
-      stroke: #ef4444; /* vibrant red */
+      stroke: #ef4444;
       stroke-width: 4;
       stroke-dasharray: 6, 4;
       stroke-linecap: round;
       animation: flow-ascent 0.5s linear infinite;
       filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.8));
-      opacity: 0.95;
+    }
+
+    /* Interactive Playback Panel */
+    .playback-controls-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      margin-top: 1rem;
+      padding: 0.75rem;
+      background-color: var(--bg-dark-800);
+      border: 1px solid var(--border-gray-700);
+      border-radius: 0.375rem;
+    }
+
+    .btn-icon {
+      background-color: var(--bg-dark-700);
+      color: white;
+      border: 1px solid var(--border-gray-600);
+      padding: 0.5rem;
+      border-radius: 0.25rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .btn-icon:hover:not(:disabled) {
+      background-color: var(--bg-dark-600);
+      border-color: var(--cyan-400);
+    }
+    .btn-icon:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .playback-tracker {
+      font-size: 0.85rem;
+      color: var(--text-gray-300);
+      min-width: 6.5rem;
+      text-align: center;
+      font-family: monospace;
+    }
+
+    .scrub-timeline-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      margin-top: 0.75rem;
+    }
+    .scrub-timeline {
+      width: 100%;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      background: var(--bg-dark-950);
+      border-radius: 3px;
+      outline: none;
+      cursor: pointer;
+    }
+    .scrub-timeline::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      background: var(--cyan-400);
+      border-radius: 50%;
+    }
+
+    /* Diagnostics Dashboard */
+    .diagnostics-bar {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+    .diagnostic-card {
+      background-color: var(--bg-dark-950);
+      border: 1px solid var(--border-gray-700);
+      border-radius: 0.375rem;
+      padding: 0.6rem;
+      text-align: center;
+    }
+    .diagnostic-label {
+      font-size: 0.7rem;
+      color: var(--text-gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .diagnostic-value {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--cyan-400);
+      font-family: monospace;
+    }
+
+    /* Exact Complexity Grid verbatim image_0c0bc2.png */
+    .image-complexity-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+      margin-top: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    @media (min-width: 640px) {
+      .image-complexity-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (min-width: 1024px) {
+      .image-complexity-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+    .image-complexity-card {
+      background-color: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 0.5rem;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 110px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    .image-card-header {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: #9ca3af;
+      text-transform: uppercase;
+    }
+    .image-card-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-top: 0.25rem;
+      margin-bottom: 0.5rem;
+    }
+    .image-card-complexity {
+      font-family: monospace;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #38bdf8;
     }
 
     .lower-content-area {
@@ -841,10 +982,10 @@ void postorder(Node root) {
 const LINE_MAPS = {
   bst: {
     insert: {
-      python: { check_null: 2, recurse_left: 5, recurse_right: 7 },
+      python: { check_null: 2, recurse_left: 4, recurse_right: 6 },
       c: { check_null: 2, recurse_left: 4, recurse_right: 6 },
       cpp: { check_null: 2, recurse_left: 4, recurse_right: 6 },
-      java: { check_null: 2, recurse_left: 7, recurse_right: 9 }
+      java: { check_null: 2, recurse_left: 6, recurse_right: 8 }
     },
     search: {
       python: { check_target: 2, recurse_left: 4, recurse_right: 5 },
@@ -861,22 +1002,22 @@ const LINE_MAPS = {
   },
   bt: {
     insert: {
-      python: { check_null: 3, loop_cond: 7, recurse_left: 9, recurse_right: 14 },
+      python: { check_null: 4, loop_cond: 8, recurse_left: 10, recurse_right: 15 },
       c: { check_null: 5, loop_cond: 6, recurse_left: 8, recurse_right: 10 },
       cpp: { check_null: 4, loop_cond: 5, recurse_left: 7, recurse_right: 9 },
       java: { check_null: 4, loop_cond: 5, recurse_left: 7, recurse_right: 9 }
     },
     search: {
-      python: { check_target: 3, recurse_left: 5, recurse_right: 8 },
+      python: { check_target: 4, recurse_left: 6, recurse_right: 9 },
       c: { check_target: 2, recurse_left: 4, recurse_right: 6 },
       cpp: { check_target: 2, recurse_left: 4, recurse_right: 6 },
       java: { check_target: 2, recurse_left: 4, recurse_right: 6 }
     },
     delete: {
-      python: { check_null: 2, recurse_left: 4, recurse_right: 5 },
-      c: { check_null: 2, recurse_left: 4, recurse_right: 5 },
-      cpp: { check_null: 2, recurse_left: 4, recurse_right: 5 },
-      java: { check_null: 2, recurse_left: 4, recurse_right: 5 }
+      python: { check_null: 3, recurse_left: 5, recurse_right: 5 },
+      c: { check_null: 3, recurse_left: 5, recurse_right: 5 },
+      cpp: { check_null: 3, recurse_left: 5, recurse_right: 5 },
+      java: { check_null: 3, recurse_left: 5, recurse_right: 5 }
     }
   },
   inorder: {
@@ -899,756 +1040,769 @@ const LINE_MAPS = {
   }
 };
 
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const cloneTree = (node) => {
+  if (!node) return null;
+  return {
+    id: node.id,
+    value: node.value,
+    state: node.state,
+    left: cloneTree(node.left),
+    right: cloneTree(node.right)
+  };
+};
+
+const assignTreeCoords = (node, x, y, dx, nodesAccumulator, edgesAccumulator) => {
+  if (!node) return;
+  node.x = x;
+  node.y = y;
+  nodesAccumulator.push(node);
+
+  if (node.left) {
+    edgesAccumulator.push({ from: node, to: node.left });
+    assignTreeCoords(node.left, x - dx, y + 80, dx * 0.46, nodesAccumulator, edgesAccumulator);
+  }
+  if (node.right) {
+    edgesAccumulator.push({ from: node, to: node.right });
+    assignTreeCoords(node.right, x + dx, y + 80, dx * 0.46, nodesAccumulator, edgesAccumulator);
+  }
+};
+
+const getTreeDepth = (node) => {
+  if (!node) return 0;
+  return 1 + Math.max(getTreeDepth(node.left), getTreeDepth(node.right));
+};
 
 export default function BST() {
   const [tree, setTree] = useState(null);
   const [value, setValue] = useState("");
   
-  const [isBST, setIsBST] = useState(false); // Default is General Binary Tree
-  const [language, setLanguage] = useState("c");
-  const [speed, setSpeed] = useState(500);
-  const [status, setStatus] = useState("Tree is empty. Insert a node to begin.");
-  const [executionLog, setExecutionLog] = useState([]);
-  const [highlightLineNum, setHighlightLineNum] = useState(-1);
-  const [activeConcept, setActiveConcept] = useState("insert"); 
-  
-  const [callStackEdges, setCallStackEdges] = useState([]); // Array of active green descent segments [{fromId, toId}]
-  const [backtrackEdge, setBacktrackEdge] = useState(null); // Active red backtrack segment {fromId, toId}
-  
-  const [isVisualizing, setIsVisualizing] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
+  const [isBST, setIsBST] = useState(true); // Default mode set to BST Rules
+  const [language, setLanguage] = useState("python");
+  const [speed, setSpeed] = useState(600);
+  const [status, setStatus] = useState("Tree is empty. Insert a node or generate a random set.");
+  const [randomSize, setRandomSize] = useState(6);
   const [error, setError] = useState(null);
 
-  const pausedRef = useRef(false);
-  const isCancelledRef = useRef(false);
+  // High-Fidelity Time-Machine Playback Engine State Variables
+  const [steps, setSteps] = useState([]);
+  const [currentStepIdx, setCurrentStepIdx] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [activeConcept, setActiveConcept] = useState("insert");
+
+  const timerRef = useRef(null);
   const logContainerRef = useRef(null);
+
+  useEffect(() => {
+    return () => clearInterval(timerRef.current);
+  }, []);
+
+  useEffect(() => {
+    if (isPlaying) {
+      clearInterval(timerRef.current);
+      timerRef.current = setInterval(() => {
+        setCurrentStepIdx((prevIdx) => {
+          if (prevIdx >= steps.length - 1) {
+            setIsPlaying(false);
+            return prevIdx;
+          }
+          return prevIdx + 1;
+        });
+      }, speed);
+    } else {
+      clearInterval(timerRef.current);
+    }
+  }, [isPlaying, steps, speed]);
 
   useEffect(() => {
     if (logContainerRef.current) {
       logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
     }
-  }, [executionLog]);
+  }, [currentStepIdx, steps]);
+
+  useEffect(() => {
+    handleRandomGenerator(6); // Balanced initial structure
+  }, [isBST]);
 
   const getLayoutElements = (root) => {
     const nodesList = [];
     const edgesList = [];
-
-    const assignCoords = (node, x, y, dx) => {
-      if (!node) return;
-      node.x = x;
-      node.y = y;
-      nodesList.push(node);
-
-      if (node.left) {
-        edgesList.push({ from: node, to: node.left });
-        assignCoords(node.left, x - dx, y + 75, dx * 0.48);
-      }
-      if (node.right) {
-        edgesList.push({ from: node, to: node.right });
-        assignCoords(node.right, x + dx, y + 75, dx * 0.48);
-      }
-    };
-
-    assignCoords(root, 50, 45, 24);
-    return { nodesList, edgesList };
+    assignTreeCoords(root, 400, 50, 180, nodesList, edgesList);
+    const depth = getTreeDepth(root);
+    return { nodesList, edgesList, depth };
   };
 
-  const resetAllStates = (node) => {
-    if (!node) return null;
-    return {
-      ...node,
-      state: 'default',
-      left: resetAllStates(node.left),
-      right: resetAllStates(node.right)
-    };
-  };
-
-  const updateNodeByValue = (node, targetValue, newState) => {
-    if (!node) return null;
-    let newNode = { ...node };
-    if (node.value === targetValue) {
-      newNode.state = newState;
-    }
-    newNode.left = updateNodeByValue(node.left, targetValue, newState);
-    newNode.right = updateNodeByValue(node.right, targetValue, newState);
-    return newNode;
-  };
-
-  const getVal = () => {
+  const getCleanVal = () => {
     const num = parseInt(value);
     if (isNaN(num)) {
-      setError("Please enter a valid number for 'Value'.");
+      setError("Please enter a valid, non-empty integer value.");
       return null;
     }
     return num;
   };
 
-  const checkPause = async () => {
-    while (pausedRef.current && !isCancelledRef.current) {
-      setStatus("Paused. Press Resume to continue.");
-      await sleep(100);
-    }
-  };
+  const runTreePrecomputation = (initialTree, algorithmType, parameters = {}) => {
+    const localSteps = [];
+    const localLogs = ["Compiling traversal step sequence...", "Initial state loaded."];
+    let tempTree = cloneTree(initialTree);
 
-  const cleanup = () => {
-    setIsVisualizing(false);
-    setValue("");
-    setTimeout(() => {
-      if (!isCancelledRef.current) {
-        setTree(prev => resetAllStates(prev));
-        setStatus("Ready.");
-        setHighlightLineNum(-1);
-        setCallStackEdges([]); 
-        setBacktrackEdge(null); 
+    let visitsCounter = 0;
+    let maxStackDepth = 0;
+    let pathTrace = []; // Accumulates traversed sequence nodes live!
+
+    const pushStep = (currentTreeState, statusText, stepLineKey, activeEdges = [], backtrack = null) => {
+      localSteps.push({
+        tree: cloneTree(currentTreeState),
+        status: statusText,
+        logs: [...localLogs],
+        lineKey: stepLineKey,
+        callStackEdges: [...activeEdges],
+        backtrackEdge: backtrack ? { ...backtrack } : null,
+        visits: visitsCounter,
+        stackDepth: maxStackDepth,
+        printedPath: [...pathTrace] // Snapshots printed nodes up to this step!
+      });
+    };
+
+    const updateStateByValue = (node, targetValue, stateName) => {
+      if (!node) return null;
+      let nodeRef = { ...node };
+      if (node.value === targetValue) {
+        nodeRef.state = stateName;
       }
-    }, speed * 2);
-  };
+      nodeRef.left = updateStateByValue(node.left, targetValue, stateName);
+      nodeRef.right = updateStateByValue(node.right, targetValue, stateName);
+      return nodeRef;
+    };
 
-  const highlightLine = (concept, key) => {
-    if (concept === "inorder" || concept === "preorder" || concept === "postorder") {
-      if (LINE_MAPS[concept] && LINE_MAPS[concept][language]) {
-        setHighlightLineNum(LINE_MAPS[concept][language][key] ?? -1);
-      }
-    } else {
-      const modeKey = isBST ? "bst" : "bt";
-      if (LINE_MAPS[modeKey] && LINE_MAPS[modeKey][concept] && LINE_MAPS[modeKey][concept][language]) {
-        setHighlightLineNum(LINE_MAPS[modeKey][concept][language][key] ?? -1);
-      } else {
-        setHighlightLineNum(-1);
-      }
-    }
-  };
-
-  const handleInsert = async () => {
-    const val = getVal();
-    if (val === null) return;
-    
-    setError(null);
-    setIsVisualizing(true);
-    setActiveConcept("insert");
-    setExecutionLog(prev => [...prev, `[Insert] Requesting insert of: ${val}`]);
-    
-    // Fallback to random ID generation if crypto.randomUUID is not supported in the sandbox
-    const uniqueId = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') 
-      ? crypto.randomUUID() 
-      : Math.random().toString(36).substring(2, 9);
-
-    const newNode = { value: val, id: uniqueId, left: null, right: null, state: 'found' };
-    
-    if (tree === null) {
-      highlightLine("insert", "check_null");
-      setStatus(`Inserting ${val} as root.`);
-      await sleep(speed);
-      setTree(newNode);
-      setExecutionLog(prev => [...prev, `[Success] ${val} inserted as root node.`]);
-      cleanup();
-      return;
-    }
-
-    if (isBST) {
-      // --- Standard BST Sorted Insertion ---
-      let current = tree;
-      let parent = null;
-      let found = false;
-
-      while (current) {
-        if (isCancelledRef.current) return cleanup();
-        await checkPause();
-        
-        const currentValue = current.value;
-        highlightLine("insert", "check_null");
-        setStatus(`Checking node ${currentValue}...`);
-        setTree(prev => updateNodeByValue(prev, currentValue, 'visiting'));
-        await sleep(speed);
-
-        if (currentValue === val) {
-          setStatus(`Value ${val} already exists in the BST.`);
-          setTree(prev => updateNodeByValue(prev, currentValue, 'found'));
-          setExecutionLog(prev => [...prev, `[Duplicate] ${val} already exists. Aborted insert.`]);
-          found = true;
-          break;
-        }
-        
-        parent = current;
-        setTree(prev => updateNodeByValue(prev, currentValue, 'default'));
-        
-        if (val < currentValue) {
-          highlightLine("insert", "recurse_left");
-          current = current.left;
-        } else {
-          highlightLine("insert", "recurse_right");
-          current = current.right;
-        }
-      }
-      
-      if (found) return cleanup();
-      if (isCancelledRef.current) return cleanup();
-
-      setStatus(`Inserting ${val} as child of node ${parent.value}.`);
-      setTree(prev => updateNodeByValue(prev, parent.value, 'pre-op'));
-      await sleep(speed);
-
-      const insertNodeBST = (node) => {
-        if (!node) return null;
-        if (node.id === parent.id) {
-          let newNodeWithChild = { ...node, state: 'default' };
-          if (val < parent.value) {
-            newNodeWithChild.left = newNode;
-          } else {
-            newNodeWithChild.right = newNode;
-          }
-          return newNodeWithChild;
-        }
-        let newNodeCopy = { ...node };
-        if (val < node.value) {
-          newNodeCopy.left = insertNodeBST(node.left);
-        } else {
-          newNodeCopy.right = insertNodeBST(node.right);
-        }
-        return newNodeCopy;
+    const resetStates = (node) => {
+      if (!node) return null;
+      return {
+        ...node,
+        state: 'default',
+        left: resetStates(node.left),
+        right: resetStates(node.right)
       };
-      
-      setTree(prev => insertNodeBST(prev));
-      setExecutionLog(prev => [...prev, `[Success] Connected child ${val} under parent ${parent.value}.`]);
-    } else {
-      // --- General Complete Binary Tree (Level-Order) Insertion ---
-      let parentTarget = null;
-      let attachSide = 'left';
-      let queue = [tree];
-      
-      highlightLine("insert", "loop_cond");
-      setStatus("Analyzing Complete Binary Tree level-by-level using Breadth-First search...");
-      await sleep(speed);
+    };
 
-      while (queue.length > 0) {
-        if (isCancelledRef.current) return cleanup();
-        await checkPause();
+    const targetVal = parameters.value;
 
-        let current = queue.shift();
-        setTree(prev => updateNodeByValue(prev, current.value, 'visiting'));
-        setStatus(`Checking left & right spots on node ${current.value}...`);
-        await sleep(speed);
+    if (algorithmType === "insert") {
+      const uniqueId = Math.random().toString(36).substring(2, 9);
+      const newNode = { value: targetVal, id: uniqueId, left: null, right: null, state: 'found' };
 
-        if (!current.left) {
-          highlightLine("insert", "recurse_left");
-          parentTarget = current;
-          attachSide = 'left';
-          break;
-        } else {
-          queue.push(current.left);
+      if (!tempTree) {
+        tempTree = newNode;
+        localLogs.push(`Node value ${targetVal} initialized as structural tree root.`);
+        pushStep(tempTree, `Inserting ${targetVal} as Root...`, "check_null");
+      } 
+      else if (isBST) {
+        let current = tempTree;
+        let parent = null;
+        let isDuplicate = false;
+
+        while (current) {
+          visitsCounter++;
+          const currentValue = current.value;
+          tempTree = updateStateByValue(tempTree, currentValue, 'visiting');
+          localLogs.push(`Inspecting node ${currentValue} inside BST range.`);
+          pushStep(tempTree, `Checking Node value ${currentValue}...`, "check_null");
+
+          if (currentValue === targetVal) {
+            isDuplicate = true;
+            tempTree = updateStateByValue(tempTree, currentValue, 'found');
+            localLogs.push(`Duplicate BST value ${targetVal} detected. Halting.`);
+            pushStep(tempTree, `Duplicate BST Value detected! Aborted.`, "check_null");
+            break;
+          }
+
+          parent = current;
+          tempTree = updateStateByValue(tempTree, currentValue, 'default');
+
+          if (targetVal < currentValue) {
+            current = current.left;
+            pushStep(tempTree, `Descending recursively to Left Subtree...`, "recurse_left");
+          } else {
+            current = current.right;
+            pushStep(tempTree, `Descending recursively to Right Subtree...`, "recurse_right");
+          }
         }
 
-        if (!current.right) {
-          highlightLine("insert", "recurse_right");
-          parentTarget = current;
-          attachSide = 'right';
-          break;
-        } else {
-          queue.push(current.right);
+        if (!isDuplicate) {
+          tempTree = updateStateByValue(tempTree, parent.value, 'pre-op');
+          localLogs.push(`Connected element ${targetVal} under parent ${parent.value}.`);
+          pushStep(tempTree, `Connecting child ${targetVal}...`, "check_null");
+
+          const insertBSTNode = (node) => {
+            if (!node) return null;
+            if (node.id === parent.id) {
+              const withChild = { ...node, state: 'default' };
+              if (targetVal < parent.value) withChild.left = newNode;
+              else withChild.right = newNode;
+              return withChild;
+            }
+            return {
+              ...node,
+              left: insertBSTNode(node.left),
+              right: insertBSTNode(node.right)
+            };
+          };
+
+          tempTree = insertBSTNode(tempTree);
+          tempTree = resetStates(tempTree);
+          pushStep(tempTree, `Successfully placed ${targetVal}.`, "check_null");
+        }
+      } 
+      else {
+        // General Complete Binary Tree Insertion (Level-Order BFS)
+        let parentTarget = null;
+        let attachSide = 'left';
+        let queue = [tempTree];
+
+        localLogs.push("Searching for level-order vacancy inside complete tree...");
+        pushStep(tempTree, "Starting Complete BT level-order traversal...", "loop_cond");
+
+        while (queue.length > 0) {
+          visitsCounter++;
+          let current = queue.shift();
+          tempTree = updateStateByValue(tempTree, current.value, 'visiting');
+          pushStep(tempTree, `Inspecting node vacancies on node ${current.value}...`, "loop_cond");
+
+          if (!current.left) {
+            parentTarget = current;
+            attachSide = 'left';
+            break;
+          } else {
+            queue.push(current.left);
+          }
+
+          if (!current.right) {
+            parentTarget = current;
+            attachSide = 'right';
+            break;
+          } else {
+            queue.push(current.right);
+          }
+
+          tempTree = updateStateByValue(tempTree, current.value, 'default');
         }
 
-        setTree(prev => updateNodeByValue(prev, current.value, 'default'));
-      }
+        tempTree = updateStateByValue(tempTree, parentTarget.value, 'pre-op');
+        pushStep(tempTree, `Vacancy identified at ${parentTarget.value}'s ${attachSide}.`, "loop_cond");
 
-      if (isCancelledRef.current) return cleanup();
-
-      setStatus(`Found next empty spot! Attaching ${val} as ${attachSide} child of ${parentTarget.value}.`);
-      setTree(prev => updateNodeByValue(prev, parentTarget.value, 'pre-op'));
-      await sleep(speed);
-
-      const insertNodeBT = (node) => {
-        if (!node) return null;
-        if (node.id === parentTarget.id) {
-          let updatedParent = { ...node, state: 'default' };
-          if (attachSide === 'left') updatedParent.left = newNode;
-          else updatedParent.right = newNode;
-          return updatedParent;
-        }
-        return {
-          ...node,
-          left: insertNodeBT(node.left),
-          right: insertNodeBT(node.right)
+        const insertBTNode = (node) => {
+          if (!node) return null;
+          if (node.id === parentTarget.id) {
+            const updatedParent = { ...node, state: 'default' };
+            if (attachSide === 'left') updatedParent.left = newNode;
+            else updatedParent.right = newNode;
+            return updatedParent;
+          }
+          return {
+            ...node,
+            left: insertBTNode(node.left),
+            right: insertBTNode(node.right)
+          };
         };
-      };
 
-      setTree(prev => insertNodeBT(prev));
-      setExecutionLog(prev => [...prev, `[Success] Connected child ${val} to level-order parent ${parentTarget.value}.`]);
-    }
-    
-    cleanup();
-  };
+        tempTree = insertBTNode(tempTree);
+        tempTree = resetStates(tempTree);
+        localLogs.push(`Connected element ${targetVal} level-by-level.`);
+        pushStep(tempTree, `Placement completed successfully!`, "loop_cond");
+      }
+    } 
+    else if (algorithmType === "search") {
+      let callStackList = [];
 
-  const handleSearch = async () => {
-    const val = getVal();
-    if (val === null) return;
-    
-    setError(null);
-    setIsVisualizing(true);
-    setActiveConcept("search");
-    setCallStackEdges([]);
-    setBacktrackEdge(null);
-    
-    if (isBST) {
-      // --- BST Ordered Fast Search ---
-      setExecutionLog(prev => [...prev, `--- Initiating Sorted BST Search for: ${val} ---`]);
-      
-      const pushStackSegment = (fromId, toId) => {
-        setCallStackEdges(prev => [...prev, { from: fromId, to: toId }]);
-      };
-
-      const popStackSegment = (fromId, toId) => {
-        setCallStackEdges(prev => prev.filter(e => !(e.from === fromId && e.to === toId)));
-        setBacktrackEdge({ from: toId, to: fromId });
-      };
-
-      const searchBSTRecursive = async (node, parentId = null) => {
-        if (isCancelledRef.current) return null;
-        await checkPause();
+      const searchBSTRecursive = (node, parentId = null) => {
+        if (!node) return;
+        visitsCounter++;
+        maxStackDepth = Math.max(maxStackDepth, callStackList.length + 1);
 
         if (parentId) {
-          pushStackSegment(parentId, node.id);
-          setStatus(`Recursive descent call: searching node ${node.value} for target ${val}.`);
-          await sleep(speed);
+          callStackList.push({ from: parentId, to: node.id });
         }
 
-        highlightLine("search", "check_target");
-        setStatus(`Checking if node ${node.value} matches target ${val}...`);
-        setTree(prev => updateNodeByValue(prev, node.value, 'visiting'));
-        await sleep(speed);
+        tempTree = updateStateByValue(tempTree, node.value, 'visiting');
+        localLogs.push(`Stack frame: searching Node ${node.value} for value ${targetVal}.`);
+        pushStep(tempTree, `Inspecting node ${node.value}...`, "check_target", callStackList);
 
-        if (node.value === val) {
-          setStatus(`Target ${val} found!`);
-          setTree(prev => updateNodeByValue(prev, node.value, 'found'));
-          setExecutionLog(prev => [...prev, `[Success] Target ${val} found successfully.`]);
-          await sleep(speed * 1.5);
+        if (node.value === targetVal) {
+          tempTree = updateStateByValue(tempTree, node.value, 'found');
+          localLogs.push(`Successfully found match: ${node.value}.`);
+          pushStep(tempTree, `Target element ${targetVal} found!`, "check_target", callStackList);
           
           if (parentId) {
-            popStackSegment(parentId, node.id);
-            setStatus(`Returning true up the stack. (Call Stack Unwinding)`);
-            await sleep(speed);
-            setBacktrackEdge(null);
+            callStackList.pop();
           }
-          return node;
+          return true;
         }
 
-        setTree(prev => updateNodeByValue(prev, node.value, 'default'));
+        tempTree = updateStateByValue(tempTree, node.value, 'default');
 
-        let foundResult = null;
-        if (val < node.value) {
-          highlightLine("search", "recurse_left");
+        let found = false;
+        if (targetVal < node.value) {
           if (node.left) {
-            foundResult = await searchBSTRecursive(node.left, node.id);
+            found = searchBSTRecursive(node.left, node.id);
           } else {
-            setStatus(`No left child. Node ${node.value} is greater than ${val}, target not found.`);
-            await sleep(speed);
+            localLogs.push(`No left branch present under node ${node.value}.`);
+            pushStep(tempTree, `Value ${targetVal} is smaller, but left branch is null.`, "recurse_left", callStackList);
           }
         } else {
-          highlightLine("search", "recurse_right");
           if (node.right) {
-            foundResult = await searchBSTRecursive(node.right, node.id);
+            found = searchBSTRecursive(node.right, node.id);
           } else {
-            setStatus(`No right child. Node ${node.value} is smaller than ${val}, target not found.`);
-            await sleep(speed);
+            localLogs.push(`No right branch present under node ${node.value}.`);
+            pushStep(tempTree, `Value ${targetVal} is larger, but right branch is null.`, "recurse_right", callStackList);
           }
         }
-
-        if (parentId && !isCancelledRef.current) {
-          popStackSegment(parentId, node.id);
-          setStatus(`Returning from recursive search frame of node ${node.value}. (Call Stack Unwinding)`);
-          await sleep(speed);
-          setBacktrackEdge(null);
-        }
-
-        return foundResult;
-      };
-
-      const searchResult = await searchBSTRecursive(tree);
-      if (!searchResult && !isCancelledRef.current) {
-        setStatus(`Recursive search complete. Target value ${val} is not present in the tree.`);
-        setExecutionLog(prev => [...prev, `[Search Failed] Target ${val} not found.`]);
-      }
-    } else {
-      // --- General Binary Tree Full DFS Search ---
-      setExecutionLog(prev => [...prev, `--- Initiating General BT Search (Unsorted DFS search) for: ${val} ---`]);
-      
-      const pushStackSegment = (fromId, toId) => {
-        setCallStackEdges(prev => [...prev, { from: fromId, to: toId }]);
-      };
-
-      const popStackSegment = (fromId, toId) => {
-        setCallStackEdges(prev => prev.filter(e => !(e.from === fromId && e.to === toId)));
-        setBacktrackEdge({ from: toId, to: fromId });
-      };
-
-      const searchBTRecursive = async (node, parentId = null) => {
-        if (!node || isCancelledRef.current) return null;
-        await checkPause();
 
         if (parentId) {
-          pushStackSegment(parentId, node.id);
-          setStatus(`Recursive descent call: visiting node ${node.value}.`);
-          await sleep(speed);
+          const popped = callStackList.pop();
+          pushStep(tempTree, `Backtracking from frame node ${node.value}...`, "check_target", callStackList, popped);
+        }
+        return found;
+      };
+
+      const searchBTRecursive = (node, parentId = null) => {
+        if (!node) return false;
+        visitsCounter++;
+        maxStackDepth = Math.max(maxStackDepth, callStackList.length + 1);
+
+        if (parentId) {
+          callStackList.push({ from: parentId, to: node.id });
         }
 
-        highlightLine("search", "check_target");
-        setStatus(`Checking if node ${node.value} matches target ${val}...`);
-        setTree(prev => updateNodeByValue(prev, node.value, 'visiting'));
-        await sleep(speed);
+        tempTree = updateStateByValue(tempTree, node.value, 'visiting');
+        localLogs.push(`Recursion search step on node ${node.value}.`);
+        pushStep(tempTree, `Inspecting node ${node.value}...`, "check_target", callStackList);
 
-        if (node.value === val) {
-          setStatus(`Target ${val} found!`);
-          setTree(prev => updateNodeByValue(prev, node.value, 'found'));
-          setExecutionLog(prev => [...prev, `[Success] Target ${val} found successfully.`]);
-          await sleep(speed * 1.5);
+        if (node.value === targetVal) {
+          tempTree = updateStateByValue(tempTree, node.value, 'found');
+          localLogs.push(`Target ${targetVal} found!`);
+          pushStep(tempTree, `Target element ${targetVal} found!`, "check_target", callStackList);
           
           if (parentId) {
-            popStackSegment(parentId, node.id);
-            setStatus(`Unwinding: Target found, returning match upwards.`);
-            await sleep(speed);
-            setBacktrackEdge(null);
+            callStackList.pop();
           }
-          return node;
+          return true;
         }
 
-        setTree(prev => updateNodeByValue(prev, node.value, 'default'));
+        tempTree = updateStateByValue(tempTree, node.value, 'default');
 
-        // Recurse Left
-        highlightLine("search", "recurse_left");
-        let foundLeft = null;
+        // Look left
+        let foundLeft = false;
         if (node.left) {
-          foundLeft = await searchBTRecursive(node.left, node.id);
+          localLogs.push(`Traversing Left Subtree for key ${targetVal}.`);
+          pushStep(tempTree, `Searching left branch...`, "recurse_left", callStackList);
+          foundLeft = searchBTRecursive(node.left, node.id);
         }
 
         if (foundLeft) {
           if (parentId) {
-            popStackSegment(parentId, node.id);
-            setStatus(`Unwinding: Node found in left subtree, propagating result up.`);
-            await sleep(speed);
-            setBacktrackEdge(null);
+            const popped = callStackList.pop();
+            pushStep(tempTree, `Propagating search success frame up...`, "check_target", callStackList, popped);
           }
-          return foundLeft;
+          return true;
         }
 
-        // Recurse Right (if left didn't find it)
-        highlightLine("search", "recurse_right");
-        let foundRight = null;
+        // Look right
+        let foundRight = false;
         if (node.right) {
-          setStatus(`Target not in left subtree of ${node.value}. Searching right subtree...`);
-          await sleep(speed);
-          foundRight = await searchBTRecursive(node.right, node.id);
+          localLogs.push(`Traversing Right Subtree for key ${targetVal}.`);
+          pushStep(tempTree, `Searching right branch...`, "recurse_right", callStackList);
+          foundRight = searchBTRecursive(node.right, node.id);
         }
 
-        if (parentId && !isCancelledRef.current) {
-          popStackSegment(parentId, node.id);
-          setStatus(`Returning up stack from node ${node.value}.`);
-          await sleep(speed);
-          setBacktrackEdge(null);
+        if (parentId) {
+          const popped = callStackList.pop();
+          pushStep(tempTree, `Backtracking up search stack...`, "check_target", callStackList, popped);
         }
 
         return foundRight;
       };
 
-      const searchResult = await searchBTRecursive(tree);
-      if (!searchResult && !isCancelledRef.current) {
-        setStatus(`Recursive search complete. Target value ${val} is not present in the tree.`);
-        setExecutionLog(prev => [...prev, `[Search Failed] Target ${val} not found.`]);
+      const result = isBST ? searchBSTRecursive(tempTree) : searchBTRecursive(tempTree);
+      if (!result) {
+        tempTree = resetStates(tempTree);
+        localLogs.push(`Target key ${targetVal} not found in structure.`);
+        pushStep(tempTree, "Value is not present in the tree.", "check_target");
       }
-    }
-    
-    cleanup();
-  };
+    } 
+    else if (algorithmType === "delete") {
+      if (isBST) {
+        const findMinNode = (node) => {
+          let curr = node;
+          while (curr && curr.left) curr = curr.left;
+          return curr;
+        };
 
-  const handleDelete = async () => {
-    const val = getVal();
-    if (val === null) return;
-    
-    setError(null);
-    setIsVisualizing(true);
-    setActiveConcept("delete");
-    setExecutionLog(prev => [...prev, `[Delete] Requesting deletion of: ${val}`]);
-    
-    if (isBST) {
-      // --- BST Ordered Deletion ---
-      const findMin = (node) => {
-        let current = node;
-        while (current && current.left) {
-          current = current.left;
-        }
-        return current;
-      };
-
-      const deleteRecursiveBST = async (node, value) => {
-        if (isCancelledRef.current) return node;
-        if (!node) {
-          setStatus(`Value ${value} not found.`);
-          return null;
-        }
-        
-        await checkPause();
-        highlightLine("delete", "check_null");
-        setStatus(`Searching for ${value}... checking node ${node.value}`);
-        setTree(prev => updateNodeByValue(prev, node.value, 'visiting'));
-        await sleep(speed);
-
-        if (value < node.value) {
-          highlightLine("delete", "recurse_left");
-          setTree(prev => updateNodeByValue(prev, node.value, 'default'));
-          const newLeft = await deleteRecursiveBST(node.left, value);
-          return { ...node, left: newLeft };
-        } else if (value > node.value) {
-          highlightLine("delete", "recurse_right");
-          setTree(prev => updateNodeByValue(prev, node.value, 'default'));
-          const newRight = await deleteRecursiveBST(node.right, value);
-          return { ...node, right: newRight };
-        } else {
-          setStatus(`Found node ${value}. Preparing delete process.`);
-          setTree(prev => updateNodeByValue(prev, node.value, 'deleting'));
-          await sleep(speed);
-
-          if (!node.left && !node.right) {
-            highlightLine("delete", "leaf");
-            setStatus(`Node ${value} is a leaf node. Freeing space.`);
-            await sleep(speed);
-            setExecutionLog(prev => [...prev, `[Delete] Removed leaf node ${value}.`]);
+        const deleteRecursiveBST = (node, delValue) => {
+          if (!node) {
+            localLogs.push(`Target value ${delValue} not present.`);
             return null;
           }
-          
-          if (!node.left) {
-            highlightLine("delete", "one_child");
-            setStatus(`Node ${value} has 1 right child. Rewiring child node up.`);
-            await sleep(speed);
-            setExecutionLog(prev => [...prev, `[Delete] Removed node ${value}, promoted right child.`]);
-            return node.right;
+          visitsCounter++;
+
+          tempTree = updateStateByValue(tempTree, node.value, 'visiting');
+          localLogs.push(`Searching deletion site: comparing key on node ${node.value}.`);
+          pushStep(tempTree, `Searching BST deletion target: checking ${node.value}...`, "check_null");
+
+          if (delValue < node.value) {
+            tempTree = updateStateByValue(tempTree, node.value, 'default');
+            node.left = deleteRecursiveBST(node.left, delValue);
+            return { ...node };
+          } 
+          else if (delValue > node.value) {
+            tempTree = updateStateByValue(tempTree, node.value, 'default');
+            node.right = deleteRecursiveBST(node.right, delValue);
+            return { ...node };
+          } 
+          else {
+            tempTree = updateStateByValue(tempTree, node.value, 'deleting');
+            localLogs.push(`Target node found. Standard BST deletion triggered.`);
+            pushStep(tempTree, `Identified delete target ${node.value}.`, "leaf");
+
+            // Leaf node case
+            if (!node.left && !node.right) {
+              localLogs.push("Leaf node pruned.");
+              pushStep(tempTree, "Target is a leaf. Removing and pruning node.", "leaf");
+              return null;
+            }
+
+            // Single child cases
+            if (!node.left) {
+              localLogs.push(`Promoted right child ${node.right.value}.`);
+              pushStep(tempTree, "Only has right child. Promoting right branch...", "one_child");
+              return node.right;
+            }
+            if (!node.right) {
+              localLogs.push(`Promoted left child ${node.left.value}.`);
+              pushStep(tempTree, "Only has left child. Promoting left branch...", "one_child");
+              return node.left;
+            }
+
+            // Two children case
+            localLogs.push("Target contains 2 children. Fetching in-order successor...");
+            pushStep(tempTree, "Two children present. Searching in-order successor...", "find_min");
+
+            const successor = findMinNode(node.right);
+            tempTree = updateStateByValue(tempTree, successor.value, 'pre-op');
+            pushStep(tempTree, `Found successor: ${successor.value}. Overwriting...`, "copy_val");
+
+            const replacedVal = successor.value;
+            node.value = replacedVal;
+            tempTree = updateStateByValue(tempTree, successor.value, 'default');
+            tempTree = updateStateByValue(tempTree, node.value, 'default');
+
+            pushStep(tempTree, `Successor cloned. Pruning duplicate successor node...`, "delete_min");
+            node.right = deleteRecursiveBST(node.right, replacedVal);
+            return { ...node };
           }
-          if (!node.right) {
-            highlightLine("delete", "one_child");
-            setStatus(`Node ${value} has 1 left child. Rewiring child node up.`);
-            await sleep(speed);
-            setExecutionLog(prev => [...prev, `[Delete] Removed node ${value}, promoted left child.`]);
-            return node.left;
+        };
+
+        const resultTree = deleteRecursiveBST(tempTree, targetVal);
+        tempTree = resetStates(resultTree);
+        pushStep(tempTree, `Finished BST deletion process.`, "check_null");
+      } 
+      else {
+        // Complete Binary Tree Replacement Deletion
+        let targetNode = null;
+        let deepestNode = null;
+
+        // Check if target is in the tree
+        const findTargetNode = (node) => {
+          if (!node) return null;
+          if (node.value === targetVal) return node;
+          let leftFind = findTargetNode(node.left);
+          if (leftFind) return leftFind;
+          return findTargetNode(node.right);
+        };
+
+        targetNode = findTargetNode(tempTree);
+
+        if (!targetNode) {
+          localLogs.push(`Element ${targetVal} not present.`);
+          pushStep(tempTree, "Key is not present in BT.", "check_null");
+        } 
+        else {
+          tempTree = updateStateByValue(tempTree, targetNode.value, 'deleting');
+          localLogs.push(`Located deletion site on BT node ${targetVal}. Finding deepest leaf...`);
+          pushStep(tempTree, `Found target: ${targetVal}. Inspecting deepest rightmost node...`, "check_null");
+
+          // BFS for deepest rightmost node
+          let bfsQueue = [{ node: tempTree, parent: null }];
+          while (bfsQueue.length > 0) {
+            visitsCounter++;
+            let currentItem = bfsQueue.shift();
+            deepestNode = currentItem.node;
+
+            if (currentItem.node.left) {
+              bfsQueue.push({ node: currentItem.node.left, parent: currentItem.node });
+            }
+            if (currentItem.node.right) {
+              bfsQueue.push({ node: currentItem.node.right, parent: currentItem.node });
+            }
           }
 
-          highlightLine("delete", "find_min");
-          setStatus(`Node ${value} has 2 children. Searching for in-order successor...`);
-          const successor = findMin(node.right);
-          
-          setTree(prev => updateNodeByValue(prev, successor.value, 'pre-op'));
-          highlightLine("delete", "copy_val");
-          setStatus(`In-order successor is ${successor.value}. Overriding current value.`);
-          await sleep(speed);
+          tempTree = updateStateByValue(tempTree, deepestNode.value, 'pre-op');
+          localLogs.push(`Successor key selected from deepest leaf: ${deepestNode.value}.`);
+          pushStep(tempTree, `Leaf candidate identified: ${deepestNode.value}. Swapping...`, "check_null");
 
-          const newNode = { ...node, value: successor.value, state: 'default' };
-          highlightLine("delete", "delete_min");
-          setStatus(`Recursively deleting original successor node ${successor.value}...`);
-          newNode.right = await deleteRecursiveBST(node.right, successor.value);
-          
-          setExecutionLog(prev => [...prev, `[Delete] Replaced node ${value} with successor ${successor.value}.`]);
-          return newNode;
+          const swapPruneBT = (node) => {
+            if (!node) return null;
+            let copy = { ...node };
+            if (node.id === targetNode.id) {
+              copy.value = deepestNode.value;
+              copy.state = 'default';
+            }
+            if (copy.id === deepestNode.id) {
+              return null;
+            }
+            copy.left = swapPruneBT(copy.left);
+            copy.right = swapPruneBT(copy.right);
+            return copy;
+          };
+
+          if (tempTree.id === deepestNode.id) {
+            tempTree = null;
+          } else {
+            tempTree = swapPruneBT(tempTree);
+          }
+          tempTree = resetStates(tempTree);
+          localLogs.push(`Pruned deepest leaf ${deepestNode.value} and overridden delete site.`);
+          pushStep(tempTree, `Pruned deepest rightmost leaf and re-arranged tree structure.`, "check_null");
+        }
+      }
+    } 
+    else if (["inorder", "preorder", "postorder"].includes(algorithmType)) {
+      let callStackList = [];
+
+      const traverseTree = (node, parentId = null) => {
+        if (!node) return;
+        visitsCounter++;
+        maxStackDepth = Math.max(maxStackDepth, callStackList.length + 1);
+
+        if (parentId) {
+          callStackList.push({ from: parentId, to: node.id });
+        }
+
+        if (algorithmType === "preorder") {
+          tempTree = updateStateByValue(tempTree, node.value, 'found');
+          pathTrace.push(node.value);
+          localLogs.push(`Visited node ${node.value}. Preorder path: [${pathTrace.join(' -> ')}]`);
+          pushStep(tempTree, `Root Visit: Node ${node.value}`, "visit", callStackList);
+
+          if (node.left) {
+            pushStep(tempTree, "Entering Left Subtree...", "left", callStackList);
+            traverseTree(node.left, node.id);
+          }
+          if (node.right) {
+            pushStep(tempTree, "Entering Right Subtree...", "right", callStackList);
+            traverseTree(node.right, node.id);
+          }
+        } 
+        else if (algorithmType === "inorder") {
+          if (node.left) {
+            pushStep(tempTree, "Entering Left Subtree...", "left", callStackList);
+            traverseTree(node.left, node.id);
+          }
+
+          tempTree = updateStateByValue(tempTree, node.value, 'found');
+          pathTrace.push(node.value);
+          localLogs.push(`Visited node ${node.value}. Inorder path: [${pathTrace.join(' -> ')}]`);
+          pushStep(tempTree, `Visit Middle: Node ${node.value}`, "visit", callStackList);
+
+          if (node.right) {
+            pushStep(tempTree, "Entering Right Subtree...", "right", callStackList);
+            traverseTree(node.right, node.id);
+          }
+        } 
+        else if (algorithmType === "postorder") {
+          if (node.left) {
+            pushStep(tempTree, "Entering Left Subtree...", "left", callStackList);
+            traverseTree(node.left, node.id);
+          }
+          if (node.right) {
+            pushStep(tempTree, "Entering Right Subtree...", "right", callStackList);
+            traverseTree(node.right, node.id);
+          }
+
+          tempTree = updateStateByValue(tempTree, node.value, 'found');
+          pathTrace.push(node.value);
+          localLogs.push(`Visited node ${node.value}. Postorder path: [${pathTrace.join(' -> ')}]`);
+          pushStep(tempTree, `Visit Post: Node ${node.value}`, "visit", callStackList);
+        }
+
+        if (parentId) {
+          const popped = callStackList.pop();
+          pushStep(tempTree, `Unwinding recursive traversal frame...`, "cond", callStackList, popped);
         }
       };
 
-      const newTree = await deleteRecursiveBST(tree, val);
-      if (!isCancelledRef.current) {
-        setTree(newTree);
-      }
-    } else {
-      // --- General Binary Tree (BT) Replacement Deletion ---
-      let targetNode = null;
-      let deepestNode = null;
-
-      setStatus("Searching for the node to delete...");
-      await sleep(speed);
-
-      const findTargetBT = (node) => {
-        if (!node) return null;
-        if (node.value === val) return node;
-        let leftSearch = findTargetBT(node.left);
-        if (leftSearch) return leftSearch;
-        return findTargetBT(node.right);
-      };
-
-      targetNode = findTargetBT(tree);
-
-      if (!targetNode) {
-        setStatus(`Node ${val} not found in the Binary Tree.`);
-        setExecutionLog(prev => [...prev, `[Delete Failed] Node ${val} not found.`]);
-        cleanup();
-        return;
-      }
-
-      setTree(prev => updateNodeByValue(prev, targetNode.value, 'deleting'));
-      setStatus(`Target node ${val} found. Now looking for the deepest, rightmost leaf node...`);
-      await sleep(speed);
-
-      // Find deepest rightmost node using BFS queue
-      let queue = [{ node: tree, parent: null }];
-      while (queue.length > 0) {
-        let currentItem = queue.shift();
-        deepestNode = currentItem.node;
-
-        if (currentItem.node.left) {
-          queue.push({ node: currentItem.node.left, parent: currentItem.node });
-        }
-        if (currentItem.node.right) {
-          queue.push({ node: currentItem.node.right, parent: currentItem.node });
-        }
-      }
-
-      setTree(prev => updateNodeByValue(prev, deepestNode.value, 'pre-op'));
-      setStatus(`Deepest rightmost node is ${deepestNode.value}. Copying its value to the target node...`);
-      await sleep(speed);
-
-      const swapAndPrune = (node) => {
-        if (!node) return null;
-        let copy = { ...node };
-        if (node.id === targetNode.id) {
-          copy.value = deepestNode.value;
-          copy.state = 'default';
-        }
-        if (copy.id === deepestNode.id) {
-          return null; 
-        }
-        copy.left = swapAndPrune(copy.left);
-        copy.right = swapAndPrune(copy.right);
-        return copy;
-      };
-
-      if (tree.id === deepestNode.id) {
-        setTree(null);
-        setExecutionLog(prev => [...prev, `[Delete] Cleared the only node in the tree.`]);
-      } else {
-        setTree(prev => swapAndPrune(prev));
-        setExecutionLog(prev => [...prev, `[Delete] Swapped ${val} with deepest leaf ${deepestNode.value}, and removed the leaf.`]);
-      }
+      traverseTree(tempTree);
+      tempTree = resetStates(tempTree);
+      pushStep(tempTree, `Completed Traversal path: [ ${pathTrace.join(' -> ')} ]`, "cond");
     }
-    
-    cleanup();
+
+    return localSteps;
   };
 
-  const handleTraversal = async (mode) => {
+  const startPlayingSteps = (precomputedSteps, initialConcept = "insert", autoPlay = false) => {
+    setActiveConcept(initialConcept);
+    setSteps(precomputedSteps);
+    setCurrentStepIdx(0);
+    setIsPlaying(autoPlay); // Defaults to false, so user can choose to Play or use manual Next/Prev!
+  };
+
+  const handleInsert = () => {
+    const val = getCleanVal();
+    if (val === null) return;
+    setError(null);
+    setIsPlaying(false);
+    setValue(""); // Clear the input field immediately after reading value (Ref: image_78fe5b.png)
+
+    const generatedTimeline = runTreePrecomputation(tree, "insert", { value: val });
+    // Inserting doesn't autoplay, allowing the user to examine the tree, scrub or press Play/Next/Prev
+    startPlayingSteps(generatedTimeline, "insert", false);
+    setTree(generatedTimeline[generatedTimeline.length - 1].tree);
+  };
+
+  const handleSearch = () => {
+    const val = getCleanVal();
+    if (val === null) return;
+    setError(null);
+    setIsPlaying(false);
+
     if (!tree) {
-      setError("Cannot traverse an empty tree.");
+      setError("Cannot search inside an empty tree structure.");
       return;
     }
+    setValue(""); // Clear the input field for seamless sequential searches
+
+    const generatedTimeline = runTreePrecomputation(tree, "search", { value: val });
+    // Loads paused so user can manually step through comparisons
+    startPlayingSteps(generatedTimeline, "search", false);
+  };
+
+  const handleDelete = () => {
+    const val = getCleanVal();
+    if (val === null) return;
     setError(null);
-    setIsVisualizing(true);
-    setActiveConcept(mode);
-    setCallStackEdges([]); 
-    setBacktrackEdge(null); 
-    setExecutionLog(prev => [...prev, `--- Starting ${mode.toUpperCase()} Traversal ---`]);
-    
-    let visitedPath = [];
+    setIsPlaying(false);
 
-    const pushStackSegment = (fromId, toId) => {
-      setCallStackEdges(prev => [...prev, { from: fromId, to: toId }]);
-    };
-
-    const popStackSegment = (fromId, toId) => {
-      setCallStackEdges(prev => prev.filter(e => !(e.from === fromId && e.to === toId)));
-      setBacktrackEdge({ from: toId, to: fromId }); 
-    };
-
-    const traverse = async (node, parentId = null) => {
-      if (!node || isCancelledRef.current) return;
-      await checkPause();
-
-      if (parentId) {
-        pushStackSegment(parentId, node.id);
-        setStatus(`Recursive descent call to node ${node.value}. (Call Stack Expanded)`);
-        await sleep(speed);
-      }
-
-      if (mode === 'preorder') {
-        highlightLine("preorder", "visit");
-        visitedPath.push(node.value);
-        setStatus(`Visiting node ${node.value}. Path: [ ${visitedPath.join(' -> ')} ]`);
-        setExecutionLog(prev => [...prev, `[Visit] Node: ${node.value}`]);
-        setTree(prev => updateNodeByValue(prev, node.value, 'found'));
-        await sleep(speed);
-
-        highlightLine("preorder", "left");
-        await traverse(node.left, node.id);
-
-        highlightLine("preorder", "right");
-        await traverse(node.right, node.id);
-      } 
-      else if (mode === 'inorder') {
-        highlightLine("inorder", "left");
-        await traverse(node.left, node.id);
-
-        await checkPause();
-        highlightLine("inorder", "visit");
-        visitedPath.push(node.value);
-        setStatus(`Visiting node ${node.value}. Path: [ ${visitedPath.join(' -> ')} ]`);
-        setExecutionLog(prev => [...prev, `[Visit] Node: ${node.value}`]);
-        setTree(prev => updateNodeByValue(prev, node.value, 'found'));
-        await sleep(speed);
-
-        highlightLine("inorder", "right");
-        await traverse(node.right, node.id);
-      } 
-      else if (mode === 'postorder') {
-        highlightLine("postorder", "left");
-        await traverse(node.left, node.id);
-
-        highlightLine("postorder", "right");
-        await traverse(node.right, node.id);
-
-        await checkPause();
-        highlightLine("postorder", "visit");
-        visitedPath.push(node.value);
-        setStatus(`Visiting node ${node.value}. Path: [ ${visitedPath.join(' -> ')} ]`);
-        setExecutionLog(prev => [...prev, `[Visit] Node: ${node.value}`]);
-        setTree(prev => updateNodeByValue(prev, node.value, 'found'));
-        await sleep(speed);
-      }
-
-      if (parentId && !isCancelledRef.current) {
-        popStackSegment(parentId, node.id);
-        setStatus(`Returning from recursive call of node ${node.value}. (Stack Frame Unwound)`);
-        await sleep(speed);
-        setBacktrackEdge(null);
-      }
-    };
-
-    await traverse(tree);
-    if (!isCancelledRef.current) {
-      setStatus(`Traversal completed: [ ${visitedPath.join(' -> ')} ]`);
-      setExecutionLog(prev => [...prev, `[Completed] Traversal Path: ${visitedPath.join(', ')}`]);
+    if (!tree) {
+      setError("Cannot delete from an empty tree structure.");
+      return;
     }
-    cleanup();
+    setValue(""); // Clear the input field upon deletion start
+
+    const generatedTimeline = runTreePrecomputation(tree, "delete", { value: val });
+    // Loads paused
+    startPlayingSteps(generatedTimeline, "delete", false);
+    setTree(generatedTimeline[generatedTimeline.length - 1].tree);
+  };
+
+  const handleTraversal = (mode) => {
+    setError(null);
+    setIsPlaying(false);
+
+    if (!tree) {
+      setError("Empty trees cannot be traversed.");
+      return;
+    }
+
+    const generatedTimeline = runTreePrecomputation(tree, mode);
+    // CRITICAL: Loads completely paused! First step loads, user can play auto or manual click next/prev.
+    startPlayingSteps(generatedTimeline, mode, false);
   };
 
   const handleReset = () => {
-    isCancelledRef.current = true;
-    setIsVisualizing(false);
-    setIsPaused(false);
-    pausedRef.current = false;
-    
+    setIsPlaying(false);
     setTree(null);
     setValue("");
     setError(null);
+    setSteps([]);
+    setCurrentStepIdx(0);
     setStatus("Tree is empty. Insert a node to begin.");
-    setHighlightLineNum(-1);
-    setExecutionLog([]);
-    setCallStackEdges([]); 
-    setBacktrackEdge(null); 
-    
-    setTimeout(() => {
-      isCancelledRef.current = false;
-    }, 100);
   };
-  
+
   const togglePause = () => {
-    const newPausedState = !isPaused;
-    setIsPaused(newPausedState);
-    pausedRef.current = newPausedState;
-    if (newPausedState) {
-      setExecutionLog(prev => [...prev, "[Pause] Visualizer paused."]);
-    } else {
-      setExecutionLog(prev => [...prev, "[Resume] Visualizer continuing..."]);
+    setIsPlaying(!isPlaying);
+  };
+
+  const handleRandomGenerator = (size = 6) => {
+    setIsPlaying(false);
+    setError(null);
+    setSteps([]);
+    setCurrentStepIdx(0);
+
+    const generatedUniqueArray = [];
+    while (generatedUniqueArray.length < size) {
+      const candidate = Math.floor(Math.random() * 85) + 10;
+      if (!generatedUniqueArray.includes(candidate)) {
+        generatedUniqueArray.push(candidate);
+      }
     }
+
+    if (isBST) {
+      // Create beautifully balanced BST
+      generatedUniqueArray.sort((a, b) => a - b);
+      
+      const constructBSTRecursive = (arr, start, end) => {
+        if (start > end) return null;
+        const mid = Math.floor((start + end) / 2);
+        const uuid = Math.random().toString(36).substring(2, 9);
+        return {
+          value: arr[mid],
+          id: uuid,
+          state: 'default',
+          left: constructBSTRecursive(arr, start, mid - 1),
+          right: constructBSTRecursive(arr, mid + 1, end)
+        };
+      };
+
+      const finalBST = constructBSTRecursive(generatedUniqueArray, 0, generatedUniqueArray.length - 1);
+      setTree(finalBST);
+      setStatus("Balanced BST generated. Click Traversal, Search, or Insert to begin.");
+    } 
+    else {
+      // Complete General Binary Tree Construction
+      const constructBTComplete = (arr) => {
+        if (!arr.length) return null;
+        const nodes = arr.map((val) => ({
+          value: val,
+          id: Math.random().toString(36).substring(2, 9),
+          state: 'default',
+          left: null,
+          right: null
+        }));
+
+        for (let i = 0; i < nodes.length; i++) {
+          const leftIdx = 2 * i + 1;
+          const rightIdx = 2 * i + 2;
+          if (leftIdx < nodes.length) nodes[i].left = nodes[leftIdx];
+          if (rightIdx < nodes.length) nodes[i].right = nodes[rightIdx];
+        }
+        return nodes[0];
+      };
+
+      const finalBT = constructBTComplete(generatedUniqueArray);
+      setTree(finalBT);
+      setStatus("Complete BT generated level-by-level. Recursive DFS Search required.");
+    }
+  };
+
+  // Safe layout state calculations
+  const activeStep = steps[currentStepIdx] || {
+    tree: tree,
+    status: status,
+    logs: ["Ready. Select or generate a tree structure to simulate."],
+    lineKey: -1,
+    callStackEdges: [],
+    backtrackEdge: null,
+    visits: 0,
+    stackDepth: 0,
+    printedPath: []
   };
 
   const activeSnippetSet = (activeConcept === "inorder" || activeConcept === "preorder" || activeConcept === "postorder")
@@ -1656,16 +1810,21 @@ export default function BST() {
     : codeSnippets[isBST ? "bst" : "bt"][activeConcept][language];
 
   const codeLines = activeSnippetSet.trim().split('\n');
-  
-  const statusColor = status.includes("found") || status.includes("completed") || status.includes("Success")
+  const highlightedLine = LINE_MAPS[activeConcept === "inorder" || activeConcept === "preorder" || activeConcept === "postorder" ? activeConcept : (isBST ? "bst" : "bt")]?.[activeConcept]?.[language]?.[activeStep.lineKey] ?? -1;
+
+  const statusColor = activeStep.status.includes("found") || activeStep.status.includes("Success") || activeStep.status.includes("Cloned")
     ? "status-found"
-    : status.includes("not found") || status.includes("unreachable")
+    : activeStep.status.includes("not present") || activeStep.status.includes("Duplicate") || activeStep.status.includes("Aborted")
     ? "status-not-found"
-    : status.includes("Paused")
-    ? "status-paused"
+    : isPlaying
+    ? "status-found"
     : "status-default";
 
-  const { nodesList, edgesList } = getLayoutElements(tree);
+  const { nodesList, edgesList, depth } = getLayoutElements(activeStep.tree);
+
+  // SVG dynamic responsiveness height settings
+  const baseSpacingHeight = 80;
+  const svgComputedHeight = Math.max(340, (depth * baseSpacingHeight) + 80);
 
   return (
     <div className="visualizer-container">
@@ -1678,22 +1837,20 @@ export default function BST() {
           Binary Tree
         </h1>
 
-        {/* --- Dynamic Tree Mode Switcher --- */}
+        {/* --- Tree Mode Rules Selection --- */}
         <div className="input-group">
           <label>Tree Mode Rules</label>
           <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.2rem' }}>
             <button
               onClick={() => { setIsBST(false); handleReset(); }}
-              disabled={isVisualizing}
               className={`btn ${!isBST ? 'btn-cyan' : 'btn-secondary'}`}
               style={{ flex: 1 }}
-              title="General Unsorted Binary Tree"
+              title="General Unsorted Binary Tree level-order"
             >
               General BT
             </button>
             <button
               onClick={() => { setIsBST(true); handleReset(); }}
-              disabled={isVisualizing}
               className={`btn ${isBST ? 'btn-cyan' : 'btn-secondary'}`}
               style={{ flex: 1 }}
               title="Sorted Binary Search Tree rules"
@@ -1703,20 +1860,19 @@ export default function BST() {
           </div>
           <span style={{ fontSize: '0.725rem', color: 'var(--text-gray-400)', display: 'block', marginTop: '0.35rem', lineHeight: '1.3' }}>
             {isBST 
-              ? "BST Mode: Values are sorted on placement. Ideal for logarithmic search logic." 
-              : "General BT Mode: Elements placed level-by-level (Complete Tree). Searching requires recursive traversal of both subtrees."}
+              ? "BST Mode: Values sorted on placement. Optimized logarithmic searching." 
+              : "General BT Mode: Level-by-level complete placement. Requires full recursive DFS search."}
           </span>
         </div>
 
         <div className="input-group">
-          <label htmlFor="value">Value</label>
+          <label htmlFor="value">Node Value</label>
           <input
             id="value"
             type="text"
-            placeholder="e.g., 10"
+            placeholder="e.g., 25"
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            disabled={isVisualizing}
             className="input-field"
           />
         </div>
@@ -1725,89 +1881,94 @@ export default function BST() {
 
         {/* --- Actions --- */}
         <div className="actions-single">
-          <button onClick={handleInsert} disabled={isVisualizing} className="btn btn-green">Insert</button>
+          <button onClick={handleInsert} className="btn btn-green">Insert Node</button>
         </div>
         <div className="actions-grid">
-          <button onClick={handleDelete} disabled={isVisualizing || !tree} className="btn btn-red">Delete</button>
-          <button onClick={handleSearch} disabled={isVisualizing || !tree} className="btn btn-cyan">
-            <Search size={16} /> Search Target
+          <button onClick={handleDelete} className="btn btn-red">Delete Node</button>
+          <button onClick={handleSearch} className="btn btn-cyan">
+            <Search size={16} /> Search key
           </button>
         </div>
         
-        {/* --- Traversal Actions --- */}
+        {/* --- Traversals Panel --- */}
         <div className="input-group" style={{ marginTop: '1.25rem' }}>
-          <label>Traversals</label>
+          <label>Recursive Traversals</label>
           <div className="actions-grid-three">
             <button 
               onClick={() => handleTraversal('preorder')} 
-              disabled={isVisualizing || !tree} 
-              className="btn btn-secondary"
+              className={`btn ${activeConcept === 'preorder' ? 'btn-cyan' : 'btn-secondary'}`}
               style={{ fontSize: '0.75rem', padding: '0.5rem 0.25rem' }}
-              title="Pre-order traversal (Root, Left, Right)"
+              title="Root -> Left -> Right"
             >
               Pre-Order
             </button>
             <button 
               onClick={() => handleTraversal('inorder')} 
-              disabled={isVisualizing || !tree} 
-              className="btn btn-secondary"
+              className={`btn ${activeConcept === 'inorder' ? 'btn-cyan' : 'btn-secondary'}`}
               style={{ fontSize: '0.75rem', padding: '0.5rem 0.25rem' }}
-              title="In-order traversal (Left, Root, Right)"
+              title="Left -> Root -> Right"
             >
               In-Order
             </button>
             <button 
               onClick={() => handleTraversal('postorder')} 
-              disabled={isVisualizing || !tree} 
-              className="btn btn-secondary"
+              className={`btn ${activeConcept === 'postorder' ? 'btn-cyan' : 'btn-secondary'}`}
               style={{ fontSize: '0.75rem', padding: '0.5rem 0.25rem' }}
-              title="Post-order traversal (Left, Right, Root)"
+              title="Left -> Right -> Root"
             >
               Post-Order
             </button>
           </div>
+          <span style={{ fontSize: '0.725rem', color: 'var(--text-gray-400)', display: 'block', marginTop: '0.35rem', lineHeight: '1.3' }}>
+            Clicking a traversal loads the step layout paused. Press Play to animate, or step manually using Next / Prev.
+          </span>
         </div>
         
         <hr style={{borderColor: 'var(--border-gray-700)', margin: '1.25rem 0'}} />
 
-        <div className="actions-grid">
-          <button
-            onClick={togglePause}
-            disabled={!isVisualizing}
-            className={`btn ${isPaused ? 'btn-resume' : 'btn-pause'}`}
-          >
-            {isPaused ? <Play size={18} /> : <Pause size={18} />}
-            {isPaused ? "Resume" : "Pause"}
-          </button>
-          
-          <button
-            onClick={handleReset}
-            className="btn btn-secondary"
-          >
-            <RefreshCw size={18} />
-            Reset Tree
-          </button>
+        {/* --- Preset and Random Generators --- */}
+        <div className="input-group">
+          <label>Random Generation</label>
+          <div className="speed-slider-group">
+            <input
+              type="range"
+              min="3"
+              max="15"
+              step="1"
+              value={randomSize}
+              onChange={(e) => setRandomSize(Number(e.target.value))}
+              className="speed-slider"
+            />
+            <span className="speed-value">{randomSize} items</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.6rem' }}>
+            <button 
+              onClick={() => handleRandomGenerator(randomSize)} 
+              className="btn btn-purple"
+            >
+              <Shuffle size={14} /> Generate Random Tree
+            </button>
+          </div>
         </div>
 
-        {/* --- Settings --- */}
+        {/* --- Visualization Settings --- */}
         <div className="input-group" style={{ marginTop: '1.25rem' }}>
           <label htmlFor="language">Code Language</label>
           <select
             id="language"
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
-            disabled={isVisualizing}
             className="input-field"
           >
-            <option value="c">C</option>
-            <option value="cpp">C++</option>
             <option value="python">Python</option>
+            <option value="cpp">C++</option>
+            <option value="c">C</option>
             <option value="java">Java</option>
           </select>
         </div>
 
         <div className="input-group">
-          <label htmlFor="speed">Visualization Speed</label>
+          <label htmlFor="speed">Autoplay Speed</label>
           <div className="speed-slider-group">
             <input
               id="speed"
@@ -1827,47 +1988,102 @@ export default function BST() {
       {/* --- Main Content Area --- */}
       <main className="main-content">
         
-        {/* --- Visualization Area --- */}
+        {/* --- Visualization Arena --- */}
         <section className="visualization-section">
-          <h2 className="section-title">Visualization</h2>
+          <h2 className="section-title">Visual Canvas</h2>
           
           <div className="status-bar">
             <span className={`status-text ${statusColor}`}>
-              {status}
+              {activeStep.status}
             </span>
           </div>
+
+          {/* Dynamic Live Diagnostics (Visits & Stack depth) rendered ABOVE visualization layout */}
+          <div className="diagnostics-bar" style={{ marginBottom: '1rem' }}>
+            <div className="diagnostic-card">
+              <div className="diagnostic-label">Visits / Comparisons</div>
+              <div className="diagnostic-value">{activeStep.visits}</div>
+            </div>
+            <div className="diagnostic-card">
+              <div className="diagnostic-label">Max Active Stack Frame</div>
+              <div className="diagnostic-value">{activeStep.stackDepth}</div>
+            </div>
+          </div>
+
+          {/* Sequential Traversal Path / Visited Badge Outputs (Appends node values one-by-one) */}
+          {activeStep.printedPath && activeStep.printedPath.length > 0 && (
+            <div className="traversal-path-display-bar animate-fade-in" style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.6rem',
+              flexWrap: 'wrap',
+              backgroundColor: 'var(--bg-dark-950)',
+              border: '1px solid var(--border-gray-700)',
+              borderRadius: '0.375rem',
+              padding: '0.75rem 1rem',
+              marginBottom: '1rem',
+              boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.3)'
+            }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--cyan-400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Printed Sequence:
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                {activeStep.printedPath.map((val, idx) => (
+                  <React.Fragment key={idx}>
+                    {idx > 0 && <span style={{ color: 'var(--cyan-400)', fontWeight: 'bold', fontSize: '0.9rem' }}>&rarr;</span>}
+                    <span style={{
+                      backgroundColor: '#e2f0d9',
+                      color: '#385723',
+                      border: '1px solid #8cc07e',
+                      borderRadius: '0.25rem',
+                      padding: '0.15rem 0.5rem',
+                      fontWeight: 'bold',
+                      fontSize: '0.85rem',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
+                      animation: 'popIn 0.25s ease-out'
+                    }}>
+                      {val}
+                    </span>
+                  </React.Fragment>
+                ))}
+              </div>
+            </div>
+          )}
           
+          {/* Responsive SVG Scrollable Area */}
           <div className="visualization-boxes">
-            {tree === null && (
-              <span style={{color: 'var(--text-gray-500)', margin: 'auto'}}>
-                Tree is empty. Insert nodes to build the structure.
+            {activeStep.tree === null && (
+              <span style={{color: 'var(--text-gray-500)', margin: 'auto', textAlign: 'center'}}>
+                Tree structure is empty.<br />Insert node values on the left to build your custom tree step-by-step.
               </span>
             )}
             
-            {tree !== null && (
-              <>
-                {/* SVG connection overlay with direct diagonal lines matching image_eed3d6.png */}
-                <svg 
-                  className="absolute inset-0 w-full h-full pointer-events-none" 
-                  style={{ zIndex: 0 }}
-                >
+            {activeStep.tree !== null && (
+              <svg 
+                className="tree-svg-container" 
+                viewBox={`0 0 800 ${svgComputedHeight}`}
+                height={`${svgComputedHeight}px`}
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                {/* 1. Connection Overlay Lines */}
+                <g className="tree-connectors">
                   {edgesList.map((edge, idx) => {
-                    const isDescentActive = callStackEdges.some(
+                    const isDescentActive = activeStep.callStackEdges.some(
                       s => (s.from === edge.from.id && s.to === edge.to.id)
                     );
 
-                    const isBacktrackActive = backtrackEdge && (
-                      (backtrackEdge.from === edge.from.id && backtrackEdge.to === edge.to.id) ||
-                      (backtrackEdge.from === edge.to.id && backtrackEdge.to === edge.from.id)
+                    const isBacktrackActive = activeStep.backtrackEdge && (
+                      (activeStep.backtrackEdge.from === edge.from.id && activeStep.backtrackEdge.to === edge.to.id) ||
+                      (activeStep.backtrackEdge.from === edge.to.id && activeStep.backtrackEdge.to === edge.from.id)
                     );
 
                     return (
-                      <g key={idx}>
+                      <g key={`edge-${idx}`}>
                         <line
-                          x1={`${edge.from.x}%`}
-                          y1={`${edge.from.y}px`}
-                          x2={`${edge.to.x}%`}
-                          y2={`${edge.to.y}px`}
+                          x1={edge.from.x}
+                          y1={edge.from.y}
+                          x2={edge.to.x}
+                          y2={edge.to.y}
                           stroke="#8cc07e"
                           strokeWidth="2.5"
                           strokeLinecap="round"
@@ -1876,56 +2092,152 @@ export default function BST() {
 
                         {isDescentActive && (
                           <line
-                            x1={`${edge.from.x}%`}
-                            y1={`${edge.from.y}px`}
-                            x2={`${edge.to.x}%`}
-                            y2={`${edge.to.y}px`}
+                            x1={edge.from.x}
+                            y1={edge.from.y}
+                            x2={edge.to.x}
+                            y2={edge.to.y}
                             className="traversal-descent-line"
                           />
                         )}
 
                         {isBacktrackActive && (
                           <line
-                            x1={`${edge.from.x}%`}
-                            y1={`${edge.from.y}px`}
-                            x2={`${edge.to.x}%`}
-                            y2={`${edge.to.y}px`}
+                            x1={edge.from.x}
+                            y1={edge.from.y}
+                            x2={edge.to.x}
+                            y2={edge.to.y}
                             className="traversal-ascent-line"
                           />
                         )}
                       </g>
                     );
                   })}
-                </svg>
+                </g>
 
-                {nodesList.map((node) => (
-                  <div
-                    key={node.id}
-                    className={`tree-circle-node ${node.state || 'default'}`}
-                    style={{
-                      position: 'absolute',
-                      left: `${node.x}%`,
-                      top: `${node.y}px`,
-                      transform: 'translate(-50%, -50%)',
-                      zIndex: 1,
-                    }}
-                  >
-                    {node.value}
-                  </div>
-                ))}
-              </>
+                {/* 2. Nodes Render Group */}
+                <g className="tree-nodes">
+                  {nodesList.map((node) => {
+                    let nodeClass = 'default';
+                    if (node.state) nodeClass = node.state;
+
+                    return (
+                      <g 
+                        key={node.id} 
+                        className="tree-circle-group"
+                        style={{ transform: `translate(${node.x}px, ${node.y}px)`, transition: 'transform 0.3s' }}
+                      >
+                        <circle
+                          r="25"
+                          className={`tree-circle-bg ${nodeClass}`}
+                        />
+                        <text
+                          className={`tree-circle-text ${nodeClass}`}
+                        >
+                          {node.value}
+                        </text>
+                      </g>
+                    );
+                  })}
+                </g>
+              </svg>
             )}
           </div>
-          
+
+          {/* Stepping Playback Control panel */}
+          <div className="playback-controls-bar">
+            <button 
+              className="btn-icon" 
+              onClick={() => { setIsPlaying(false); if (currentStepIdx > 0) setCurrentStepIdx(currentStepIdx - 1); }} 
+              disabled={currentStepIdx === 0}
+              title="Step Backward"
+            >
+              <ChevronLeft size={18} />
+              <span className="text-xs font-semibold ml-1">Prev</span>
+            </button>
+
+            <button
+              className="btn-icon"
+              onClick={togglePause}
+              title={isPlaying ? "Pause Automation" : "Resume Automation"}
+            >
+              {isPlaying ? <Pause size={18} /> : <Play size={18} />}
+            </button>
+
+            <button 
+              className="btn-icon" 
+              onClick={() => { setIsPlaying(false); if (currentStepIdx < steps.length - 1) setCurrentStepIdx(currentStepIdx + 1); }} 
+              disabled={steps.length === 0 || currentStepIdx >= steps.length - 1}
+              title="Step Forward"
+            >
+              <span className="text-xs font-semibold mr-1">Next</span>
+              <ChevronRight size={18} />
+            </button>
+
+            <button 
+              className="btn-icon" 
+              onClick={handleReset} 
+              title="Prune Tree"
+            >
+              <RefreshCw size={16} />
+            </button>
+
+            <span className="playback-tracker">
+              Frame {steps.length > 0 ? currentStepIdx + 1 : 0} / {steps.length}
+            </span>
+          </div>
+
+          {steps.length > 1 && (
+            <div className="scrub-timeline-group">
+              <input 
+                type="range"
+                min="0"
+                max={steps.length - 1}
+                value={currentStepIdx}
+                onChange={(e) => {
+                  setIsPlaying(false);
+                  setCurrentStepIdx(Number(e.target.value));
+                }}
+                className="scrub-timeline"
+                title="Drag to Scrub Steps"
+              />
+            </div>
+          )}
         </section>
 
-        {/* --- Lower Content Area (Code & Log) --- */}
+        {/* --- Verbatim Complexity Grid verbatim image_0c0bc2.png --- */}
+        <section className="image-complexity-grid">
+          <div className="image-complexity-card">
+            <span className="image-card-header">{isBST ? "Binary Search Tree" : "General Binary Tree"}</span>
+            <span className="image-card-title">Best Case</span>
+            <span className="image-card-complexity">{isBST ? "O(log n)" : "O(n)"}</span>
+          </div>
+
+          <div className="image-complexity-card">
+            <span className="image-card-header">{isBST ? "Binary Search Tree" : "General Binary Tree"}</span>
+            <span className="image-card-title">Average Case</span>
+            <span className="image-card-complexity">{isBST ? "O(log n)" : "O(n)"}</span>
+          </div>
+
+          <div className="image-complexity-card">
+            <span className="image-card-header">{isBST ? "Binary Search Tree" : "General Binary Tree"}</span>
+            <span className="image-card-title">Worst Case</span>
+            <span className="image-card-complexity">O(n)</span>
+          </div>
+
+          <div className="image-complexity-card">
+            <span className="image-card-header">Auxiliary Space</span>
+            <span className="image-card-title">Memory</span>
+            <span className="image-card-complexity">O(h)</span>
+          </div>
+        </section>
+
+        {/* --- Side-by-Side Code Tracker and Execution Log --- */}
         <div className="lower-content-area">
           <section className="code-section">
             <h2 className="section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span>Code Tracker</span>
               <span style={{ fontSize: '0.8rem', color: 'var(--cyan-400)', textTransform: 'uppercase' }}>
-                {activeConcept} ({isBST ? "BST" : "General BT"})
+                {activeConcept} ({isBST ? "BST" : "BT"})
               </span>
             </h2>
             <div className="code-block">
@@ -1935,7 +2247,7 @@ export default function BST() {
                     <span
                       key={idx}
                       className={`code-line
-                        ${highlightLineNum === (idx + 1) ? 'highlight' : ''}
+                        ${highlightedLine === (idx + 1) ? 'highlight' : ''}
                         ${(line.trim().startsWith('#') || line.trim().startsWith('//') || line.trim().startsWith('def ')) ? 'comment' : ''}
                       `}
                     >
@@ -1948,10 +2260,10 @@ export default function BST() {
           </section>
 
           <section className="log-section">
-            <h2 className="section-title">Execution Log</h2>
+            <h2 className="section-title">Execution Log Streams</h2>
             <div className="log-block" ref={logContainerRef}>
               <ul className="log-list">
-                {executionLog.map((log, idx) => (
+                {activeStep.logs.map((log, idx) => (
                   <li key={idx} className="log-item">
                     {log}
                   </li>
