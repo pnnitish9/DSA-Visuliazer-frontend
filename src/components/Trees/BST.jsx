@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { GitFork, Pause, Play, RefreshCw, Search, ChevronLeft, ChevronRight, Shuffle, Trash2 } from 'lucide-react';
+import { GitFork, Pause, Play, RefreshCw, Search, ChevronRight, ChevronLeft, Award } from 'lucide-react';
 
 const InjectedStyles = () => (
   <style>{`
@@ -40,9 +40,6 @@ const InjectedStyles = () => (
 
       --purple-500: #a855f7;
       --purple-600: #9333ea;
-      
-      --pink-500: #ec4899;
-      --pink-600: #db2777;
     }
 
     .visualizer-container {
@@ -173,8 +170,6 @@ const InjectedStyles = () => (
     .btn-resume:hover:not(:disabled) { background-color: var(--green-500); }
     .btn-secondary { background-color: var(--bg-dark-600); color: white; }
     .btn-secondary:hover:not(:disabled) { background-color: var(--bg-dark-500); }
-    .btn-purple { background-color: var(--purple-600); color: white; }
-    .btn-purple:hover:not(:disabled) { background-color: var(--purple-500); }
 
     .speed-slider-group { display: flex; align-items: center; gap: 1rem; }
     .speed-slider {
@@ -219,6 +214,87 @@ const InjectedStyles = () => (
       color: var(--text-gray-200);
     }
 
+    /* --- Metrics Row Above Viewport --- */
+    .metrics-top-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    @media (min-width: 640px) {
+      .metrics-top-row { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+    }
+
+    .metric-card-box {
+      background-color: var(--bg-dark-800);
+      border: 1px solid var(--border-gray-700);
+      border-radius: 0.5rem;
+      padding: 0.75rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+    }
+    .metric-card-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-gray-400);
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+    .metric-card-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--cyan-400);
+    }
+
+    /* --- Printed Sequence Badge Row --- */
+    .print-sequence-container {
+      background-color: var(--bg-dark-850);
+      border: 1px dashed var(--cyan-500);
+      border-radius: 0.5rem;
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .print-sequence-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-gray-300);
+      text-transform: uppercase;
+    }
+    .print-sequence-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      align-items: center;
+      min-height: 2rem;
+    }
+    .print-badge {
+      background-color: var(--green-600);
+      color: white;
+      font-weight: 700;
+      font-size: 0.9rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 0.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      animation: popBadge 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    @keyframes popBadge {
+      from { transform: scale(0.5); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .print-arrow {
+      color: var(--cyan-400);
+      font-weight: bold;
+    }
+
     .visualization-section {
       display: flex;
       flex-direction: column;
@@ -247,81 +323,60 @@ const InjectedStyles = () => (
     .status-not-found { color: var(--red-400); }
     .status-paused { color: var(--yellow-400); }
 
-    /* Responsive SVG Scrollable Area */
-    .visualization-boxes {
+    /* --- Responsive Dynamic Viewport Window --- */
+    .visualization-viewport {
       position: relative;
-      flex: 1;
       background-color: rgba(5, 5, 10, 0.4);
       border-radius: 0.5rem;
-      min-height: 380px;
       width: 100%;
       border: 1px solid var(--border-gray-700);
       box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4);
-      overflow: auto; /* Enable dynamic panning/scrolling when tree is deep */
+      overflow: auto;
       display: flex;
       align-items: flex-start;
-      justify-content: center;
-      padding: 1rem;
+      justify-content: flex-start;
     }
 
-    .tree-svg-container {
+    .visualization-svg-canvas {
+      min-width: 600px;
       width: 100%;
-      min-width: 600px; /* Minimum horizontal boundary before horizontal scroll triggers */
-      transition: height 0.3s ease;
+      height: 400px; /* Base height, scaled programmatically if deep */
+      transition: height 0.4s ease;
     }
 
-    /* --- GORGEOUS CIRCLE NODES MIRRORING image_eed3d6.png --- */
-    .tree-circle-group {
+    /* --- Circle Nodes --- */
+    .tree-circle-node-svg {
       cursor: pointer;
     }
-    
-    .tree-circle-bg {
+    .tree-circle-node-svg circle {
+      transition: fill 0.3s, stroke 0.3s, r 0.3s;
       stroke-width: 2.5;
-      transition: fill 0.3s, stroke 0.3s, filter 0.3s;
     }
-    
-    /* Verbatim green style from image_eed3d6.png */
-    .tree-circle-bg.default {
-      fill: #e2f0d9;
-      stroke: #8cc07e;
-    }
-
-    .tree-circle-bg.visiting {
-      fill: #fef08a; /* yellow-200 */
-      stroke: #ca8a04; /* yellow-600 */
-      filter: drop-shadow(0 0 8px rgba(234, 179, 8, 0.7));
-    }
-    
-    .tree-circle-bg.pre-op {
-      fill: #fed7aa; /* orange-200 */
-      stroke: #ea580c; /* orange-600 */
-      filter: drop-shadow(0 0 8px rgba(249, 115, 22, 0.7));
-    }
-    
-    .tree-circle-bg.found {
-      fill: #4ade80; /* green-400 */
-      stroke: #16a34a; /* green-600 */
-      filter: drop-shadow(0 0 10px rgba(34, 197, 94, 0.8));
-    }
-    
-    .tree-circle-bg.deleting {
-      fill: #fca5a5; /* red-300 */
-      stroke: #dc2626; /* red-600 */
-      opacity: 0.8;
-    }
-
-    .tree-circle-text {
+    .tree-circle-node-svg text {
       font-size: 14px;
-      font-weight: 700;
-      text-anchor: middle;
-      dominant-baseline: central;
+      font-weight: bold;
+      fill: #385723;
       user-select: none;
+      pointer-events: none;
+      transition: fill 0.3s;
     }
-    .tree-circle-text.default { fill: #385723; }
-    .tree-circle-text.visiting { fill: #854d0e; }
-    .tree-circle-text.pre-op { fill: #7c2d12; }
-    .tree-circle-text.found { fill: #ffffff; }
-    .tree-circle-text.deleting { fill: #7f1d1d; }
+
+    /* Circle colors from image_eed3d6.png */
+    .node-default { fill: #e2f0d9; stroke: #8cc07e; }
+    .node-visiting { fill: #fef08a; stroke: #ca8a04; }
+    .node-visiting text { fill: #854d0e !important; }
+    .node-pre-op { fill: #fed7aa; stroke: #ea580c; }
+    .node-pre-op text { fill: #7c2d12 !important; }
+    .node-found { fill: #4ade80; stroke: #16a34a; }
+    .node-found text { fill: #ffffff !important; }
+    .node-deleting { fill: #fca5a5; stroke: #dc2626; }
+    .node-deleting text { fill: #7f1d1d !important; }
+
+    /* Highlights for property metrics */
+    .node-highlight-path { fill: #a855f7; stroke: #9333ea; }
+    .node-highlight-path text { fill: #ffffff !important; }
+    .node-highlight-boundary { fill: #ec4899; stroke: #db2777; }
+    .node-highlight-boundary text { fill: #ffffff !important; }
 
     @keyframes flow-descent {
       to { stroke-dashoffset: -20; }
@@ -337,6 +392,7 @@ const InjectedStyles = () => (
       stroke-linecap: round;
       animation: flow-descent 0.5s linear infinite;
       filter: drop-shadow(0 0 6px rgba(34, 197, 94, 0.8));
+      opacity: 0.95;
     }
     
     .traversal-ascent-line {
@@ -346,145 +402,54 @@ const InjectedStyles = () => (
       stroke-linecap: round;
       animation: flow-ascent 0.5s linear infinite;
       filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.8));
+      opacity: 0.95;
     }
 
-    /* Interactive Playback Panel */
-    .playback-controls-bar {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 1rem;
-      margin-top: 1rem;
-      padding: 0.75rem;
-      background-color: var(--bg-dark-800);
-      border: 1px solid var(--border-gray-700);
-      border-radius: 0.375rem;
-    }
-
-    .btn-icon {
-      background-color: var(--bg-dark-700);
-      color: white;
-      border: 1px solid var(--border-gray-600);
-      padding: 0.5rem;
-      border-radius: 0.25rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s;
-    }
-    .btn-icon:hover:not(:disabled) {
-      background-color: var(--bg-dark-600);
-      border-color: var(--cyan-400);
-    }
-    .btn-icon:disabled { opacity: 0.45; cursor: not-allowed; }
-
-    .playback-tracker {
-      font-size: 0.85rem;
-      color: var(--text-gray-300);
-      min-width: 6.5rem;
-      text-align: center;
-      font-family: monospace;
-    }
-
-    .scrub-timeline-group {
-      display: flex;
-      flex-direction: column;
-      gap: 0.25rem;
-      margin-top: 0.75rem;
-    }
-    .scrub-timeline {
-      width: 100%;
-      -webkit-appearance: none;
-      appearance: none;
-      height: 6px;
-      background: var(--bg-dark-950);
-      border-radius: 3px;
-      outline: none;
-      cursor: pointer;
-    }
-    .scrub-timeline::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 16px;
-      height: 16px;
-      background: var(--cyan-400);
-      border-radius: 50%;
-    }
-
-    /* Diagnostics Dashboard */
-    .diagnostics-bar {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.75rem;
-      margin-top: 1rem;
-    }
-    .diagnostic-card {
-      background-color: var(--bg-dark-950);
-      border: 1px solid var(--border-gray-700);
-      border-radius: 0.375rem;
-      padding: 0.6rem;
-      text-align: center;
-    }
-    .diagnostic-label {
-      font-size: 0.7rem;
-      color: var(--text-gray-500);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-    .diagnostic-value {
-      font-size: 1.15rem;
-      font-weight: 700;
-      color: var(--cyan-400);
-      font-family: monospace;
-    }
-
-    /* Exact Complexity Grid verbatim image_0c0bc2.png */
-    .image-complexity-grid {
+    /* --- Verbatim Complexity Bar Grid (image_0c0bc2.png) --- */
+    .complexity-grid-row {
       display: grid;
       grid-template-columns: 1fr;
       gap: 1rem;
       margin-top: 1.5rem;
-      margin-bottom: 1rem;
     }
     @media (min-width: 640px) {
-      .image-complexity-grid { grid-template-columns: repeat(2, 1fr); }
+      .complexity-grid-row { grid-template-columns: repeat(2, 1fr); }
     }
     @media (min-width: 1024px) {
-      .image-complexity-grid { grid-template-columns: repeat(4, 1fr); }
-    }
-    .image-complexity-card {
-      background-color: #111827;
-      border: 1px solid #1f2937;
-      border-radius: 0.5rem;
-      padding: 1.25rem;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      min-height: 110px;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    }
-    .image-card-header {
-      font-size: 0.65rem;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      color: #9ca3af;
-      text-transform: uppercase;
-    }
-    .image-card-title {
-      font-size: 1.15rem;
-      font-weight: 700;
-      color: #ffffff;
-      margin-top: 0.25rem;
-      margin-bottom: 0.5rem;
-    }
-    .image-card-complexity {
-      font-family: monospace;
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: #38bdf8;
+      .complexity-grid-row { grid-template-columns: repeat(4, 1fr); }
     }
 
+    .complexity-card {
+      background-color: var(--bg-dark-800);
+      border: 1px solid var(--border-gray-700);
+      border-radius: 0.5rem;
+      padding: 1rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    .complexity-card-header {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-gray-400);
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+    .complexity-card-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-gray-200);
+      margin-bottom: 0.5rem;
+    }
+    .complexity-card-math {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--cyan-400);
+      font-family: 'Fira Code', monospace;
+    }
+
+    /* --- Code Tracker / Execution Log Grid --- */
     .lower-content-area {
       display: flex;
       flex-direction: column;
@@ -526,7 +491,7 @@ const InjectedStyles = () => (
       transition: background-color 0.2s;
     }
     .code-line.highlight {
-      background-color: rgba(6, 182, 212, 0.2);
+      background-color: rgba(6, 182, 212, 0.25);
       border-radius: 0.25rem;
     }
     .code-line.comment {
@@ -567,26 +532,6 @@ def insert(root, key):
         root.right = insert(root.right, key)
     return root
       `.trim(),
-      c: `
-struct node* insert(struct node* node, int key) {
-    if (node == NULL) return newNode(key);
-    if (key < node->key)
-        node->left = insert(node->left, key);
-    else if (key > node->key)
-        node->right = insert(node->right, key);
-    return node;
-}
-      `.trim(),
-      cpp: `
-Node* insert(Node* root, int data) {
-    if (root == NULL) return new Node(data);
-    if (data < root->data)
-        root->left = insert(root->left, data);
-    else if (data > root->data)
-        root->right = insert(root->right, data);
-    return root;
-}
-      `.trim(),
       java: `
 Node insert(Node root, int key) {
     if (root == null) {
@@ -599,6 +544,26 @@ Node insert(Node root, int key) {
         root.right = insert(root.right, key);
     return root;
 }
+      `.trim(),
+      cpp: `
+Node* insert(Node* root, int data) {
+    if (root == NULL) return new Node(data);
+    if (data < root->data)
+        root->left = insert(root->left, data);
+    else if (data > root->data)
+        root->right = insert(root->right, data);
+    return root;
+}
+      `.trim(),
+      c: `
+struct node* insert(struct node* node, int key) {
+    if (node == NULL) return newNode(key);
+    if (key < node->key)
+        node->left = insert(node->left, key);
+    else if (key > node->key)
+        node->right = insert(node->right, key);
+    return node;
+}
       `.trim()
     },
     search: {
@@ -610,13 +575,13 @@ def search(root, key):
         return search(root.left, key)
     return search(root.right, key)
       `.trim(),
-      c: `
-struct node* search(struct node* root, int key) {
-    if (root == NULL || root->key == key)
+      java: `
+Node search(Node root, int key) {
+    if (root == null || root.key == key)
         return root;
-    if (root->key < key)
-        return search(root->right, key);
-    return search(root->left, key);
+    if (root.key > key)
+        return search(root.left, key);
+    return search(root.right, key);
 }
       `.trim(),
       cpp: `
@@ -628,13 +593,13 @@ Node* search(Node* root, int data) {
     return search(root->left, data);
 }
       `.trim(),
-      java: `
-Node search(Node root, int key) {
-    if (root == null || root.key == key)
+      c: `
+struct node* search(struct node* root, int key) {
+    if (root == NULL || root->key == key)
         return root;
-    if (root.key > key)
-        return search(root.left, key);
-    return search(root.right, key);
+    if (root->key < key)
+        return search(root->right, key);
+    return search(root->left, key);
 }
       `.trim()
     },
@@ -657,24 +622,19 @@ def delete(root, key):
         root.right = delete(root.right, temp.val)
     return root
       `.trim(),
-      c: `
-struct node* deleteNode(struct node* root, int key) {
-    if (root == NULL) return root;
-    if (key < root->key)
-        root->left = deleteNode(root->left, key);
-    else if (key > root->key)
-        root->right = deleteNode(root->right, key);
+      java: `
+Node delete(Node root, int key) {
+    if (root == null) return root;
+    if (key < root.key)
+        root.left = delete(root.left, key);
+    else if (key > root.key)
+        root.right = delete(root.right, key);
     else {
-        if (root->left == NULL) {
-            struct node* temp = root->right;
-            free(root); return temp;
-        } else if (root->right == NULL) {
-            struct node* temp = root->left;
-            free(root); return temp;
-        }
-        struct node* temp = findMin(root->right);
-        root->key = temp->key;
-        root->right = deleteNode(root->right, temp->key);
+        if (root.left == null) return root.right;
+        else if (root.right == null) return root.left;
+        Node temp = findMin(root.right);
+        root.key = temp.key;
+        root.right = delete(root.right, temp.key);
     }
     return root;
 }
@@ -701,19 +661,24 @@ Node* deleteNode(Node* root, int data) {
     return root;
 }
       `.trim(),
-      java: `
-Node delete(Node root, int key) {
-    if (root == null) return root;
-    if (key < root.key)
-        root.left = delete(root.left, key);
-    else if (key > root.key)
-        root.right = delete(root.right, key);
+      c: `
+struct node* deleteNode(struct node* root, int key) {
+    if (root == NULL) return root;
+    if (key < root->key)
+        root->left = deleteNode(root->left, key);
+    else if (key > root->key)
+        root->right = deleteNode(root->right, key);
     else {
-        if (root.left == null) return root.right;
-        else if (root.right == null) return root.left;
-        Node temp = findMin(root.right);
-        root.key = temp.key;
-        root.right = delete(root.right, temp.key);
+        if (root->left == NULL) {
+            struct node* temp = root->right;
+            free(root); return temp;
+        } else if (root->right == NULL) {
+            struct node* temp = root->left;
+            free(root); return temp;
+        }
+        struct node* temp = findMin(root->right);
+        root->key = temp->key;
+        root->right = deleteNode(root->right, temp->key);
     }
     return root;
 }
@@ -724,7 +689,6 @@ Node delete(Node root, int key) {
     insert: {
       python: `
 def insert_bt(root, key):
-    # Inserts in Level-Order (Complete Tree)
     new_node = Node(key)
     if root is None:
         return new_node
@@ -743,18 +707,17 @@ def insert_bt(root, key):
             queue.append(temp.right)
     return root
       `.trim(),
-      c: `
-void insert_bt(struct node* root, int key) {
-    // level-order lookup for empty left/right child
-    struct node* newNode = createNode(key);
-    struct node* q[100]; int f=0, r=0;
-    q[r++] = root;
-    while(f < r) {
-        struct node* temp = q[f++];
-        if (!temp->left) { temp->left = newNode; break; }
-        else q[r++] = temp->left;
-        if (!temp->right) { temp->right = newNode; break; }
-        else q[r++] = temp->right;
+      java: `
+void insertBT(Node root, int key) {
+    Node newNode = new Node(key);
+    Queue<Node> q = new LinkedList<>();
+    q.add(root);
+    while(!q.isEmpty()) {
+        Node temp = q.poll();
+        if (temp.left == null) { temp.left = newNode; break; }
+        else q.add(temp.left);
+        if (temp.right == null) { temp.right = newNode; break; }
+        else q.add(temp.right);
     }
 }
       `.trim(),
@@ -772,17 +735,17 @@ void insert_bt(Node* root, int key) {
     }
 }
       `.trim(),
-      java: `
-void insertBT(Node root, int key) {
-    Node newNode = new Node(key);
-    Queue<Node> q = new LinkedList<>();
-    q.add(root);
-    while(!q.isEmpty()) {
-        Node temp = q.poll();
-        if (temp.left == null) { temp.left = newNode; break; }
-        else q.add(temp.left);
-        if (temp.right == null) { temp.right = newNode; break; }
-        else q.add(temp.right);
+      c: `
+void insert_bt(struct node* root, int key) {
+    struct node* newNode = createNode(key);
+    struct node* q[100]; int f=0, r=0;
+    q[r++] = root;
+    while(f < r) {
+        struct node* temp = q[f++];
+        if (!temp->left) { temp->left = newNode; break; }
+        else q[r++] = temp->left;
+        if (!temp->right) { temp->right = newNode; break; }
+        else q[r++] = temp->right;
     }
 }
       `.trim()
@@ -790,7 +753,6 @@ void insertBT(Node root, int key) {
     search: {
       python: `
 def search_bt(root, key):
-    # Unsorted: must search recursively (DFS)
     if root is None or root.val == key:
         return root
     left_res = search_bt(root.left, key)
@@ -798,13 +760,13 @@ def search_bt(root, key):
         return left_res
     return search_bt(root.right, key)
       `.trim(),
-      c: `
-struct node* search_bt(struct node* root, int key) {
-    if (root == NULL || root->key == key)
+      java: `
+Node searchBT(Node root, int key) {
+    if (root == null || root.key == key)
         return root;
-    struct node* left = search_bt(root->left, key);
-    if (left != NULL) return left;
-    return search_bt(root->right, key);
+    Node left = searchBT(root.left, key);
+    if (left != null) return left;
+    return searchBT(root.right, key);
 }
       `.trim(),
       cpp: `
@@ -816,20 +778,19 @@ Node* search_bt(Node* root, int key) {
     return search_bt(root->right, key);
 }
       `.trim(),
-      java: `
-Node searchBT(Node root, int key) {
-    if (root == null || root.key == key)
+      c: `
+struct node* search_bt(struct node* root, int key) {
+    if (root == NULL || root->key == key)
         return root;
-    Node left = searchBT(root.left, key);
-    if (left != null) return left;
-    return searchBT(root.right, key);
+    struct node* left = search_bt(root->left, key);
+    if (left != NULL) return left;
+    return search_bt(root->right, key);
 }
       `.trim()
     },
     delete: {
       python: `
 def delete_bt(root, key):
-    # Replace target with deepest, rightmost node
     target = find_node(root, key)
     deepest = find_deepest(root)
     if target and deepest:
@@ -837,13 +798,13 @@ def delete_bt(root, key):
         delete_deepest_node(root, deepest)
     return root
       `.trim(),
-      c: `
-void delete_bt(struct node* root, int key) {
-    struct node* target = find(root, key);
-    struct node* deepest = getDeepest(root);
-    if (target && deepest) {
-        target->key = deepest->key;
-        freeDeepest(root, deepest);
+      java: `
+void deleteBT(Node root, int key) {
+    Node target = findNode(root, key);
+    Node deepest = getDeepest(root);
+    if (target != null && deepest != null) {
+        target.key = deepest.key;
+        deleteDeepestNode(root, deepest);
     }
 }
       `.trim(),
@@ -857,13 +818,13 @@ void delete_bt(Node* root, int key) {
     }
 }
       `.trim(),
-      java: `
-void deleteBT(Node root, int key) {
-    Node target = findNode(root, key);
-    Node deepest = getDeepest(root);
-    if (target != null && deepest != null) {
-        target.key = deepest.key;
-        deleteDeepestNode(root, deepest);
+      c: `
+void delete_bt(struct node* root, int key) {
+    struct node* target = find(root, key);
+    struct node* deepest = getDeepest(root);
+    if (target && deepest) {
+        target->key = deepest->key;
+        freeDeepest(root, deepest);
     }
 }
       `.trim()
@@ -877,12 +838,12 @@ def inorder(root):
         print(root.val) # Visit
         inorder(root.right)
     `.trim(),
-    c: `
-void inorder(struct node* root) {
-    if (root != NULL) {
-        inorder(root->left);
-        printf("%d ", root->key); // Visit
-        inorder(root->right);
+    java: `
+void inorder(Node root) {
+    if (root != null) {
+        inorder(root.left);
+        System.out.print(root.key + " "); // Visit
+        inorder(root.right);
     }
 }
     `.trim(),
@@ -895,12 +856,12 @@ void inorder(Node* root) {
     }
 }
     `.trim(),
-    java: `
-void inorder(Node root) {
-    if (root != null) {
-        inorder(root.left);
-        System.out.print(root.key + " "); // Visit
-        inorder(root.right);
+    c: `
+void inorder(struct node* root) {
+    if (root != NULL) {
+        inorder(root->left);
+        printf("%d ", root->key); // Visit
+        inorder(root->right);
     }
 }
     `.trim()
@@ -913,12 +874,12 @@ def preorder(root):
         preorder(root.left)
         preorder(root.right)
     `.trim(),
-    c: `
-void preorder(struct node* root) {
-    if (root != NULL) {
-        printf("%d ", root->key); // Visit
-        preorder(root->left);
-        preorder(root->right);
+    java: `
+void preorder(Node root) {
+    if (root != null) {
+        System.out.print(root.key + " "); // Visit
+        preorder(root.left);
+        preorder(root.right);
     }
 }
     `.trim(),
@@ -931,12 +892,12 @@ void preorder(Node* root) {
     }
 }
     `.trim(),
-    java: `
-void preorder(Node root) {
-    if (root != null) {
-        System.out.print(root.key + " "); // Visit
-        preorder(root.left);
-        preorder(root.right);
+    c: `
+void preorder(struct node* root) {
+    if (root != NULL) {
+        printf("%d ", root->key); // Visit
+        preorder(root->left);
+        preorder(root->right);
     }
 }
     `.trim()
@@ -949,12 +910,12 @@ def postorder(root):
         postorder(root.right)
         print(root.val) # Visit
     `.trim(),
-    c: `
-void postorder(struct node* root) {
-    if (root != NULL) {
-        postorder(root->left);
-        postorder(root->right);
-        printf("%d ", root->key); // Visit
+    java: `
+void postorder(Node root) {
+    if (root != null) {
+        postorder(root.left);
+        postorder(root.right);
+        System.out.print(root.key + " "); // Visit
     }
 }
     `.trim(),
@@ -967,13 +928,106 @@ void postorder(Node* root) {
     }
 }
     `.trim(),
-    java: `
-void postorder(Node root) {
-    if (root != null) {
-        postorder(root.left);
-        postorder(root.right);
-        System.out.print(root.key + " "); // Visit
+    c: `
+void postorder(struct node* root) {
+    if (root != NULL) {
+        postorder(root->left);
+        postorder(root->right);
+        printf("%d ", root->key); // Visit
     }
+}
+    `.trim()
+  },
+  height: {
+    python: `
+def get_height(root):
+    if root is None:
+        return -1
+    left_h = get_height(root.left)
+    right_h = get_height(root.right)
+    return max(left_h, right_h) + 1
+    `.trim(),
+    java: `
+int getHeight(Node root) {
+    if (root == null) return -1;
+    int leftH = getHeight(root.left);
+    int rightH = getHeight(root.right);
+    return Math.max(leftH, rightH) + 1;
+}
+    `.trim(),
+    cpp: `
+int getHeight(Node* root) {
+    if (root == NULL) return -1;
+    int leftH = getHeight(root->left);
+    int rightH = getHeight(root->right);
+    return max(leftH, rightH) + 1;
+}
+    `.trim(),
+    c: `
+int getHeight(struct node* root) {
+    if (root == NULL) return -1;
+    int leftH = getHeight(root->left);
+    int rightH = getHeight(root->right);
+    return (leftH > rightH ? leftH : rightH) + 1;
+}
+    `.trim()
+  },
+  diameter: {
+    python: `
+def get_diameter(root):
+    max_d = 0
+    def height(node):
+        nonlocal max_d
+        if not node: return -1
+        lh = height(node.left)
+        rh = height(node.right)
+        max_d = max(max_d, lh + rh + 2)
+        return max(lh, rh) + 1
+    height(root)
+    return max_d
+    `.trim(),
+    java: `
+class Result { int val = 0; }
+int getDiameter(Node root) {
+    Result res = new Result();
+    height(root, res);
+    return res.val;
+}
+int height(Node node, Result res) {
+    if (node == null) return -1;
+    int lh = height(node.left, res);
+    int rh = height(node.right, res);
+    res.val = Math.max(res.val, lh + rh + 2);
+    return Math.max(lh, rh) + 1;
+}
+    `.trim(),
+    cpp: `
+int height(Node* node, int& max_d) {
+    if (!node) return -1;
+    int lh = height(node->left, max_d);
+    int rh = height(node->right, max_d);
+    max_d = max(max_d, lh + rh + 2);
+    return max(lh, rh) + 1;
+}
+int getDiameter(Node* root) {
+    int max_d = 0;
+    height(root, max_d);
+    return max_d;
+}
+    `.trim(),
+    c: `
+int height(struct node* node, int* max_d) {
+    if (!node) return -1;
+    int lh = height(node->left, max_d);
+    int rh = height(node->right, max_d);
+    int current_d = lh + rh + 2;
+    if (current_d > *max_d) *max_d = current_d;
+    return (lh > rh ? lh : rh) + 1;
+}
+int getDiameter(struct node* root) {
+    int max_d = 0;
+    height(root, &max_d);
+    return max_d;
 }
     `.trim()
   }
@@ -982,849 +1036,1172 @@ void postorder(Node root) {
 const LINE_MAPS = {
   bst: {
     insert: {
-      python: { check_null: 2, recurse_left: 4, recurse_right: 6 },
-      c: { check_null: 2, recurse_left: 4, recurse_right: 6 },
+      python: { check_null: 2, recurse_left: 5, recurse_right: 7 },
+      java: { check_null: 2, recurse_left: 7, recurse_right: 9 },
       cpp: { check_null: 2, recurse_left: 4, recurse_right: 6 },
-      java: { check_null: 2, recurse_left: 6, recurse_right: 8 }
+      c: { check_null: 2, recurse_left: 4, recurse_right: 6 }
     },
     search: {
       python: { check_target: 2, recurse_left: 4, recurse_right: 5 },
-      c: { check_target: 2, recurse_left: 6, recurse_right: 4 },
+      java: { check_target: 2, recurse_left: 5, recurse_right: 7 },
       cpp: { check_target: 2, recurse_left: 6, recurse_right: 4 },
-      java: { check_target: 2, recurse_left: 5, recurse_right: 7 }
+      c: { check_target: 2, recurse_left: 6, recurse_right: 4 }
     },
     delete: {
       python: { check_null: 2, recurse_left: 5, recurse_right: 7, leaf: 10, one_child: 10, find_min: 13, copy_val: 14, delete_min: 15 },
-      c: { check_null: 2, recurse_left: 4, recurse_right: 6, leaf: 10, one_child: 10, find_min: 15, copy_val: 16, delete_min: 17 },
+      java: { check_null: 2, recurse_left: 4, recurse_right: 6, leaf: 8, one_child: 8, find_min: 10, copy_val: 11, delete_min: 12 },
       cpp: { check_null: 2, recurse_left: 4, recurse_right: 6, leaf: 10, one_child: 10, find_min: 15, copy_val: 16, delete_min: 17 },
-      java: { check_null: 2, recurse_left: 4, recurse_right: 6, leaf: 8, one_child: 8, find_min: 10, copy_val: 11, delete_min: 12 }
+      c: { check_null: 2, recurse_left: 4, recurse_right: 6, leaf: 10, one_child: 10, find_min: 15, copy_val: 16, delete_min: 17 }
     }
   },
   bt: {
     insert: {
-      python: { check_null: 4, loop_cond: 8, recurse_left: 10, recurse_right: 15 },
-      c: { check_null: 5, loop_cond: 6, recurse_left: 8, recurse_right: 10 },
+      python: { check_null: 3, loop_cond: 7, recurse_left: 9, recurse_right: 14 },
+      java: { check_null: 4, loop_cond: 5, recurse_left: 7, recurse_right: 9 },
       cpp: { check_null: 4, loop_cond: 5, recurse_left: 7, recurse_right: 9 },
-      java: { check_null: 4, loop_cond: 5, recurse_left: 7, recurse_right: 9 }
+      c: { check_null: 5, loop_cond: 6, recurse_left: 8, recurse_right: 10 }
     },
     search: {
-      python: { check_target: 4, recurse_left: 6, recurse_right: 9 },
-      c: { check_target: 2, recurse_left: 4, recurse_right: 6 },
+      python: { check_target: 2, recurse_left: 4, recurse_right: 6 },
+      java: { check_target: 2, recurse_left: 4, recurse_right: 6 },
       cpp: { check_target: 2, recurse_left: 4, recurse_right: 6 },
-      java: { check_target: 2, recurse_left: 4, recurse_right: 6 }
+      c: { check_target: 2, recurse_left: 4, recurse_right: 6 }
     },
     delete: {
-      python: { check_null: 3, recurse_left: 5, recurse_right: 5 },
-      c: { check_null: 3, recurse_left: 5, recurse_right: 5 },
-      cpp: { check_null: 3, recurse_left: 5, recurse_right: 5 },
-      java: { check_null: 3, recurse_left: 5, recurse_right: 5 }
+      python: { check_null: 2, recurse_left: 4, recurse_right: 5 },
+      java: { check_null: 2, recurse_left: 4, recurse_right: 5 },
+      cpp: { check_null: 2, recurse_left: 4, recurse_right: 5 },
+      c: { check_null: 2, recurse_left: 4, recurse_right: 5 }
     }
   },
   inorder: {
     python: { cond: 2, left: 3, visit: 4, right: 5 },
-    c: { cond: 2, left: 3, visit: 4, right: 5 },
+    java: { cond: 2, left: 3, visit: 4, right: 5 },
     cpp: { cond: 2, left: 3, visit: 4, right: 5 },
-    java: { cond: 2, left: 3, visit: 4, right: 5 }
+    c: { cond: 2, left: 3, visit: 4, right: 5 }
   },
   preorder: {
     python: { cond: 2, visit: 3, left: 4, right: 5 },
-    c: { cond: 2, visit: 3, left: 4, right: 5 },
+    java: { cond: 2, visit: 3, left: 4, right: 5 },
     cpp: { cond: 2, visit: 3, left: 4, right: 5 },
-    java: { cond: 2, visit: 3, left: 4, right: 5 }
+    c: { cond: 2, visit: 3, left: 4, right: 5 }
   },
   postorder: {
     python: { cond: 2, left: 3, right: 4, visit: 5 },
-    c: { cond: 2, left: 3, right: 4, visit: 5 },
+    java: { cond: 2, left: 3, right: 4, visit: 5 },
     cpp: { cond: 2, left: 3, right: 4, visit: 5 },
-    java: { cond: 2, left: 3, right: 4, visit: 5 }
+    c: { cond: 2, left: 3, right: 4, visit: 5 }
+  },
+  height: {
+    python: { cond: 2, left: 4, right: 5, visit: 6 },
+    java: { cond: 2, left: 3, right: 4, visit: 5 },
+    cpp: { cond: 2, left: 3, right: 4, visit: 5 },
+    c: { cond: 2, left: 3, right: 4, visit: 5 }
+  },
+  diameter: {
+    python: { cond: 5, left: 7, right: 8, visit: 9 },
+    java: { cond: 10, left: 11, right: 12, visit: 13 },
+    cpp: { cond: 2, left: 3, right: 4, visit: 5 },
+    c: { cond: 2, left: 3, right: 4, visit: 5 }
   }
 };
 
-const cloneTree = (node) => {
+const getLayoutElements = (root) => {
+  const nodesList = [];
+  const edgesList = [];
+
+  const assignCoords = (node, x, y, dx) => {
+    if (!node) return;
+    node.x = x;
+    node.y = y;
+    nodesList.push(node);
+
+    if (node.left) {
+      edgesList.push({ from: node, to: node.left });
+      assignCoords(node.left, x - dx, y + 80, dx * 0.45);
+    }
+    if (node.right) {
+      edgesList.push({ from: node, to: node.right });
+      assignCoords(node.right, x + dx, y + 80, dx * 0.45);
+    }
+  };
+
+  assignCoords(root, 50, 45, 24);
+  return { nodesList, edgesList };
+};
+
+const resetAllStates = (node) => {
   if (!node) return null;
   return {
-    id: node.id,
-    value: node.value,
-    state: node.state,
-    left: cloneTree(node.left),
-    right: cloneTree(node.right)
+    ...node,
+    state: 'default',
+    left: resetAllStates(node.left),
+    right: resetAllStates(node.right)
   };
 };
 
-const assignTreeCoords = (node, x, y, dx, nodesAccumulator, edgesAccumulator) => {
-  if (!node) return;
-  node.x = x;
-  node.y = y;
-  nodesAccumulator.push(node);
-
-  if (node.left) {
-    edgesAccumulator.push({ from: node, to: node.left });
-    assignTreeCoords(node.left, x - dx, y + 80, dx * 0.46, nodesAccumulator, edgesAccumulator);
-  }
-  if (node.right) {
-    edgesAccumulator.push({ from: node, to: node.right });
-    assignTreeCoords(node.right, x + dx, y + 80, dx * 0.46, nodesAccumulator, edgesAccumulator);
-  }
-};
-
-const getTreeDepth = (node) => {
-  if (!node) return 0;
-  return 1 + Math.max(getTreeDepth(node.left), getTreeDepth(node.right));
-};
-
-export default function BST() {
+export default function App() {
   const [tree, setTree] = useState(null);
   const [value, setValue] = useState("");
   
-  const [isBST, setIsBST] = useState(true); // Default mode set to BST Rules
+  const [isBST, setIsBST] = useState(false);
   const [language, setLanguage] = useState("python");
   const [speed, setSpeed] = useState(600);
-  const [status, setStatus] = useState("Tree is empty. Insert a node or generate a random set.");
-  const [randomSize, setRandomSize] = useState(6);
+  const [status, setStatus] = useState("Tree is empty. Insert a node to begin.");
+  const [highlightLineNum, setHighlightLineNum] = useState(-1);
   const [error, setError] = useState(null);
-
-  // High-Fidelity Time-Machine Playback Engine State Variables
+  
+  // Timeline Playback Engine Variables
   const [steps, setSteps] = useState([]);
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [activeConcept, setActiveConcept] = useState("insert");
 
+  const isVisualizing = steps.length > 0;
   const timerRef = useRef(null);
   const logContainerRef = useRef(null);
-
-  useEffect(() => {
-    return () => clearInterval(timerRef.current);
-  }, []);
-
-  useEffect(() => {
-    if (isPlaying) {
-      clearInterval(timerRef.current);
-      timerRef.current = setInterval(() => {
-        setCurrentStepIdx((prevIdx) => {
-          if (prevIdx >= steps.length - 1) {
-            setIsPlaying(false);
-            return prevIdx;
-          }
-          return prevIdx + 1;
-        });
-      }, speed);
-    } else {
-      clearInterval(timerRef.current);
-    }
-  }, [isPlaying, steps, speed]);
 
   useEffect(() => {
     if (logContainerRef.current) {
       logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
     }
-  }, [currentStepIdx, steps]);
+  }, [steps, currentStepIdx]);
 
   useEffect(() => {
-    handleRandomGenerator(6); // Balanced initial structure
-  }, [isBST]);
+    if (isPlaying) {
+      timerRef.current = setInterval(() => {
+        setCurrentStepIdx((prev) => {
+          if (prev + 1 < steps.length) {
+            return prev + 1;
+          } else {
+            setIsPlaying(false);
+            return prev;
+          }
+        });
+      }, speed);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [isPlaying, steps, speed]);
 
-  const getLayoutElements = (root) => {
-    const nodesList = [];
-    const edgesList = [];
-    assignTreeCoords(root, 400, 50, 180, nodesList, edgesList);
-    const depth = getTreeDepth(root);
-    return { nodesList, edgesList, depth };
-  };
-
-  const getCleanVal = () => {
+  const getVal = () => {
     const num = parseInt(value);
     if (isNaN(num)) {
-      setError("Please enter a valid, non-empty integer value.");
       return null;
     }
     return num;
   };
 
-  const runTreePrecomputation = (initialTree, algorithmType, parameters = {}) => {
-    const localSteps = [];
-    const localLogs = ["Compiling traversal step sequence...", "Initial state loaded."];
-    let tempTree = cloneTree(initialTree);
+  const buildSimulationTimeline = (initialTree, conceptName, executionWorker) => {
+    const timeline = [];
+    let currentTreeState = resetAllStates(initialTree);
+    const log = [];
 
-    let visitsCounter = 0;
-    let maxStackDepth = 0;
-    let pathTrace = []; // Accumulates traversed sequence nodes live!
-
-    const pushStep = (currentTreeState, statusText, stepLineKey, activeEdges = [], backtrack = null) => {
-      localSteps.push({
-        tree: cloneTree(currentTreeState),
-        status: statusText,
-        logs: [...localLogs],
-        lineKey: stepLineKey,
-        callStackEdges: [...activeEdges],
-        backtrackEdge: backtrack ? { ...backtrack } : null,
-        visits: visitsCounter,
-        stackDepth: maxStackDepth,
-        printedPath: [...pathTrace] // Snapshots printed nodes up to this step!
+    const pushStep = ({ treeState, highlight, statusText, edges = [], backtrack = null, visits = 0, maxStack = 0, printed = [], result = null }) => {
+      timeline.push({
+        tree: JSON.parse(JSON.stringify(treeState)),
+        highlight,
+        statusText,
+        edges,
+        backtrack,
+        visits,
+        maxStack,
+        printed: [...printed],
+        logs: [...log],
+        result
       });
     };
 
-    const updateStateByValue = (node, targetValue, stateName) => {
-      if (!node) return null;
-      let nodeRef = { ...node };
-      if (node.value === targetValue) {
-        nodeRef.state = stateName;
-      }
-      nodeRef.left = updateStateByValue(node.left, targetValue, stateName);
-      nodeRef.right = updateStateByValue(node.right, targetValue, stateName);
-      return nodeRef;
+    const addLog = (msg) => {
+      log.push(msg);
     };
 
-    const resetStates = (node) => {
-      if (!node) return null;
-      return {
-        ...node,
-        state: 'default',
-        left: resetStates(node.left),
-        right: resetStates(node.right)
-      };
-    };
+    executionWorker({ currentTreeState, pushStep, addLog });
 
-    const targetVal = parameters.value;
+    if (timeline.length === 0) return;
 
-    if (algorithmType === "insert") {
-      const uniqueId = Math.random().toString(36).substring(2, 9);
-      const newNode = { value: targetVal, id: uniqueId, left: null, right: null, state: 'found' };
+    setSteps(timeline);
+    setCurrentStepIdx(0);
+    
+    // Automatically perform and start playback if Height or Diameter requested
+    const autoRun = ["height", "diameter"].includes(conceptName);
+    setIsPlaying(autoRun);
+    
+    setActiveConcept(conceptName);
+    setStatus(timeline[0]?.statusText || "Loaded.");
+  };
 
-      if (!tempTree) {
-        tempTree = newNode;
-        localLogs.push(`Node value ${targetVal} initialized as structural tree root.`);
-        pushStep(tempTree, `Inserting ${targetVal} as Root...`, "check_null");
-      } 
-      else if (isBST) {
-        let current = tempTree;
+  const handleInsert = () => {
+    const val = getVal();
+    if (val === null) {
+      setError("Please enter a valid node key first.");
+      return;
+    }
+    setError(null);
+    setValue(""); // Empty field automatically
+
+    const uniqueId = Math.random().toString(36).substring(2, 9);
+    const newNode = { value: val, id: uniqueId, left: null, right: null, state: 'found' };
+
+    if (!tree) {
+      buildSimulationTimeline(null, "insert", ({ pushStep, addLog }) => {
+        addLog(`[Insert] Root is empty. Creating new root node: ${val}`);
+        pushStep({
+          treeState: newNode,
+          highlight: "check_null",
+          statusText: `Tree was empty. Created Root node with value ${val}.`,
+          visits: 1,
+          maxStack: 1
+        });
+      });
+      setTree(newNode);
+      return;
+    }
+
+    buildSimulationTimeline(tree, "insert", ({ currentTreeState, pushStep, addLog }) => {
+      addLog(`[Insert] Preparing to add node ${val}...`);
+      let visitsCount = 0;
+      let activeStack = 0;
+
+      if (isBST) {
+        let current = currentTreeState;
         let parent = null;
-        let isDuplicate = false;
+        let duplicateFound = false;
 
         while (current) {
-          visitsCounter++;
-          const currentValue = current.value;
-          tempTree = updateStateByValue(tempTree, currentValue, 'visiting');
-          localLogs.push(`Inspecting node ${currentValue} inside BST range.`);
-          pushStep(tempTree, `Checking Node value ${currentValue}...`, "check_null");
+          visitsCount++;
+          activeStack++;
+          const currentVal = current.value;
+          current.state = 'visiting';
+          addLog(`[BST Visit] Comparing node ${currentVal} with target ${val}`);
+          pushStep({
+            treeState: currentTreeState,
+            highlight: "check_null",
+            statusText: `Visiting node ${currentVal}...`,
+            visits: visitsCount,
+            maxStack: activeStack
+          });
 
-          if (currentValue === targetVal) {
-            isDuplicate = true;
-            tempTree = updateStateByValue(tempTree, currentValue, 'found');
-            localLogs.push(`Duplicate BST value ${targetVal} detected. Halting.`);
-            pushStep(tempTree, `Duplicate BST Value detected! Aborted.`, "check_null");
+          if (currentVal === val) {
+            current.state = 'found';
+            duplicateFound = true;
+            addLog(`[BST Duplicate] Node ${val} already exists. Aborting.`);
+            pushStep({
+              treeState: currentTreeState,
+              highlight: "check_null",
+              statusText: `Node ${val} already exists in BST!`,
+              visits: visitsCount,
+              maxStack: activeStack
+            });
             break;
           }
 
           parent = current;
-          tempTree = updateStateByValue(tempTree, currentValue, 'default');
+          current.state = 'default';
 
-          if (targetVal < currentValue) {
+          if (val < currentVal) {
             current = current.left;
-            pushStep(tempTree, `Descending recursively to Left Subtree...`, "recurse_left");
+            pushStep({
+              treeState: currentTreeState,
+              highlight: "recurse_left",
+              statusText: `Traversing to the left child since ${val} < ${currentVal}`,
+              visits: visitsCount,
+              maxStack: activeStack
+            });
           } else {
             current = current.right;
-            pushStep(tempTree, `Descending recursively to Right Subtree...`, "recurse_right");
+            pushStep({
+              treeState: currentTreeState,
+              highlight: "recurse_right",
+              statusText: `Traversing to the right child since ${val} > ${currentVal}`,
+              visits: visitsCount,
+              maxStack: activeStack
+            });
           }
         }
 
-        if (!isDuplicate) {
-          tempTree = updateStateByValue(tempTree, parent.value, 'pre-op');
-          localLogs.push(`Connected element ${targetVal} under parent ${parent.value}.`);
-          pushStep(tempTree, `Connecting child ${targetVal}...`, "check_null");
-
-          const insertBSTNode = (node) => {
+        if (!duplicateFound) {
+          addLog(`[BST Insert] Attaching new child ${val} under parent ${parent.value}`);
+          const attachNode = (node) => {
             if (!node) return null;
             if (node.id === parent.id) {
-              const withChild = { ...node, state: 'default' };
-              if (targetVal < parent.value) withChild.left = newNode;
-              else withChild.right = newNode;
-              return withChild;
+              const clone = { ...node, state: 'pre-op' };
+              if (val < parent.value) clone.left = newNode;
+              else clone.right = newNode;
+              return clone;
             }
             return {
               ...node,
-              left: insertBSTNode(node.left),
-              right: insertBSTNode(node.right)
+              left: attachNode(node.left),
+              right: attachNode(node.right)
             };
           };
 
-          tempTree = insertBSTNode(tempTree);
-          tempTree = resetStates(tempTree);
-          pushStep(tempTree, `Successfully placed ${targetVal}.`, "check_null");
+          const finalTree = attachNode(currentTreeState);
+          pushStep({
+            treeState: finalTree,
+            highlight: "check_null",
+            statusText: `Successfully attached child ${val} under parent ${parent.value}`,
+            visits: visitsCount,
+            maxStack: activeStack
+          });
+          
+          setTimeout(() => setTree(resetAllStates(finalTree)), 50);
         }
-      } 
-      else {
-        // General Complete Binary Tree Insertion (Level-Order BFS)
+      } else {
+        let queue = [currentTreeState];
         let parentTarget = null;
-        let attachSide = 'left';
-        let queue = [tempTree];
-
-        localLogs.push("Searching for level-order vacancy inside complete tree...");
-        pushStep(tempTree, "Starting Complete BT level-order traversal...", "loop_cond");
+        let side = 'left';
 
         while (queue.length > 0) {
-          visitsCounter++;
-          let current = queue.shift();
-          tempTree = updateStateByValue(tempTree, current.value, 'visiting');
-          pushStep(tempTree, `Inspecting node vacancies on node ${current.value}...`, "loop_cond");
+          visitsCount++;
+          let curr = queue.shift();
+          curr.state = 'visiting';
+          pushStep({
+            treeState: currentTreeState,
+            highlight: "loop_cond",
+            statusText: `BFT Complete binary lookup: checking slots for node ${curr.value}`,
+            visits: visitsCount,
+            maxStack: Math.max(1, queue.length)
+          });
 
-          if (!current.left) {
-            parentTarget = current;
-            attachSide = 'left';
+          if (!curr.left) {
+            parentTarget = curr;
+            side = 'left';
             break;
           } else {
-            queue.push(current.left);
+            queue.push(curr.left);
           }
 
-          if (!current.right) {
-            parentTarget = current;
-            attachSide = 'right';
+          if (!curr.right) {
+            parentTarget = curr;
+            side = 'right';
             break;
           } else {
-            queue.push(current.right);
+            queue.push(curr.right);
           }
-
-          tempTree = updateStateByValue(tempTree, current.value, 'default');
+          curr.state = 'default';
         }
 
-        tempTree = updateStateByValue(tempTree, parentTarget.value, 'pre-op');
-        pushStep(tempTree, `Vacancy identified at ${parentTarget.value}'s ${attachSide}.`, "loop_cond");
-
-        const insertBTNode = (node) => {
+        const attachNodeBT = (node) => {
           if (!node) return null;
           if (node.id === parentTarget.id) {
-            const updatedParent = { ...node, state: 'default' };
-            if (attachSide === 'left') updatedParent.left = newNode;
-            else updatedParent.right = newNode;
-            return updatedParent;
+            const clone = { ...node, state: 'pre-op' };
+            if (side === 'left') clone.left = newNode;
+            else clone.right = newNode;
+            return clone;
           }
           return {
             ...node,
-            left: insertBTNode(node.left),
-            right: insertBTNode(node.right)
+            left: attachNodeBT(node.left),
+            right: attachNodeBT(node.right)
           };
         };
 
-        tempTree = insertBTNode(tempTree);
-        tempTree = resetStates(tempTree);
-        localLogs.push(`Connected element ${targetVal} level-by-level.`);
-        pushStep(tempTree, `Placement completed successfully!`, "loop_cond");
+        const finalTree = attachNodeBT(currentTreeState);
+        addLog(`[BT Level-Order] Connected ${val} to ${side} child of ${parentTarget.value}`);
+        pushStep({
+          treeState: finalTree,
+          highlight: "recurse_left",
+          statusText: `Attached ${val} to ${side} child slot of ${parentTarget.value}`,
+          visits: visitsCount,
+          maxStack: visitsCount
+        });
+
+        setTimeout(() => setTree(resetAllStates(finalTree)), 50);
       }
-    } 
-    else if (algorithmType === "search") {
-      let callStackList = [];
-
-      const searchBSTRecursive = (node, parentId = null) => {
-        if (!node) return;
-        visitsCounter++;
-        maxStackDepth = Math.max(maxStackDepth, callStackList.length + 1);
-
-        if (parentId) {
-          callStackList.push({ from: parentId, to: node.id });
-        }
-
-        tempTree = updateStateByValue(tempTree, node.value, 'visiting');
-        localLogs.push(`Stack frame: searching Node ${node.value} for value ${targetVal}.`);
-        pushStep(tempTree, `Inspecting node ${node.value}...`, "check_target", callStackList);
-
-        if (node.value === targetVal) {
-          tempTree = updateStateByValue(tempTree, node.value, 'found');
-          localLogs.push(`Successfully found match: ${node.value}.`);
-          pushStep(tempTree, `Target element ${targetVal} found!`, "check_target", callStackList);
-          
-          if (parentId) {
-            callStackList.pop();
-          }
-          return true;
-        }
-
-        tempTree = updateStateByValue(tempTree, node.value, 'default');
-
-        let found = false;
-        if (targetVal < node.value) {
-          if (node.left) {
-            found = searchBSTRecursive(node.left, node.id);
-          } else {
-            localLogs.push(`No left branch present under node ${node.value}.`);
-            pushStep(tempTree, `Value ${targetVal} is smaller, but left branch is null.`, "recurse_left", callStackList);
-          }
-        } else {
-          if (node.right) {
-            found = searchBSTRecursive(node.right, node.id);
-          } else {
-            localLogs.push(`No right branch present under node ${node.value}.`);
-            pushStep(tempTree, `Value ${targetVal} is larger, but right branch is null.`, "recurse_right", callStackList);
-          }
-        }
-
-        if (parentId) {
-          const popped = callStackList.pop();
-          pushStep(tempTree, `Backtracking from frame node ${node.value}...`, "check_target", callStackList, popped);
-        }
-        return found;
-      };
-
-      const searchBTRecursive = (node, parentId = null) => {
-        if (!node) return false;
-        visitsCounter++;
-        maxStackDepth = Math.max(maxStackDepth, callStackList.length + 1);
-
-        if (parentId) {
-          callStackList.push({ from: parentId, to: node.id });
-        }
-
-        tempTree = updateStateByValue(tempTree, node.value, 'visiting');
-        localLogs.push(`Recursion search step on node ${node.value}.`);
-        pushStep(tempTree, `Inspecting node ${node.value}...`, "check_target", callStackList);
-
-        if (node.value === targetVal) {
-          tempTree = updateStateByValue(tempTree, node.value, 'found');
-          localLogs.push(`Target ${targetVal} found!`);
-          pushStep(tempTree, `Target element ${targetVal} found!`, "check_target", callStackList);
-          
-          if (parentId) {
-            callStackList.pop();
-          }
-          return true;
-        }
-
-        tempTree = updateStateByValue(tempTree, node.value, 'default');
-
-        // Look left
-        let foundLeft = false;
-        if (node.left) {
-          localLogs.push(`Traversing Left Subtree for key ${targetVal}.`);
-          pushStep(tempTree, `Searching left branch...`, "recurse_left", callStackList);
-          foundLeft = searchBTRecursive(node.left, node.id);
-        }
-
-        if (foundLeft) {
-          if (parentId) {
-            const popped = callStackList.pop();
-            pushStep(tempTree, `Propagating search success frame up...`, "check_target", callStackList, popped);
-          }
-          return true;
-        }
-
-        // Look right
-        let foundRight = false;
-        if (node.right) {
-          localLogs.push(`Traversing Right Subtree for key ${targetVal}.`);
-          pushStep(tempTree, `Searching right branch...`, "recurse_right", callStackList);
-          foundRight = searchBTRecursive(node.right, node.id);
-        }
-
-        if (parentId) {
-          const popped = callStackList.pop();
-          pushStep(tempTree, `Backtracking up search stack...`, "check_target", callStackList, popped);
-        }
-
-        return foundRight;
-      };
-
-      const result = isBST ? searchBSTRecursive(tempTree) : searchBTRecursive(tempTree);
-      if (!result) {
-        tempTree = resetStates(tempTree);
-        localLogs.push(`Target key ${targetVal} not found in structure.`);
-        pushStep(tempTree, "Value is not present in the tree.", "check_target");
-      }
-    } 
-    else if (algorithmType === "delete") {
-      if (isBST) {
-        const findMinNode = (node) => {
-          let curr = node;
-          while (curr && curr.left) curr = curr.left;
-          return curr;
-        };
-
-        const deleteRecursiveBST = (node, delValue) => {
-          if (!node) {
-            localLogs.push(`Target value ${delValue} not present.`);
-            return null;
-          }
-          visitsCounter++;
-
-          tempTree = updateStateByValue(tempTree, node.value, 'visiting');
-          localLogs.push(`Searching deletion site: comparing key on node ${node.value}.`);
-          pushStep(tempTree, `Searching BST deletion target: checking ${node.value}...`, "check_null");
-
-          if (delValue < node.value) {
-            tempTree = updateStateByValue(tempTree, node.value, 'default');
-            node.left = deleteRecursiveBST(node.left, delValue);
-            return { ...node };
-          } 
-          else if (delValue > node.value) {
-            tempTree = updateStateByValue(tempTree, node.value, 'default');
-            node.right = deleteRecursiveBST(node.right, delValue);
-            return { ...node };
-          } 
-          else {
-            tempTree = updateStateByValue(tempTree, node.value, 'deleting');
-            localLogs.push(`Target node found. Standard BST deletion triggered.`);
-            pushStep(tempTree, `Identified delete target ${node.value}.`, "leaf");
-
-            // Leaf node case
-            if (!node.left && !node.right) {
-              localLogs.push("Leaf node pruned.");
-              pushStep(tempTree, "Target is a leaf. Removing and pruning node.", "leaf");
-              return null;
-            }
-
-            // Single child cases
-            if (!node.left) {
-              localLogs.push(`Promoted right child ${node.right.value}.`);
-              pushStep(tempTree, "Only has right child. Promoting right branch...", "one_child");
-              return node.right;
-            }
-            if (!node.right) {
-              localLogs.push(`Promoted left child ${node.left.value}.`);
-              pushStep(tempTree, "Only has left child. Promoting left branch...", "one_child");
-              return node.left;
-            }
-
-            // Two children case
-            localLogs.push("Target contains 2 children. Fetching in-order successor...");
-            pushStep(tempTree, "Two children present. Searching in-order successor...", "find_min");
-
-            const successor = findMinNode(node.right);
-            tempTree = updateStateByValue(tempTree, successor.value, 'pre-op');
-            pushStep(tempTree, `Found successor: ${successor.value}. Overwriting...`, "copy_val");
-
-            const replacedVal = successor.value;
-            node.value = replacedVal;
-            tempTree = updateStateByValue(tempTree, successor.value, 'default');
-            tempTree = updateStateByValue(tempTree, node.value, 'default');
-
-            pushStep(tempTree, `Successor cloned. Pruning duplicate successor node...`, "delete_min");
-            node.right = deleteRecursiveBST(node.right, replacedVal);
-            return { ...node };
-          }
-        };
-
-        const resultTree = deleteRecursiveBST(tempTree, targetVal);
-        tempTree = resetStates(resultTree);
-        pushStep(tempTree, `Finished BST deletion process.`, "check_null");
-      } 
-      else {
-        // Complete Binary Tree Replacement Deletion
-        let targetNode = null;
-        let deepestNode = null;
-
-        // Check if target is in the tree
-        const findTargetNode = (node) => {
-          if (!node) return null;
-          if (node.value === targetVal) return node;
-          let leftFind = findTargetNode(node.left);
-          if (leftFind) return leftFind;
-          return findTargetNode(node.right);
-        };
-
-        targetNode = findTargetNode(tempTree);
-
-        if (!targetNode) {
-          localLogs.push(`Element ${targetVal} not present.`);
-          pushStep(tempTree, "Key is not present in BT.", "check_null");
-        } 
-        else {
-          tempTree = updateStateByValue(tempTree, targetNode.value, 'deleting');
-          localLogs.push(`Located deletion site on BT node ${targetVal}. Finding deepest leaf...`);
-          pushStep(tempTree, `Found target: ${targetVal}. Inspecting deepest rightmost node...`, "check_null");
-
-          // BFS for deepest rightmost node
-          let bfsQueue = [{ node: tempTree, parent: null }];
-          while (bfsQueue.length > 0) {
-            visitsCounter++;
-            let currentItem = bfsQueue.shift();
-            deepestNode = currentItem.node;
-
-            if (currentItem.node.left) {
-              bfsQueue.push({ node: currentItem.node.left, parent: currentItem.node });
-            }
-            if (currentItem.node.right) {
-              bfsQueue.push({ node: currentItem.node.right, parent: currentItem.node });
-            }
-          }
-
-          tempTree = updateStateByValue(tempTree, deepestNode.value, 'pre-op');
-          localLogs.push(`Successor key selected from deepest leaf: ${deepestNode.value}.`);
-          pushStep(tempTree, `Leaf candidate identified: ${deepestNode.value}. Swapping...`, "check_null");
-
-          const swapPruneBT = (node) => {
-            if (!node) return null;
-            let copy = { ...node };
-            if (node.id === targetNode.id) {
-              copy.value = deepestNode.value;
-              copy.state = 'default';
-            }
-            if (copy.id === deepestNode.id) {
-              return null;
-            }
-            copy.left = swapPruneBT(copy.left);
-            copy.right = swapPruneBT(copy.right);
-            return copy;
-          };
-
-          if (tempTree.id === deepestNode.id) {
-            tempTree = null;
-          } else {
-            tempTree = swapPruneBT(tempTree);
-          }
-          tempTree = resetStates(tempTree);
-          localLogs.push(`Pruned deepest leaf ${deepestNode.value} and overridden delete site.`);
-          pushStep(tempTree, `Pruned deepest rightmost leaf and re-arranged tree structure.`, "check_null");
-        }
-      }
-    } 
-    else if (["inorder", "preorder", "postorder"].includes(algorithmType)) {
-      let callStackList = [];
-
-      const traverseTree = (node, parentId = null) => {
-        if (!node) return;
-        visitsCounter++;
-        maxStackDepth = Math.max(maxStackDepth, callStackList.length + 1);
-
-        if (parentId) {
-          callStackList.push({ from: parentId, to: node.id });
-        }
-
-        if (algorithmType === "preorder") {
-          tempTree = updateStateByValue(tempTree, node.value, 'found');
-          pathTrace.push(node.value);
-          localLogs.push(`Visited node ${node.value}. Preorder path: [${pathTrace.join(' -> ')}]`);
-          pushStep(tempTree, `Root Visit: Node ${node.value}`, "visit", callStackList);
-
-          if (node.left) {
-            pushStep(tempTree, "Entering Left Subtree...", "left", callStackList);
-            traverseTree(node.left, node.id);
-          }
-          if (node.right) {
-            pushStep(tempTree, "Entering Right Subtree...", "right", callStackList);
-            traverseTree(node.right, node.id);
-          }
-        } 
-        else if (algorithmType === "inorder") {
-          if (node.left) {
-            pushStep(tempTree, "Entering Left Subtree...", "left", callStackList);
-            traverseTree(node.left, node.id);
-          }
-
-          tempTree = updateStateByValue(tempTree, node.value, 'found');
-          pathTrace.push(node.value);
-          localLogs.push(`Visited node ${node.value}. Inorder path: [${pathTrace.join(' -> ')}]`);
-          pushStep(tempTree, `Visit Middle: Node ${node.value}`, "visit", callStackList);
-
-          if (node.right) {
-            pushStep(tempTree, "Entering Right Subtree...", "right", callStackList);
-            traverseTree(node.right, node.id);
-          }
-        } 
-        else if (algorithmType === "postorder") {
-          if (node.left) {
-            pushStep(tempTree, "Entering Left Subtree...", "left", callStackList);
-            traverseTree(node.left, node.id);
-          }
-          if (node.right) {
-            pushStep(tempTree, "Entering Right Subtree...", "right", callStackList);
-            traverseTree(node.right, node.id);
-          }
-
-          tempTree = updateStateByValue(tempTree, node.value, 'found');
-          pathTrace.push(node.value);
-          localLogs.push(`Visited node ${node.value}. Postorder path: [${pathTrace.join(' -> ')}]`);
-          pushStep(tempTree, `Visit Post: Node ${node.value}`, "visit", callStackList);
-        }
-
-        if (parentId) {
-          const popped = callStackList.pop();
-          pushStep(tempTree, `Unwinding recursive traversal frame...`, "cond", callStackList, popped);
-        }
-      };
-
-      traverseTree(tempTree);
-      tempTree = resetStates(tempTree);
-      pushStep(tempTree, `Completed Traversal path: [ ${pathTrace.join(' -> ')} ]`, "cond");
-    }
-
-    return localSteps;
-  };
-
-  const startPlayingSteps = (precomputedSteps, initialConcept = "insert", autoPlay = false) => {
-    setActiveConcept(initialConcept);
-    setSteps(precomputedSteps);
-    setCurrentStepIdx(0);
-    setIsPlaying(autoPlay); // Defaults to false, so user can choose to Play or use manual Next/Prev!
-  };
-
-  const handleInsert = () => {
-    const val = getCleanVal();
-    if (val === null) return;
-    setError(null);
-    setIsPlaying(false);
-    setValue(""); // Clear the input field immediately after reading value (Ref: image_78fe5b.png)
-
-    const generatedTimeline = runTreePrecomputation(tree, "insert", { value: val });
-    // Inserting doesn't autoplay, allowing the user to examine the tree, scrub or press Play/Next/Prev
-    startPlayingSteps(generatedTimeline, "insert", false);
-    setTree(generatedTimeline[generatedTimeline.length - 1].tree);
+    });
   };
 
   const handleSearch = () => {
-    const val = getCleanVal();
-    if (val === null) return;
+    const val = getVal();
+    if (val === null || !tree) return;
+    setValue(""); // Empty field automatically
     setError(null);
-    setIsPlaying(false);
 
-    if (!tree) {
-      setError("Cannot search inside an empty tree structure.");
-      return;
-    }
-    setValue(""); // Clear the input field for seamless sequential searches
+    buildSimulationTimeline(tree, "search", ({ currentTreeState, pushStep, addLog }) => {
+      addLog(`[Search] Initiating search for target node: ${val}...`);
+      let visitsCount = 0;
+      let activeStack = 0;
+      const callStackEdges = [];
 
-    const generatedTimeline = runTreePrecomputation(tree, "search", { value: val });
-    // Loads paused so user can manually step through comparisons
-    startPlayingSteps(generatedTimeline, "search", false);
+      if (isBST) {
+        const searchBST = (node, parentId = null) => {
+          if (!node) return null;
+          visitsCount++;
+          activeStack++;
+          node.state = 'visiting';
+
+          if (parentId) callStackEdges.push({ from: parentId, to: node.id });
+          addLog(`[Search Step] Visiting node ${node.value}`);
+          pushStep({
+            treeState: currentTreeState,
+            highlight: "check_target",
+            statusText: `Comparing node ${node.value} with target ${val}`,
+            edges: [...callStackEdges],
+            visits: visitsCount,
+            maxStack: activeStack
+          });
+
+          if (node.value === val) {
+            node.state = 'found';
+            addLog(`[Search Success] Target ${val} found!`);
+            pushStep({
+              treeState: currentTreeState,
+              highlight: "check_target",
+              statusText: `Target ${val} found successfully at node!`,
+              edges: [...callStackEdges],
+              visits: visitsCount,
+              maxStack: activeStack
+            });
+            return node;
+          }
+
+          node.state = 'default';
+          let res = null;
+          if (val < node.value) {
+            pushStep({
+              treeState: currentTreeState,
+              highlight: "recurse_left",
+              statusText: `Target ${val} < ${node.value}, descending left`,
+              edges: [...callStackEdges],
+              visits: visitsCount,
+              maxStack: activeStack
+            });
+            res = searchBST(node.left, node.id);
+          } else {
+            pushStep({
+              treeState: currentTreeState,
+              highlight: "recurse_right",
+              statusText: `Target ${val} > ${node.value}, descending right`,
+              edges: [...callStackEdges],
+              visits: visitsCount,
+              maxStack: activeStack
+            });
+            res = searchBST(node.right, node.id);
+          }
+
+          if (parentId) {
+            const edgeIndex = callStackEdges.findIndex(e => e.from === parentId && e.to === node.id);
+            if (edgeIndex !== -1) callStackEdges.splice(edgeIndex, 1);
+          }
+          activeStack--;
+          return res;
+        };
+        searchBST(currentTreeState);
+      } else {
+        const searchBT = (node, parentId = null) => {
+          if (!node) return false;
+          visitsCount++;
+          activeStack++;
+          node.state = 'visiting';
+
+          if (parentId) callStackEdges.push({ from: parentId, to: node.id });
+          addLog(`[DFS Search] Visiting node ${node.value}`);
+          pushStep({
+            treeState: currentTreeState,
+            highlight: "check_target",
+            statusText: `DFS comparing node ${node.value} with target ${val}`,
+            edges: [...callStackEdges],
+            visits: visitsCount,
+            maxStack: activeStack
+          });
+
+          if (node.value === val) {
+            node.state = 'found';
+            addLog(`[Search Success] Target found at node ${val}`);
+            pushStep({
+              treeState: currentTreeState,
+              highlight: "check_target",
+              statusText: `Found target ${val}!`,
+              edges: [...callStackEdges],
+              visits: visitsCount,
+              maxStack: activeStack
+            });
+            return true;
+          }
+
+          node.state = 'default';
+          pushStep({
+            treeState: currentTreeState,
+            highlight: "recurse_left",
+            statusText: `Target not at ${node.value}, searching left subtree`,
+            edges: [...callStackEdges],
+            visits: visitsCount,
+            maxStack: activeStack
+          });
+
+          let leftRes = searchBT(node.left, node.id);
+          if (leftRes) return true;
+
+          pushStep({
+            treeState: currentTreeState,
+            highlight: "recurse_right",
+            statusText: `Target not in left subtree of ${node.value}, searching right subtree`,
+            edges: [...callStackEdges],
+            visits: visitsCount,
+            maxStack: activeStack
+          });
+
+          let rightRes = searchBT(node.right, node.id);
+          if (rightRes) return true;
+
+          if (parentId) {
+            const edgeIndex = callStackEdges.findIndex(e => e.from === parentId && e.to === node.id);
+            if (edgeIndex !== -1) callStackEdges.splice(edgeIndex, 1);
+          }
+          activeStack--;
+          return false;
+        };
+        searchBT(currentTreeState);
+      }
+    });
   };
 
   const handleDelete = () => {
-    const val = getCleanVal();
-    if (val === null) return;
+    const val = getVal();
+    if (val === null || !tree) return;
+    setValue(""); // Empty field automatically
     setError(null);
-    setIsPlaying(false);
 
-    if (!tree) {
-      setError("Cannot delete from an empty tree structure.");
-      return;
-    }
-    setValue(""); // Clear the input field upon deletion start
+    buildSimulationTimeline(tree, "delete", ({ currentTreeState, pushStep, addLog }) => {
+      addLog(`[Delete] Requesting deletion of node: ${val}...`);
+      let visitsCount = 0;
+      let activeStack = 0;
 
-    const generatedTimeline = runTreePrecomputation(tree, "delete", { value: val });
-    // Loads paused
-    startPlayingSteps(generatedTimeline, "delete", false);
-    setTree(generatedTimeline[generatedTimeline.length - 1].tree);
+      if (isBST) {
+        const findMin = (node) => {
+          let curr = node;
+          while (curr && curr.left) {
+            curr = curr.left;
+          }
+          return curr;
+        };
+
+        const deleteNodeBST = (node, targetValue) => {
+          if (!node) return null;
+          visitsCount++;
+          activeStack++;
+          node.state = 'visiting';
+          addLog(`[BST Delete] Traversing at node ${node.value}`);
+          pushStep({
+            treeState: currentTreeState,
+            highlight: "check_null",
+            statusText: `Checking node ${node.value} for deletion...`,
+            visits: visitsCount,
+            maxStack: activeStack
+          });
+
+          if (targetValue < node.value) {
+            node.state = 'default';
+            pushStep({
+              treeState: currentTreeState,
+              highlight: "recurse_left",
+              statusText: `Descending left since target ${targetValue} < ${node.value}`,
+              visits: visitsCount,
+              maxStack: activeStack
+            });
+            node.left = deleteNodeBST(node.left, targetValue);
+          } else if (targetValue > node.value) {
+            node.state = 'default';
+            pushStep({
+              treeState: currentTreeState,
+              highlight: "recurse_right",
+              statusText: `Descending right since target ${targetValue} > ${node.value}`,
+              visits: visitsCount,
+              maxStack: activeStack
+            });
+            node.right = deleteNodeBST(node.right, targetValue);
+          } else {
+            node.state = 'deleting';
+            addLog(`[BST Match] Found target node ${node.value} to delete.`);
+            pushStep({
+              treeState: currentTreeState,
+              highlight: "leaf",
+              statusText: `Found target node ${node.value}! Evaluating children...`,
+              visits: visitsCount,
+              maxStack: activeStack
+            });
+
+            if (!node.left && !node.right) {
+              addLog(`[Delete Case 1] Leaf node removed.`);
+              pushStep({
+                treeState: currentTreeState,
+                highlight: "leaf",
+                statusText: `Node is a leaf. Pruning node completely.`,
+                visits: visitsCount,
+                maxStack: activeStack
+              });
+              activeStack--;
+              return null;
+            }
+            if (!node.left) {
+              addLog(`[Delete Case 2] Single child (Right) promoted.`);
+              pushStep({
+                treeState: currentTreeState,
+                highlight: "one_child",
+                statusText: `Node has only right child. Promoting right child.`,
+                visits: visitsCount,
+                maxStack: activeStack
+              });
+              activeStack--;
+              return node.right;
+            }
+            if (!node.right) {
+              addLog(`[Delete Case 2] Single child (Left) promoted.`);
+              pushStep({
+                treeState: currentTreeState,
+                highlight: "one_child",
+                statusText: `Node has only left child. Promoting left child.`,
+                visits: visitsCount,
+                maxStack: activeStack
+              });
+              activeStack--;
+              return node.left;
+            }
+
+            addLog(`[Delete Case 3] Two children. Finding in-order successor...`);
+            const successor = findMin(node.right);
+            node.state = 'deleting';
+            pushStep({
+              treeState: currentTreeState,
+              highlight: "find_min",
+              statusText: `Finding in-order successor (minimum value of right subtree)...`,
+              visits: visitsCount,
+              maxStack: activeStack
+            });
+
+            node.value = successor.value;
+            node.state = 'pre-op';
+            addLog(`[BST Successor] Replacing target value with successor value ${successor.value}`);
+            pushStep({
+              treeState: currentTreeState,
+              highlight: "copy_val",
+              statusText: `Replaced node value with successor: ${successor.value}`,
+              visits: visitsCount,
+              maxStack: activeStack
+            });
+
+            pushStep({
+              treeState: currentTreeState,
+              highlight: "delete_min",
+              statusText: `Deleting original successor node ${successor.value} from right subtree...`,
+              visits: visitsCount,
+              maxStack: activeStack
+            });
+            node.right = deleteNodeBST(node.right, successor.value);
+          }
+
+          activeStack--;
+          return node;
+        };
+
+        const finalTree = deleteNodeBST(currentTreeState, val);
+        setTimeout(() => setTree(resetAllStates(finalTree)), 50);
+      } else {
+        let deepestNode = null;
+        let targetNode = null;
+
+        let queue = [{ node: currentTreeState, parent: null }];
+        while (queue.length > 0) {
+          visitsCount++;
+          let currentItem = queue.shift();
+          deepestNode = currentItem.node;
+
+          if (currentItem.node.value === val) {
+            targetNode = currentItem.node;
+          }
+
+          if (currentItem.node.left) {
+            queue.push({ node: currentItem.node.left, parent: currentItem.node });
+          }
+          if (currentItem.node.right) {
+            queue.push({ node: currentItem.node.right, parent: currentItem.node });
+          }
+        }
+
+        if (!targetNode) {
+          addLog(`[BT Delete] Node ${val} not found.`);
+          pushStep({
+            treeState: currentTreeState,
+            highlight: "check_null",
+            statusText: `Target node ${val} not found in BT!`,
+            visits: visitsCount,
+            maxStack: visitsCount
+          });
+          return;
+        }
+
+        targetNode.state = 'deleting';
+        deepestNode.state = 'pre-op';
+        addLog(`[BT Delete] Swapping target ${val} with deepest rightmost node ${deepestNode.value}`);
+        pushStep({
+          treeState: currentTreeState,
+          highlight: "recurse_left",
+          statusText: `Found target ${val}. Swapping with deepest node ${deepestNode.value}.`,
+          visits: visitsCount,
+          maxStack: visitsCount
+        });
+
+        const pruneDeepest = (node) => {
+          if (!node) return null;
+          if (node.id === deepestNode.id) return null;
+          if (node.id === targetNode.id) {
+            node.value = deepestNode.value;
+            node.state = 'default';
+          }
+          node.left = pruneDeepest(node.left);
+          node.right = pruneDeepest(node.right);
+          return node;
+        };
+
+        if (currentTreeState.id === deepestNode.id) {
+          pushStep({
+            treeState: null,
+            highlight: "check_null",
+            statusText: `Cleared last remaining node. Tree is now empty.`,
+            visits: visitsCount,
+            maxStack: 1
+          });
+          setTimeout(() => setTree(null), 50);
+        } else {
+          const finalTree = pruneDeepest(currentTreeState);
+          pushStep({
+            treeState: finalTree,
+            highlight: "recurse_right",
+            statusText: `Swapped value and pruned deepest node ${deepestNode.value}`,
+            visits: visitsCount,
+            maxStack: visitsCount
+          });
+          setTimeout(() => setTree(resetAllStates(finalTree)), 50);
+        }
+      }
+    });
   };
 
   const handleTraversal = (mode) => {
+    if (!tree) return;
     setError(null);
-    setIsPlaying(false);
 
-    if (!tree) {
-      setError("Empty trees cannot be traversed.");
-      return;
-    }
+    buildSimulationTimeline(tree, mode, ({ currentTreeState, pushStep, addLog }) => {
+      addLog(`--- Starting ${mode.toUpperCase()} Traversal ---`);
+      let visitsCount = 0;
+      let activeStack = 0;
+      const callStackEdges = [];
+      const printedValues = [];
 
-    const generatedTimeline = runTreePrecomputation(tree, mode);
-    // CRITICAL: Loads completely paused! First step loads, user can play auto or manual click next/prev.
-    startPlayingSteps(generatedTimeline, mode, false);
+      const traverse = (node, parentId = null) => {
+        if (!node) return;
+        visitsCount++;
+        activeStack++;
+        node.state = 'visiting';
+
+        if (parentId) callStackEdges.push({ from: parentId, to: node.id });
+        addLog(`[Call Frame] Traversing node ${node.value}`);
+        
+        if (mode === 'preorder') {
+          node.state = 'found';
+          printedValues.push(node.value);
+          addLog(`[Visit] Printing node ${node.value}`);
+          pushStep({
+            treeState: currentTreeState,
+            highlight: "visit",
+            statusText: `PRE-ORDER Visit: printing root node ${node.value}`,
+            edges: [...callStackEdges],
+            visits: visitsCount,
+            maxStack: activeStack,
+            printed: [...printedValues]
+          });
+        } else {
+          pushStep({
+            treeState: currentTreeState,
+            highlight: "cond",
+            statusText: `Recursive frame for node ${node.value}`,
+            edges: [...callStackEdges],
+            visits: visitsCount,
+            maxStack: activeStack,
+            printed: [...printedValues]
+          });
+        }
+
+        pushStep({
+          treeState: currentTreeState,
+          highlight: "left",
+          statusText: `Navigating to left subtree of node ${node.value}`,
+          edges: [...callStackEdges],
+          visits: visitsCount,
+          maxStack: activeStack,
+          printed: [...printedValues]
+        });
+        traverse(node.left, node.id);
+
+        if (mode === 'inorder') {
+          node.state = 'found';
+          printedValues.push(node.value);
+          addLog(`[Visit] Printing node ${node.value}`);
+          pushStep({
+            treeState: currentTreeState,
+            highlight: "visit",
+            statusText: `IN-ORDER Visit: printing node ${node.value}`,
+            edges: [...callStackEdges],
+            visits: visitsCount,
+            maxStack: activeStack,
+            printed: [...printedValues]
+          });
+        }
+
+        pushStep({
+          treeState: currentTreeState,
+          highlight: "right",
+          statusText: `Navigating to right subtree of node ${node.value}`,
+          edges: [...callStackEdges],
+          visits: visitsCount,
+          maxStack: activeStack,
+          printed: [...printedValues]
+        });
+        traverse(node.right, node.id);
+
+        if (mode === 'postorder') {
+          node.state = 'found';
+          printedValues.push(node.value);
+          addLog(`[Visit] Printing node ${node.value}`);
+          pushStep({
+            treeState: currentTreeState,
+            highlight: "visit",
+            statusText: `POST-ORDER Visit: printing node ${node.value}`,
+            edges: [...callStackEdges],
+            visits: visitsCount,
+            maxStack: activeStack,
+            printed: [...printedValues]
+          });
+        }
+
+        if (parentId) {
+          const edgeIndex = callStackEdges.findIndex(e => e.from === parentId && e.to === node.id);
+          if (edgeIndex !== -1) callStackEdges.splice(edgeIndex, 1);
+        }
+        activeStack--;
+      };
+
+      traverse(currentTreeState);
+      addLog(`[Completed] ${mode.toUpperCase()} Traversal Complete.`);
+    });
   };
 
-  const handleReset = () => {
-    setIsPlaying(false);
-    setTree(null);
-    setValue("");
+  const handleHeight = () => {
+    if (!tree) return;
+    const targetVal = getVal();
+    setValue(""); // Clear automatically
     setError(null);
-    setSteps([]);
-    setCurrentStepIdx(0);
-    setStatus("Tree is empty. Insert a node to begin.");
-  };
 
-  const togglePause = () => {
-    setIsPlaying(!isPlaying);
-  };
+    buildSimulationTimeline(tree, "height", ({ currentTreeState, pushStep, addLog }) => {
+      let startNodeState = currentTreeState;
+      let startValText = "absolute Root";
 
-  const handleRandomGenerator = (size = 6) => {
-    setIsPlaying(false);
-    setError(null);
-    setSteps([]);
-    setCurrentStepIdx(0);
-
-    const generatedUniqueArray = [];
-    while (generatedUniqueArray.length < size) {
-      const candidate = Math.floor(Math.random() * 85) + 10;
-      if (!generatedUniqueArray.includes(candidate)) {
-        generatedUniqueArray.push(candidate);
+      if (targetVal !== null) {
+        // Find the target node in the cloned tree
+        const findNode = (n) => {
+          if (!n) return null;
+          if (n.value === targetVal) return n;
+          return findNode(n.left) || findNode(n.right);
+        };
+        const foundNode = findNode(currentTreeState);
+        if (!foundNode) {
+          addLog(`[Height Error] Target node ${targetVal} not found in the tree.`);
+          pushStep({
+            treeState: currentTreeState,
+            highlight: "cond",
+            statusText: `Starting node ${targetVal} not found in the tree.`,
+          });
+          return;
+        }
+        startNodeState = foundNode;
+        startValText = `Node [${targetVal}]`;
       }
+
+      addLog(`[Height] Computing the Maximum Height starting from ${startValText} recursively...`);
+      let visitsCount = 0;
+      let activeStack = 0;
+      const callStackEdges = [];
+
+      const getHeightVal = (node, parentId = null) => {
+        if (!node) {
+          return -1;
+        }
+        visitsCount++;
+        activeStack++;
+        node.state = 'visiting';
+
+        if (parentId) callStackEdges.push({ from: parentId, to: node.id });
+        pushStep({
+          treeState: currentTreeState,
+          highlight: "cond",
+          statusText: `Checking Height recursive frame for node ${node.value}`,
+          edges: [...callStackEdges],
+          visits: visitsCount,
+          maxStack: activeStack
+        });
+
+        pushStep({
+          treeState: currentTreeState,
+          highlight: "left",
+          statusText: `Entering Left subtree of node ${node.value} for height computation`,
+          edges: [...callStackEdges],
+          visits: visitsCount,
+          maxStack: activeStack
+        });
+        const leftH = getHeightVal(node.left, node.id);
+
+        pushStep({
+          treeState: currentTreeState,
+          highlight: "right",
+          statusText: `Entering Right subtree of node ${node.value} for height computation`,
+          edges: [...callStackEdges],
+          visits: visitsCount,
+          maxStack: activeStack
+        });
+        const rightH = getHeightVal(node.right, node.id);
+
+        node.state = 'found';
+        const finalHeight = Math.max(leftH, rightH) + 1;
+        addLog(`[Subtree Height] Node ${node.value}: Max(${leftH}, ${rightH}) + 1 = ${finalHeight}`);
+        
+        const isAbsoluteSubtreeRoot = node.id === startNodeState.id;
+        pushStep({
+          treeState: currentTreeState,
+          highlight: "visit",
+          statusText: `Height at node ${node.value} is max(${leftH}, ${rightH}) + 1 = ${finalHeight}`,
+          edges: [...callStackEdges],
+          visits: visitsCount,
+          maxStack: activeStack,
+          result: isAbsoluteSubtreeRoot ? `Height from ${startValText} : ${finalHeight}` : null
+        });
+
+        if (parentId) {
+          const idx = callStackEdges.findIndex(e => e.from === parentId && e.to === node.id);
+          if (idx !== -1) callStackEdges.splice(idx, 1);
+        }
+        activeStack--;
+        return finalHeight;
+      };
+
+      getHeightVal(startNodeState);
+    });
+  };
+
+  const handleDiameter = () => {
+    if (!tree) return;
+    const targetVal = getVal();
+    setValue(""); // Clear automatically
+    setError(null);
+
+    buildSimulationTimeline(tree, "diameter", ({ currentTreeState, pushStep, addLog }) => {
+      let startNodeState = currentTreeState;
+      let startValText = "absolute Root";
+
+      if (targetVal !== null) {
+        const findNode = (n) => {
+          if (!n) return null;
+          if (n.value === targetVal) return n;
+          return findNode(n.left) || findNode(n.right);
+        };
+        const foundNode = findNode(currentTreeState);
+        if (!foundNode) {
+          addLog(`[Diameter Error] Target node ${targetVal} not found in the tree.`);
+          pushStep({
+            treeState: currentTreeState,
+            highlight: "cond",
+            statusText: `Starting node ${targetVal} not found in the tree.`,
+          });
+          return;
+        }
+        startNodeState = foundNode;
+        startValText = `Node [${targetVal}]`;
+      }
+
+      addLog(`[Diameter] Tracking longest path recursive diameter starting from ${startValText}...`);
+      let visitsCount = 0;
+      let activeStack = 0;
+      let globalMaxDiameter = 0;
+      const callStackEdges = [];
+
+      const computeDiameterHeight = (node, parentId = null) => {
+        if (!node) return -1;
+        visitsCount++;
+        activeStack++;
+        node.state = 'visiting';
+
+        if (parentId) callStackEdges.push({ from: parentId, to: node.id });
+        pushStep({
+          treeState: currentTreeState,
+          highlight: "cond",
+          statusText: `Diameter frame height compute: node ${node.value}`,
+          edges: [...callStackEdges],
+          visits: visitsCount,
+          maxStack: activeStack
+        });
+
+        pushStep({
+          treeState: currentTreeState,
+          highlight: "left",
+          statusText: `Diameter: calculating height on left of node ${node.value}`,
+          edges: [...callStackEdges],
+          visits: visitsCount,
+          maxStack: activeStack
+        });
+        const lh = computeDiameterHeight(node.left, node.id);
+
+        pushStep({
+          treeState: currentTreeState,
+          highlight: "right",
+          statusText: `Diameter: calculating height on right of node ${node.value}`,
+          edges: [...callStackEdges],
+          visits: visitsCount,
+          maxStack: activeStack
+        });
+        const rh = computeDiameterHeight(node.right, node.id);
+
+        node.state = 'found';
+        const diameterAtNode = lh + rh + 2;
+        if (diameterAtNode > globalMaxDiameter) {
+          globalMaxDiameter = diameterAtNode;
+        }
+
+        addLog(`[Diameter Step] Node ${node.value}: Path through this node is ${diameterAtNode} edges. Current global max: ${globalMaxDiameter}`);
+        
+        const isAbsoluteSubtreeRoot = node.id === startNodeState.id;
+        pushStep({
+          treeState: currentTreeState,
+          highlight: "visit",
+          statusText: `Sub-diameter at ${node.value} = ${lh} (left) + ${rh} (right) + 2 = ${diameterAtNode}. Global max: ${globalMaxDiameter}`,
+          edges: [...callStackEdges],
+          visits: visitsCount,
+          maxStack: activeStack,
+          result: isAbsoluteSubtreeRoot ? `Diameter from ${startValText} : ${globalMaxDiameter}` : null
+        });
+
+        if (parentId) {
+          const idx = callStackEdges.findIndex(e => e.from === parentId && e.to === node.id);
+          if (idx !== -1) callStackEdges.splice(idx, 1);
+        }
+        activeStack--;
+        return Math.max(lh, rh) + 1;
+      };
+
+      computeDiameterHeight(startNodeState);
+      addLog(`[Completed] Absolute Diameter starting from ${startValText}: ${globalMaxDiameter} edges.`);
+    });
+  };
+
+  const handleRandomTree = () => {
+    setError(null);
+    const size = Math.floor(Math.random() * 4) + 6;
+    const values = [];
+    while (values.length < size) {
+      const val = Math.floor(Math.random() * 85) + 10;
+      if (!values.includes(val)) values.push(val);
     }
 
     if (isBST) {
-      // Create beautifully balanced BST
-      generatedUniqueArray.sort((a, b) => a - b);
-      
-      const constructBSTRecursive = (arr, start, end) => {
+      values.sort((a, b) => a - b);
+      const sortedInsert = (arr, start, end) => {
         if (start > end) return null;
         const mid = Math.floor((start + end) / 2);
-        const uuid = Math.random().toString(36).substring(2, 9);
-        return {
+        const node = {
           value: arr[mid],
-          id: uuid,
-          state: 'default',
-          left: constructBSTRecursive(arr, start, mid - 1),
-          right: constructBSTRecursive(arr, mid + 1, end)
+          id: Math.random().toString(36).substring(2, 9),
+          left: null,
+          right: null,
+          state: 'default'
+        };
+        node.left = sortedInsert(arr, start, mid - 1);
+        node.right = sortedInsert(arr, mid + 1, end);
+        return node;
+      };
+      const rootNode = sortedInsert(values, 0, values.length - 1);
+      setTree(rootNode);
+    } else {
+      const buildCBT = (arr, i) => {
+        if (i >= arr.length) return null;
+        return {
+          value: arr[i],
+          id: Math.random().toString(36).substring(2, 9),
+          left: buildCBT(arr, 2 * i + 1),
+          right: buildCBT(arr, 2 * i + 2),
+          state: 'default'
         };
       };
-
-      const finalBST = constructBSTRecursive(generatedUniqueArray, 0, generatedUniqueArray.length - 1);
-      setTree(finalBST);
-      setStatus("Balanced BST generated. Click Traversal, Search, or Insert to begin.");
-    } 
-    else {
-      // Complete General Binary Tree Construction
-      const constructBTComplete = (arr) => {
-        if (!arr.length) return null;
-        const nodes = arr.map((val) => ({
-          value: val,
-          id: Math.random().toString(36).substring(2, 9),
-          state: 'default',
-          left: null,
-          right: null
-        }));
-
-        for (let i = 0; i < nodes.length; i++) {
-          const leftIdx = 2 * i + 1;
-          const rightIdx = 2 * i + 2;
-          if (leftIdx < nodes.length) nodes[i].left = nodes[leftIdx];
-          if (rightIdx < nodes.length) nodes[i].right = nodes[rightIdx];
-        }
-        return nodes[0];
-      };
-
-      const finalBT = constructBTComplete(generatedUniqueArray);
-      setTree(finalBT);
-      setStatus("Complete BT generated level-by-level. Recursive DFS Search required.");
+      const rootNode = buildCBT(values, 0);
+      setTree(rootNode);
     }
+
+    setSteps([]);
+    setCurrentStepIdx(0);
+    setIsPlaying(false);
+    setHighlightLineNum(-1);
+    setStatus("Generated random complete structure. Use traversals or properties!");
   };
 
-  // Safe layout state calculations
-  const activeStep = steps[currentStepIdx] || {
-    tree: tree,
-    status: status,
-    logs: ["Ready. Select or generate a tree structure to simulate."],
-    lineKey: -1,
-    callStackEdges: [],
-    backtrackEdge: null,
-    visits: 0,
-    stackDepth: 0,
-    printedPath: []
+  const handleReset = () => {
+    setSteps([]);
+    setCurrentStepIdx(0);
+    setIsPlaying(false);
+    setHighlightLineNum(-1);
+    setTree(null);
+    setValue("");
+    setError(null);
+    setStatus("Tree structure reset. Insert a node to begin.");
   };
 
-  const activeSnippetSet = (activeConcept === "inorder" || activeConcept === "preorder" || activeConcept === "postorder")
+  const activeSnippetSet = (activeConcept === "inorder" || activeConcept === "preorder" || activeConcept === "postorder" || activeConcept === "height" || activeConcept === "diameter")
     ? codeSnippets[activeConcept][language]
     : codeSnippets[isBST ? "bst" : "bt"][activeConcept][language];
 
   const codeLines = activeSnippetSet.trim().split('\n');
-  const highlightedLine = LINE_MAPS[activeConcept === "inorder" || activeConcept === "preorder" || activeConcept === "postorder" ? activeConcept : (isBST ? "bst" : "bt")]?.[activeConcept]?.[language]?.[activeStep.lineKey] ?? -1;
 
-  const statusColor = activeStep.status.includes("found") || activeStep.status.includes("Success") || activeStep.status.includes("Cloned")
+  const currentStep = steps[currentStepIdx] || null;
+  const currentTree = currentStep ? currentStep.tree : tree;
+  const currentHighlight = currentStep ? currentStep.highlight : null;
+  const currentLogs = currentStep ? currentStep.logs : [];
+  const currentPrinted = currentStep ? currentStep.printed : [];
+  const currentVisits = currentStep ? currentStep.visits : 0;
+  const currentMaxStack = currentStep ? currentStep.maxStack : 0;
+  const currentEdges = currentStep ? currentStep.edges : [];
+  const currentResult = currentStep ? currentStep.result : null;
+
+  const { nodesList, edgesList } = getLayoutElements(currentTree);
+
+  useEffect(() => {
+    if (currentHighlight) {
+      const modeKey = (activeConcept === "inorder" || activeConcept === "preorder" || activeConcept === "postorder" || activeConcept === "height" || activeConcept === "diameter")
+        ? activeConcept
+        : (isBST ? "bst" : "bt");
+
+      const trackerObj = (activeConcept === "inorder" || activeConcept === "preorder" || activeConcept === "postorder" || activeConcept === "height" || activeConcept === "diameter")
+        ? LINE_MAPS[modeKey]?.[language]
+        : LINE_MAPS[modeKey]?.[activeConcept]?.[language];
+
+      if (trackerObj && trackerObj[currentHighlight] !== undefined) {
+        setHighlightLineNum(trackerObj[currentHighlight]);
+      }
+    } else {
+      setHighlightLineNum(-1);
+    }
+  }, [currentHighlight, activeConcept, language, isBST]);
+
+  const maxNodeY = nodesList.reduce((max, n) => (n.y > max ? n.y : max), 150);
+  const canvasHeight = Math.max(380, maxNodeY + 60);
+
+  const statusColor = status.includes("found") || status.includes("Successfully") || status.includes("Success") || status.includes("inserted") || status.includes("Attached") || status.includes("Attached child")
     ? "status-found"
-    : activeStep.status.includes("not present") || activeStep.status.includes("Duplicate") || activeStep.status.includes("Aborted")
+    : status.includes("not found") || status.includes("already exists") || status.includes("Failed") || status.includes("empty")
     ? "status-not-found"
-    : isPlaying
-    ? "status-found"
+    : status.includes("Paused")
+    ? "status-paused"
     : "status-default";
-
-  const { nodesList, edgesList, depth } = getLayoutElements(activeStep.tree);
-
-  // SVG dynamic responsiveness height settings
-  const baseSpacingHeight = 80;
-  const svgComputedHeight = Math.max(340, (depth * baseSpacingHeight) + 80);
 
   return (
     <div className="visualizer-container">
@@ -1837,145 +2214,160 @@ export default function BST() {
           Binary Tree
         </h1>
 
-        {/* --- Tree Mode Rules Selection --- */}
+        {/* --- Tree Mode Selector --- */}
         <div className="input-group">
-          <label>Tree Mode Rules</label>
+          <label>Tree Type Policy</label>
           <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.2rem' }}>
             <button
               onClick={() => { setIsBST(false); handleReset(); }}
+              disabled={isVisualizing}
               className={`btn ${!isBST ? 'btn-cyan' : 'btn-secondary'}`}
               style={{ flex: 1 }}
-              title="General Unsorted Binary Tree level-order"
+              title="General complete unsorted binary tree rules"
             >
               General BT
             </button>
             <button
               onClick={() => { setIsBST(true); handleReset(); }}
+              disabled={isVisualizing}
               className={`btn ${isBST ? 'btn-cyan' : 'btn-secondary'}`}
               style={{ flex: 1 }}
-              title="Sorted Binary Search Tree rules"
+              title="Strictly sorted binary search tree sorted rules"
             >
               BST Rules
             </button>
           </div>
           <span style={{ fontSize: '0.725rem', color: 'var(--text-gray-400)', display: 'block', marginTop: '0.35rem', lineHeight: '1.3' }}>
             {isBST 
-              ? "BST Mode: Values sorted on placement. Optimized logarithmic searching." 
-              : "General BT Mode: Level-by-level complete placement. Requires full recursive DFS search."}
+              ? "BST Mode: Values are sorted on placement. Ideal for logarithmic search logic." 
+              : "General BT Mode: Elements placed level-by-level (Complete Tree). Searching requires recursive traversal of both subtrees."}
           </span>
         </div>
 
+        {/* --- Value Input Field --- */}
         <div className="input-group">
           <label htmlFor="value">Node Value</label>
           <input
             id="value"
             type="text"
-            placeholder="e.g., 25"
+            placeholder="e.g., 23"
             value={value}
             onChange={(e) => setValue(e.target.value)}
+            disabled={isPlaying}
             className="input-field"
           />
         </div>
-        
-        {error && <div className="error-message">{error}</div>}
 
-        {/* --- Actions --- */}
+        {/* --- Primary Controls Actions --- */}
         <div className="actions-single">
-          <button onClick={handleInsert} className="btn btn-green">Insert Node</button>
+          <button onClick={handleInsert} disabled={isPlaying} className="btn btn-green">Insert Node</button>
         </div>
         <div className="actions-grid">
-          <button onClick={handleDelete} className="btn btn-red">Delete Node</button>
-          <button onClick={handleSearch} className="btn btn-cyan">
-            <Search size={16} /> Search key
+          <button onClick={handleDelete} disabled={isPlaying || !tree} className="btn btn-red">Delete Node</button>
+          <button onClick={handleSearch} disabled={isPlaying || !tree} className="btn btn-cyan">
+            <Search size={16} /> Search Key
           </button>
         </div>
-        
-        {/* --- Traversals Panel --- */}
-        <div className="input-group" style={{ marginTop: '1.25rem' }}>
-          <label>Recursive Traversals</label>
+
+        {/* --- Traversals Section --- */}
+        <div className="input-group" style={{ marginTop: '1rem' }}>
+          <label>Tree Traversals</label>
           <div className="actions-grid-three">
             <button 
               onClick={() => handleTraversal('preorder')} 
-              className={`btn ${activeConcept === 'preorder' ? 'btn-cyan' : 'btn-secondary'}`}
-              style={{ fontSize: '0.75rem', padding: '0.5rem 0.25rem' }}
-              title="Root -> Left -> Right"
+              disabled={isPlaying || !tree} 
+              className={`btn ${activeConcept === 'preorder' && isVisualizing ? 'btn-cyan' : 'btn-secondary'}`}
+              style={{ fontSize: '0.725rem', padding: '0.5rem 0.2rem' }}
+              title="Pre-order (Root, Left, Right)"
             >
               Pre-Order
             </button>
             <button 
               onClick={() => handleTraversal('inorder')} 
-              className={`btn ${activeConcept === 'inorder' ? 'btn-cyan' : 'btn-secondary'}`}
-              style={{ fontSize: '0.75rem', padding: '0.5rem 0.25rem' }}
-              title="Left -> Root -> Right"
+              disabled={isPlaying || !tree} 
+              className={`btn ${activeConcept === 'inorder' && isVisualizing ? 'btn-cyan' : 'btn-secondary'}`}
+              style={{ fontSize: '0.725rem', padding: '0.5rem 0.2rem' }}
+              title="In-order (Left, Root, Right)"
             >
               In-Order
             </button>
             <button 
               onClick={() => handleTraversal('postorder')} 
-              className={`btn ${activeConcept === 'postorder' ? 'btn-cyan' : 'btn-secondary'}`}
-              style={{ fontSize: '0.75rem', padding: '0.5rem 0.25rem' }}
-              title="Left -> Right -> Root"
+              disabled={isPlaying || !tree} 
+              className={`btn ${activeConcept === 'postorder' && isVisualizing ? 'btn-cyan' : 'btn-secondary'}`}
+              style={{ fontSize: '0.725rem', padding: '0.5rem 0.2rem' }}
+              title="Post-order (Left, Right, Root)"
             >
               Post-Order
             </button>
           </div>
-          <span style={{ fontSize: '0.725rem', color: 'var(--text-gray-400)', display: 'block', marginTop: '0.35rem', lineHeight: '1.3' }}>
-            Clicking a traversal loads the step layout paused. Press Play to animate, or step manually using Next / Prev.
-          </span>
         </div>
-        
-        <hr style={{borderColor: 'var(--border-gray-700)', margin: '1.25rem 0'}} />
 
-        {/* --- Preset and Random Generators --- */}
-        <div className="input-group">
-          <label>Random Generation</label>
-          <div className="speed-slider-group">
-            <input
-              type="range"
-              min="3"
-              max="15"
-              step="1"
-              value={randomSize}
-              onChange={(e) => setRandomSize(Number(e.target.value))}
-              className="speed-slider"
-            />
-            <span className="speed-value">{randomSize} items</span>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.6rem' }}>
+        {/* --- Advanced Analytics Section --- */}
+        <div className="input-group" style={{ marginTop: '0.85rem' }}>
+          <label>Advanced Tree Properties</label>
+          <div className="actions-grid">
             <button 
-              onClick={() => handleRandomGenerator(randomSize)} 
-              className="btn btn-purple"
+              onClick={handleHeight} 
+              disabled={isPlaying || !tree} 
+              className={`btn ${activeConcept === 'height' && isVisualizing ? 'btn-cyan' : 'btn-secondary'}`}
+              title="Longest path starting from target node (or Root) to its leaf node"
             >
-              <Shuffle size={14} /> Generate Random Tree
+              Height
+            </button>
+            <button 
+              onClick={handleDiameter} 
+              disabled={isPlaying || !tree} 
+              className={`btn ${activeConcept === 'diameter' && isVisualizing ? 'btn-cyan' : 'btn-secondary'}`}
+              title="Longest path between any two nodes inside the subtree"
+            >
+              Diameter
             </button>
           </div>
+          <span style={{ fontSize: '0.725rem', color: 'var(--text-gray-400)', display: 'block', marginTop: '0.35rem', lineHeight: '1.3' }}>
+            Enter a node value in "Node Value" to calculate from, or leave empty to compute from absolute Root.
+          </span>
         </div>
 
-        {/* --- Visualization Settings --- */}
-        <div className="input-group" style={{ marginTop: '1.25rem' }}>
-          <label htmlFor="language">Code Language</label>
+        <hr style={{ borderColor: 'var(--border-gray-700)', margin: '1rem 0' }} />
+
+        {/* --- Generator Controls --- */}
+        <button
+          onClick={handleRandomTree}
+          disabled={isPlaying}
+          className="btn btn-secondary"
+          style={{ marginBottom: '1rem' }}
+        >
+          Generate Random Tree
+        </button>
+
+        {/* --- Programming Language Choice --- */}
+        <div className="input-group">
+          <label htmlFor="language">Code Language Set</label>
           <select
             id="language"
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
+            disabled={isPlaying}
             className="input-field"
           >
             <option value="python">Python</option>
+            <option value="java">Java</option>
             <option value="cpp">C++</option>
             <option value="c">C</option>
-            <option value="java">Java</option>
           </select>
         </div>
 
+        {/* --- Speed Control Slider --- */}
         <div className="input-group">
-          <label htmlFor="speed">Autoplay Speed</label>
+          <label htmlFor="speed">Step Interval Speed</label>
           <div className="speed-slider-group">
             <input
               id="speed"
               type="range"
-              min="100"
+              min="150"
               max="2000"
-              step="100"
+              step="50"
               value={speed}
               onChange={(e) => setSpeed(Number(e.target.value))}
               className="speed-slider"
@@ -1988,256 +2380,220 @@ export default function BST() {
       {/* --- Main Content Area --- */}
       <main className="main-content">
         
-        {/* --- Visualization Arena --- */}
+        {/* --- Metrics Row Above Viewport --- */}
+        <section className="metrics-top-row">
+          <div className="metric-card-box">
+            <span className="metric-card-label">Visits / Comparisons</span>
+            <span className="metric-card-value">{currentVisits}</span>
+          </div>
+          <div className="metric-card-box">
+            <span className="metric-card-label">Max Active Stack Frame</span>
+            <span className="metric-card-value">{currentMaxStack}</span>
+          </div>
+          {/* Dynamic pop-in card showing computation results for Height and Diameter */}
+          {currentResult && (
+            <div className="metric-card-box border border-cyan-500/50 bg-cyan-950/20 shadow-[0_0_15px_rgba(6,182,212,0.15)] animate-pulse">
+              <span className="metric-card-label text-cyan-400 font-bold">Computed Result</span>
+              <span className="metric-card-value text-green-400">{currentResult}</span>
+            </div>
+          )}
+        </section>
+
+        {/* --- Printed Sequence Badge Row --- */}
+        {currentPrinted.length > 0 && (
+          <section className="print-sequence-container">
+            <span className="print-sequence-title">Printed Sequence Path</span>
+            <div className="print-sequence-badges">
+              {currentPrinted.map((val, idx) => (
+                <React.Fragment key={idx}>
+                  <div className="print-badge">
+                    <Award size={14} />
+                    {val}
+                  </div>
+                  {idx < currentPrinted.length - 1 && (
+                    <span className="print-arrow">→</span>
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* --- Main Visual Viewport Canvas --- */}
         <section className="visualization-section">
-          <h2 className="section-title">Visual Canvas</h2>
+          <h2 className="section-title">Visual Layout Viewport</h2>
           
           <div className="status-bar">
             <span className={`status-text ${statusColor}`}>
-              {activeStep.status}
+              {status}
             </span>
           </div>
 
-          {/* Dynamic Live Diagnostics (Visits & Stack depth) rendered ABOVE visualization layout */}
-          <div className="diagnostics-bar" style={{ marginBottom: '1rem' }}>
-            <div className="diagnostic-card">
-              <div className="diagnostic-label">Visits / Comparisons</div>
-              <div className="diagnostic-value">{activeStep.visits}</div>
-            </div>
-            <div className="diagnostic-card">
-              <div className="diagnostic-label">Max Active Stack Frame</div>
-              <div className="diagnostic-value">{activeStep.stackDepth}</div>
-            </div>
-          </div>
-
-          {/* Sequential Traversal Path / Visited Badge Outputs (Appends node values one-by-one) */}
-          {activeStep.printedPath && activeStep.printedPath.length > 0 && (
-            <div className="traversal-path-display-bar animate-fade-in" style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.6rem',
-              flexWrap: 'wrap',
-              backgroundColor: 'var(--bg-dark-950)',
-              border: '1px solid var(--border-gray-700)',
-              borderRadius: '0.375rem',
-              padding: '0.75rem 1rem',
-              marginBottom: '1rem',
-              boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.3)'
-            }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--cyan-400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Printed Sequence:
-              </span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                {activeStep.printedPath.map((val, idx) => (
-                  <React.Fragment key={idx}>
-                    {idx > 0 && <span style={{ color: 'var(--cyan-400)', fontWeight: 'bold', fontSize: '0.9rem' }}>&rarr;</span>}
-                    <span style={{
-                      backgroundColor: '#e2f0d9',
-                      color: '#385723',
-                      border: '1px solid #8cc07e',
-                      borderRadius: '0.25rem',
-                      padding: '0.15rem 0.5rem',
-                      fontWeight: 'bold',
-                      fontSize: '0.85rem',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
-                      animation: 'popIn 0.25s ease-out'
-                    }}>
-                      {val}
-                    </span>
-                  </React.Fragment>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {/* Responsive SVG Scrollable Area */}
-          <div className="visualization-boxes">
-            {activeStep.tree === null && (
-              <span style={{color: 'var(--text-gray-500)', margin: 'auto', textAlign: 'center'}}>
-                Tree structure is empty.<br />Insert node values on the left to build your custom tree step-by-step.
+          <div className="visualization-viewport">
+            {currentTree === null && (
+              <span style={{ color: 'var(--text-gray-500)', margin: 'auto', padding: '3rem 0' }}>
+                Structure canvas is empty. Insert a node key on the left to initialize.
               </span>
             )}
-            
-            {activeStep.tree !== null && (
+
+            {currentTree !== null && (
               <svg 
-                className="tree-svg-container" 
-                viewBox={`0 0 800 ${svgComputedHeight}`}
-                height={`${svgComputedHeight}px`}
-                xmlns="http://www.w3.org/2000/svg"
+                className="visualization-svg-canvas"
+                style={{ height: `${canvasHeight}px` }}
               >
-                {/* 1. Connection Overlay Lines */}
-                <g className="tree-connectors">
-                  {edgesList.map((edge, idx) => {
-                    const isDescentActive = activeStep.callStackEdges.some(
-                      s => (s.from === edge.from.id && s.to === edge.to.id)
-                    );
+                {/* --- Static / Active Recursive Connection Overlay Paths --- */}
+                {edgesList.map((edge, idx) => {
+                  const isDescentActive = currentEdges.some(
+                    e => e.from === edge.from.id && e.to === edge.to.id
+                  );
 
-                    const isBacktrackActive = activeStep.backtrackEdge && (
-                      (activeStep.backtrackEdge.from === edge.from.id && activeStep.backtrackEdge.to === edge.to.id) ||
-                      (activeStep.backtrackEdge.from === edge.to.id && activeStep.backtrackEdge.to === edge.from.id)
-                    );
+                  return (
+                    <g key={idx}>
+                      <line
+                        x1={`${edge.from.x}%`}
+                        y1={edge.from.y}
+                        x2={`${edge.to.x}%`}
+                        y2={edge.to.y}
+                        stroke="#8cc07e"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        style={{ transition: 'all 0.3s' }}
+                      />
 
-                    return (
-                      <g key={`edge-${idx}`}>
+                      {isDescentActive && (
                         <line
-                          x1={edge.from.x}
+                          x1={`${edge.from.x}%`}
                           y1={edge.from.y}
-                          x2={edge.to.x}
+                          x2={`${edge.to.x}%`}
                           y2={edge.to.y}
-                          stroke="#8cc07e"
-                          strokeWidth="2.5"
-                          strokeLinecap="round"
-                          style={{ transition: 'all 0.3s' }}
+                          className="traversal-descent-line"
                         />
+                      )}
+                    </g>
+                  );
+                })}
 
-                        {isDescentActive && (
-                          <line
-                            x1={edge.from.x}
-                            y1={edge.from.y}
-                            x2={edge.to.x}
-                            y2={edge.to.y}
-                            className="traversal-descent-line"
-                          />
-                        )}
-
-                        {isBacktrackActive && (
-                          <line
-                            x1={edge.from.x}
-                            y1={edge.from.y}
-                            x2={edge.to.x}
-                            y2={edge.to.y}
-                            className="traversal-ascent-line"
-                          />
-                        )}
-                      </g>
-                    );
-                  })}
-                </g>
-
-                {/* 2. Nodes Render Group */}
-                <g className="tree-nodes">
-                  {nodesList.map((node) => {
-                    let nodeClass = 'default';
-                    if (node.state) nodeClass = node.state;
-
-                    return (
-                      <g 
-                        key={node.id} 
-                        className="tree-circle-group"
-                        style={{ transform: `translate(${node.x}px, ${node.y}px)`, transition: 'transform 0.3s' }}
-                      >
-                        <circle
-                          r="25"
-                          className={`tree-circle-bg ${nodeClass}`}
-                        />
-                        <text
-                          className={`tree-circle-text ${nodeClass}`}
-                        >
-                          {node.value}
-                        </text>
-                      </g>
-                    );
-                  })}
-                </g>
+                {/* --- Highly Styled Circle Nodes --- */}
+                {nodesList.map((node) => (
+                  <g 
+                    key={node.id} 
+                    className="tree-circle-node-svg"
+                    transform={`translate(0, ${node.y})`}
+                    style={{ transition: 'transform 0.3s ease' }}
+                  >
+                    <circle
+                      cx={`${node.x}%`}
+                      cy={0}
+                      r={18}
+                      className={`node-${node.state || 'default'}`}
+                    />
+                    <text
+                      x={`${node.x}%`}
+                      y={5}
+                      textAnchor="middle"
+                    >
+                      {node.value}
+                    </text>
+                  </g>
+                ))}
               </svg>
             )}
           </div>
 
-          {/* Stepping Playback Control panel */}
-          <div className="playback-controls-bar">
-            <button 
-              className="btn-icon" 
-              onClick={() => { setIsPlaying(false); if (currentStepIdx > 0) setCurrentStepIdx(currentStepIdx - 1); }} 
-              disabled={currentStepIdx === 0}
-              title="Step Backward"
-            >
-              <ChevronLeft size={18} />
-              <span className="text-xs font-semibold ml-1">Prev</span>
-            </button>
+          {/* --- Interactive Time Machine Scrubbing Bar Panel --- */}
+          {isVisualizing && (
+            <div className="mt-4 p-4 bg-slate-800 rounded-lg flex flex-col md:flex-row items-center justify-between gap-4 border border-slate-700">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setCurrentStepIdx(p => Math.max(0, p - 1))}
+                  disabled={currentStepIdx === 0}
+                  className="btn btn-secondary !w-10 !h-10 !p-0"
+                  title="Previous Step"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <button
+                  onClick={() => setIsPlaying(!isPlaying)}
+                  className={`btn ${isPlaying ? 'btn-pause' : 'btn-resume'} !w-24`}
+                >
+                  {isPlaying ? <Pause size={16} /> : <Play size={16} />}
+                  {isPlaying ? "Pause" : "Play"}
+                </button>
+                <button
+                  onClick={() => setCurrentStepIdx(p => Math.min(steps.length - 1, p + 1))}
+                  disabled={currentStepIdx === steps.length - 1}
+                  className="btn btn-secondary !w-10 !h-10 !p-0"
+                  title="Next Step"
+                >
+                  <ChevronRight size={20} />
+                </button>
+                <button
+                  onClick={() => {
+                    setIsPlaying(false);
+                    setCurrentStepIdx(0);
+                    setSteps([]);
+                    setHighlightLineNum(-1);
+                    setStatus("Cleared playback step state.");
+                  }}
+                  className="btn btn-secondary !w-10 !h-10 !p-0"
+                  title="Reset Steps"
+                >
+                  <RefreshCw size={16} />
+                </button>
+              </div>
 
-            <button
-              className="btn-icon"
-              onClick={togglePause}
-              title={isPlaying ? "Pause Automation" : "Resume Automation"}
-            >
-              {isPlaying ? <Pause size={18} /> : <Play size={18} />}
-            </button>
-
-            <button 
-              className="btn-icon" 
-              onClick={() => { setIsPlaying(false); if (currentStepIdx < steps.length - 1) setCurrentStepIdx(currentStepIdx + 1); }} 
-              disabled={steps.length === 0 || currentStepIdx >= steps.length - 1}
-              title="Step Forward"
-            >
-              <span className="text-xs font-semibold mr-1">Next</span>
-              <ChevronRight size={18} />
-            </button>
-
-            <button 
-              className="btn-icon" 
-              onClick={handleReset} 
-              title="Prune Tree"
-            >
-              <RefreshCw size={16} />
-            </button>
-
-            <span className="playback-tracker">
-              Frame {steps.length > 0 ? currentStepIdx + 1 : 0} / {steps.length}
-            </span>
-          </div>
-
-          {steps.length > 1 && (
-            <div className="scrub-timeline-group">
-              <input 
-                type="range"
-                min="0"
-                max={steps.length - 1}
-                value={currentStepIdx}
-                onChange={(e) => {
-                  setIsPlaying(false);
-                  setCurrentStepIdx(Number(e.target.value));
-                }}
-                className="scrub-timeline"
-                title="Drag to Scrub Steps"
-              />
+              {/* Range Slider Scrubber */}
+              <div className="flex-1 w-full flex items-center gap-4">
+                <input
+                  type="range"
+                  min="0"
+                  max={steps.length - 1}
+                  value={currentStepIdx}
+                  onChange={(e) => {
+                    setIsPlaying(false);
+                    setCurrentStepIdx(Number(e.target.value));
+                  }}
+                  className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                />
+                <span className="text-sm font-semibold text-slate-300 whitespace-nowrap">
+                  Frame {currentStepIdx + 1} / {steps.length}
+                </span>
+              </div>
             </div>
           )}
         </section>
 
-        {/* --- Verbatim Complexity Grid verbatim image_0c0bc2.png --- */}
-        <section className="image-complexity-grid">
-          <div className="image-complexity-card">
-            <span className="image-card-header">{isBST ? "Binary Search Tree" : "General Binary Tree"}</span>
-            <span className="image-card-title">Best Case</span>
-            <span className="image-card-complexity">{isBST ? "O(log n)" : "O(n)"}</span>
+        {/* --- Dynamic Verbatim Complexity Cards Row (image_0c0bc2.png) --- */}
+        <section className="complexity-grid-row">
+          <div className="complexity-card">
+            <span className="complexity-card-header">{isBST ? "BINARY SEARCH TREE" : "BINARY TREE"}</span>
+            <span className="complexity-card-title">Best Case Time</span>
+            <span className="complexity-card-math">{isBST ? "O(log n)" : "O(n)"}</span>
           </div>
-
-          <div className="image-complexity-card">
-            <span className="image-card-header">{isBST ? "Binary Search Tree" : "General Binary Tree"}</span>
-            <span className="image-card-title">Average Case</span>
-            <span className="image-card-complexity">{isBST ? "O(log n)" : "O(n)"}</span>
+          <div className="complexity-card">
+            <span className="complexity-card-header">{isBST ? "BINARY SEARCH TREE" : "BINARY TREE"}</span>
+            <span className="complexity-card-title">Average Case Time</span>
+            <span className="complexity-card-math">{isBST ? "O(log n)" : "O(n)"}</span>
           </div>
-
-          <div className="image-complexity-card">
-            <span className="image-card-header">{isBST ? "Binary Search Tree" : "General Binary Tree"}</span>
-            <span className="image-card-title">Worst Case</span>
-            <span className="image-card-complexity">O(n)</span>
+          <div className="complexity-card">
+            <span className="complexity-card-header">{isBST ? "BINARY SEARCH TREE" : "BINARY TREE"}</span>
+            <span className="complexity-card-title">Worst Case Time</span>
+            <span className="complexity-card-math">O(n)</span>
           </div>
-
-          <div className="image-complexity-card">
-            <span className="image-card-header">Auxiliary Space</span>
-            <span className="image-card-title">Memory</span>
-            <span className="image-card-complexity">O(h)</span>
+          <div className="complexity-card">
+            <span className="complexity-card-header">AUXILIARY SPACE</span>
+            <span className="complexity-card-title">Memory Allocation</span>
+            <span className="complexity-card-math">O(h)</span>
           </div>
         </section>
 
-        {/* --- Side-by-Side Code Tracker and Execution Log --- */}
+        {/* --- Lower Content Area (Code & Log) --- */}
         <div className="lower-content-area">
           <section className="code-section">
             <h2 className="section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span>Code Tracker</span>
               <span style={{ fontSize: '0.8rem', color: 'var(--cyan-400)', textTransform: 'uppercase' }}>
-                {activeConcept} ({isBST ? "BST" : "BT"})
+                {activeConcept} ({isBST ? "BST" : "General BT"})
               </span>
             </h2>
             <div className="code-block">
@@ -2247,7 +2603,7 @@ export default function BST() {
                     <span
                       key={idx}
                       className={`code-line
-                        ${highlightedLine === (idx + 1) ? 'highlight' : ''}
+                        ${highlightLineNum === (idx + 1) ? 'highlight' : ''}
                         ${(line.trim().startsWith('#') || line.trim().startsWith('//') || line.trim().startsWith('def ')) ? 'comment' : ''}
                       `}
                     >
@@ -2260,10 +2616,13 @@ export default function BST() {
           </section>
 
           <section className="log-section">
-            <h2 className="section-title">Execution Log Streams</h2>
+            <h2 className="section-title">Execution Log</h2>
             <div className="log-block" ref={logContainerRef}>
               <ul className="log-list">
-                {activeStep.logs.map((log, idx) => (
+                {currentLogs.length === 0 && (
+                  <li className="log-item text-slate-500">Log trace remains empty until operations begin...</li>
+                )}
+                {currentLogs.map((log, idx) => (
                   <li key={idx} className="log-item">
                     {log}
                   </li>
