@@ -11,6 +11,7 @@ export default function DSAVisualizer() {
     { name: "Quick Sort", href: "/quicksort" },
     { name: "Merge Sort", href: "/mergesort" },
     { name: "Singly LinkedList", href: "singlylinkedlist" },
+    { name: "Circular Singly LinkedList", href: "circularsinglylinkedlist" },
     { name: "Doubly LinkedList", href: "doublylinkedlist" },
     { name: "Stack", href: "stack" },
     { name: "Queue", href: "queue" },

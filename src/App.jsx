@@ -15,6 +15,7 @@ import InsertionSort from "./components/Sorting/InsertionSort";
 import MergeSort from "./components/Sorting/MergeSort";
 import QuickSort from "./components/Sorting/QuickSort";
 import SinglyLinkedList from "./components/LinkedList/SinglyLinkedList";
+import CircularSinglyLinkedList from "./components/LinkedList/CircularLinkedList";
 import DoublyLinkedList from "./components/LinkedList/DoublyLinkedList";
 import Stack from "./components/Stack/Stack";
 import Queue from "./components/Queue/Queue";
@@ -96,6 +97,14 @@ function App() {
           element={
             <RequireAuth>
               <SinglyLinkedList />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/circularsinglylinkedlist"
+          element={
+            <RequireAuth>
+              <CircularSinglyLinkedList/>
             </RequireAuth>
           }
         />
