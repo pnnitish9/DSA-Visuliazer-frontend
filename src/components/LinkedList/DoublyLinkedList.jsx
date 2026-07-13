@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { List, Pause, Play, RefreshCw, Search, ArrowLeftRight, ArrowRight } from 'lucide-react';
-import { v4 as uuidv4 } from 'uuid'; // We need a UUID library for stable keys
+import { List, Pause, Play, RefreshCw, Search, ArrowRight, ArrowLeft, ArrowLeftRight, X, Shuffle, StepForward, StepBack } from 'lucide-react';
+import { v4 as uuidv4 } from 'uuid'; 
 
 // --- In-line CSS Styles ---
 const InjectedStyles = () => (
@@ -385,13 +385,6 @@ const InjectedStyles = () => (
       margin-bottom: 0.25rem;
     }
 
-    .tail-label {
-      font-size: 0.8rem;
-      font-weight: 700;
-      color: var(--pink-500);
-      margin-bottom: 0.25rem;
-    }
-
     .box-index {
       margin-top: 0.5rem;
       font-size: 0.875rem; /* 14px */
@@ -410,9 +403,6 @@ const InjectedStyles = () => (
         color: var(--text-gray-500);
         padding: 0 1rem;
         flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
     }
 
     .box.default {
@@ -449,6 +439,99 @@ const InjectedStyles = () => (
       transform: scale(0.8);
       opacity: 0.5;
       border-color: var(--red-400);
+    }
+
+    .node-pointers {
+      display: flex;
+      gap: 0.25rem;
+      margin-top: 0.5rem;
+      min-height: 24px; /* Prevents layout jump when pointers appear */
+      justify-content: center;
+      flex-wrap: wrap;
+      width: 100%;
+    }
+
+    .pointer-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 0.15rem 0.35rem;
+      border-radius: 0.25rem;
+      text-transform: uppercase;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.1rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .pointer-badge.prev { background-color: var(--purple-600); color: white; }
+    .pointer-badge.curr { background-color: var(--cyan-600); color: white; }
+    .pointer-badge.next { background-color: var(--orange-600); color: white; }
+
+    /* --- Playback Controls Bar --- */
+    .playback-controls-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 2rem;
+      padding: 1rem 1.5rem;
+      background-color: var(--bg-dark-800);
+      border-radius: 0.5rem;
+      margin-top: 1rem;
+      border: 1px solid var(--border-gray-700);
+    }
+
+    .playback-controls-bar .btn {
+      min-width: 90px;
+    }
+
+    .step-indicator {
+      font-family: 'Fira Code', 'Courier New', monospace;
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--text-gray-200);
+      min-width: 80px;
+      text-align: center;
+    }
+
+    /* --- Complexity Analysis --- */
+    .complexity-bar {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    @media (min-width: 768px) {
+      .complexity-bar {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    .complexity-card {
+      background-color: var(--bg-dark-950);
+      border: 1px solid var(--border-gray-700);
+      padding: 1rem;
+      border-radius: 0.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
+    }
+
+    .complexity-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-gray-400);
+      margin-bottom: 0.5rem;
+    }
+
+    .complexity-value {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--cyan-400);
+      font-family: 'Fira Code', 'Courier New', monospace;
     }
 
     /* --- Lower Content Area --- */
@@ -559,7 +642,8 @@ const InjectedStyles = () => (
 // --- Helper Functions & Data ---
 
 const codeSnippets = {
-  python: `
+  python: {
+    base: `
 class Node:
   def __init__(self, value):
     self.value = value
@@ -569,17 +653,91 @@ class Node:
 class DoublyLinkedList:
   def __init__(self):
     self.head = None
-    self.tail = None
-
+`,
+    addHead: `
   def add_head(self, value):
-    # ...
-  
+    new_node = Node(value)
+    new_node.next = self.head
+    if self.head:
+      self.head.prev = new_node
+    self.head = new_node
+`,
+    addTail: `
   def add_tail(self, value):
-    # ...
-
+    new_node = Node(value)
+    if not self.head:
+      self.head = new_node
+      return
+    current = self.head
+    while current.next:
+      current = current.next
+    current.next = new_node
+    new_node.prev = current
+`,
+    addAtIndex: `
+  def add_at_index(self, index, value):
+    if index == 0:
+      self.add_head(value)
+      return
+    new_node = Node(value)
+    current = self.head
+    for _ in range(index - 1):
+      if current is None: return
+      current = current.next
+    new_node.next = current.next
+    new_node.prev = current
+    if current.next:
+      current.next.prev = new_node
+    current.next = new_node
+`,
+    deleteHead: `
+  def delete_head(self):
+    if self.head:
+      self.head = self.head.next
+      if self.head:
+        self.head.prev = None
+`,
+    deleteTail: `
+  def delete_tail(self):
+    if not self.head: return
+    if not self.head.next:
+      self.head = None
+      return
+    current = self.head
+    while current.next:
+      current = current.next
+    current.prev.next = None
+`,
+    deleteAtIndex: `
+  def delete_at_index(self, index):
+    if not self.head: return
+    if index == 0:
+      self.delete_head()
+      return
+    current = self.head
+    for _ in range(index):
+      if current is None: return
+      current = current.next
+    if current:
+      if current.next:
+        current.next.prev = current.prev
+      if current.prev:
+        current.prev.next = current.next
+`,
+    deleteByValue: `
   def delete_value(self, value):
-    # ...
-  
+    current = self.head
+    while current and current.value != value:
+      current = current.next
+    if current:
+      if current.prev:
+        current.prev.next = current.next
+      else:
+        self.head = current.next
+      if current.next:
+        current.next.prev = current.prev
+`,
+    search: `
   def search(self, value):
     current = self.head
     while current:
@@ -587,10 +745,43 @@ class DoublyLinkedList:
         return True
       current = current.next
     return False
-  `,
-  c: `
+`,
+    reverse: `
+  def reverse(self):
+    temp = None
+    current = self.head
+    while current:
+      temp = current.prev
+      current.prev = current.next
+      current.next = temp
+      current = current.prev
+    if temp:
+      self.head = temp.prev
+`,
+    swap: `
+  def swap(self, index1, index2):
+    if index1 == index2: return
+    
+    node1 = self.head
+    for _ in range(index1):
+      if not node1: return
+      node1 = node1.next
+        
+    node2 = self.head
+    for _ in range(index2):
+      if not node2: return
+      node2 = node2.next
+        
+    if node1 and node2:
+      node1.value, node2.value = node2.value, node1.value
+`
+  },
+  
+  c: {
+    base: `
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 struct Node {
   int value;
@@ -599,20 +790,140 @@ struct Node {
 };
 
 struct Node* head = NULL;
-struct Node* tail = NULL;
-
+`,
+    addHead: `
 void addHead(int value) {
-  // ...
+  struct Node* newNode = (struct Node*)malloc(sizeof(struct Node));
+  newNode->value = value;
+  newNode->next = head;
+  newNode->prev = NULL;
+  if (head != NULL) {
+    head->prev = newNode;
+  }
+  head = newNode;
 }
-
+`,
+    addTail: `
 void addTail(int value) {
-  // ...
+  struct Node* newNode = (struct Node*)malloc(sizeof(struct Node));
+  newNode->value = value;
+  newNode->next = NULL;
+  
+  if (head == NULL) {
+    newNode->prev = NULL;
+    head = newNode;
+    return;
+  }
+  
+  struct Node* current = head;
+  while (current->next != NULL) {
+    current = current->next;
+  }
+  current->next = newNode;
+  newNode->prev = current;
 }
-
+`,
+    addAtIndex: `
+void addAtIndex(int index, int value) {
+  if (index == 0) {
+    addHead(value);
+    return;
+  }
+  
+  struct Node* newNode = (struct Node*)malloc(sizeof(struct Node));
+  newNode->value = value;
+  
+  struct Node* current = head;
+  for (int i = 0; i < index - 1 && current != NULL; i++) {
+    current = current->next;
+  }
+  
+  if (current != NULL) {
+    newNode->next = current->next;
+    newNode->prev = current;
+    if (current->next != NULL) {
+      current->next->prev = newNode;
+    }
+    current->next = newNode;
+  }
+}
+`,
+    deleteHead: `
+void deleteHead() {
+  if (head != NULL) {
+    struct Node* temp = head;
+    head = head->next;
+    if (head != NULL) {
+      head->prev = NULL;
+    }
+    free(temp);
+  }
+}
+`,
+    deleteTail: `
+void deleteTail() {
+  if (head == NULL) return;
+  if (head->next == NULL) {
+    free(head);
+    head = NULL;
+    return;
+  }
+  
+  struct Node* current = head;
+  while (current->next != NULL) {
+    current = current->next;
+  }
+  current->prev->next = NULL;
+  free(current);
+}
+`,
+    deleteAtIndex: `
+void deleteAtIndex(int index) {
+  if (head == NULL) return;
+  if (index == 0) {
+    deleteHead();
+    return;
+  }
+  
+  struct Node* current = head;
+  for (int i = 0; i < index && current != NULL; i++) {
+    current = current->next;
+  }
+  
+  if (current != NULL) {
+    if (current->next != NULL) {
+      current->next->prev = current->prev;
+    }
+    if (current->prev != NULL) {
+      current->prev->next = current->next;
+    }
+    free(current);
+  }
+}
+`,
+    deleteByValue: `
 void deleteValue(int value) {
-  // ...
+  if (head == NULL) return;
+  
+  struct Node* current = head;
+  while (current != NULL && current->value != value) {
+    current = current->next;
+  }
+  
+  if (current != NULL) {
+    if (current->prev != NULL) {
+      current->prev->next = current->next;
+    } else {
+      head = current->next;
+    }
+    if (current->next != NULL) {
+      current->next->prev = current->prev;
+    }
+    free(current);
+  }
 }
-
+`,
+    search: `
 bool search(int value) {
   struct Node* current = head;
   while (current != NULL) {
@@ -623,8 +934,49 @@ bool search(int value) {
   }
   return false;
 }
-  `,
-  cpp: `
+`,
+    reverse: `
+void reverse() {
+  struct Node* temp = NULL;
+  struct Node* current = head;
+  
+  while (current != NULL) {
+    temp = current->prev;
+    current->prev = current->next;
+    current->next = temp;
+    current = current->prev;
+  }
+  
+  if (temp != NULL) {
+    head = temp->prev;
+  }
+}
+`,
+    swap: `
+void swap(int index1, int index2) {
+  if (index1 == index2) return;
+  
+  struct Node* node1 = head;
+  for (int i = 0; i < index1 && node1 != NULL; i++) {
+    node1 = node1->next;
+  }
+  
+  struct Node* node2 = head;
+  for (int i = 0; i < index2 && node2 != NULL; i++) {
+    node2 = node2->next;
+  }
+  
+  if (node1 != NULL && node2 != NULL) {
+    int temp = node1->value;
+    node1->value = node2->value;
+    node2->value = temp;
+  }
+}
+`
+  },
+  
+  cpp: {
+    base: `
 #include <iostream>
 
 class Node {
@@ -638,21 +990,125 @@ public:
 class DoublyLinkedList {
 public:
   Node* head;
-  Node* tail;
-  DoublyLinkedList() : head(nullptr), tail(nullptr) {}
-
+  DoublyLinkedList() : head(nullptr) {}
+`,
+    addHead: `
   void addHead(int value) {
-    // ...
+    Node* newNode = new Node(value);
+    newNode->next = head;
+    if (head != nullptr) {
+      head->prev = newNode;
+    }
+    head = newNode;
   }
-
+`,
+    addTail: `
   void addTail(int value) {
-    // ...
+    Node* newNode = new Node(value);
+    if (!head) {
+      head = newNode;
+      return;
+    }
+    Node* current = head;
+    while (current->next) {
+      current = current->next;
+    }
+    current->next = newNode;
+    newNode->prev = current;
   }
-
+`,
+    addAtIndex: `
+  void addAtIndex(int index, int value) {
+    if (index == 0) {
+      addHead(value);
+      return;
+    }
+    Node* newNode = new Node(value);
+    Node* current = head;
+    for (int i = 0; i < index - 1 && current; ++i) {
+      current = current->next;
+    }
+    if (current) {
+      newNode->next = current->next;
+      newNode->prev = current;
+      if (current->next) {
+        current->next->prev = newNode;
+      }
+      current->next = newNode;
+    }
+  }
+`,
+    deleteHead: `
+  void deleteHead() {
+    if (head) {
+      Node* temp = head;
+      head = head->next;
+      if (head) {
+        head->prev = nullptr;
+      }
+      delete temp;
+    }
+  }
+`,
+    deleteTail: `
+  void deleteTail() {
+    if (!head) return;
+    if (!head->next) {
+      delete head;
+      head = nullptr;
+      return;
+    }
+    Node* current = head;
+    while (current->next) {
+      current = current->next;
+    }
+    current->prev->next = nullptr;
+    delete current;
+  }
+`,
+    deleteAtIndex: `
+  void deleteAtIndex(int index) {
+    if (!head) return;
+    if (index == 0) {
+      deleteHead();
+      return;
+    }
+    Node* current = head;
+    for (int i = 0; i < index && current; ++i) {
+      current = current->next;
+    }
+    if (current) {
+      if (current->next) {
+        current->next->prev = current->prev;
+      }
+      if (current->prev) {
+        current->prev->next = current->next;
+      }
+      delete current;
+    }
+  }
+`,
+    deleteByValue: `
   void deleteValue(int value) {
-    // ...
+    if (!head) return;
+    Node* current = head;
+    while (current && current->value != value) {
+      current = current->next;
+    }
+    if (current) {
+      if (current->prev) {
+        current->prev->next = current->next;
+      } else {
+        head = current->next;
+      }
+      if (current->next) {
+        current->next->prev = current->prev;
+      }
+      delete current;
+    }
   }
-
+`,
+    search: `
   bool search(int value) {
     Node* current = head;
     while (current) {
@@ -663,9 +1119,48 @@ public:
     }
     return false;
   }
+`,
+    reverse: `
+  void reverse() {
+    Node* temp = nullptr;
+    Node* current = head;
+    
+    while (current) {
+      temp = current->prev;
+      current->prev = current->next;
+      current->next = temp;
+      current = current->prev;
+    }
+    
+    if (temp) {
+      head = temp->prev;
+    }
+  }
+`,
+    swap: `
+  void swap(int index1, int index2) {
+    if (index1 == index2) return;
+    
+    Node* node1 = head;
+    for (int i = 0; i < index1 && node1; i++) {
+      node1 = node1->next;
+    }
+    
+    Node* node2 = head;
+    for (int i = 0; i < index2 && node2; i++) {
+      node2 = node2->next;
+    }
+    
+    if (node1 && node2) {
+      std::swap(node1->value, node2->value);
+    }
+  }
 };
-  `,
-  java: `
+`
+  },
+  
+  java: {
+    base: `
 class Node {
   int value;
   Node next;
@@ -680,20 +1175,118 @@ class Node {
 
 class DoublyLinkedList {
   Node head;
-  Node tail;
-
+`,
+    addHead: `
   public void addHead(int value) {
-    // ...
+    Node newNode = new Node(value);
+    newNode.next = head;
+    if (head != null) {
+      head.prev = newNode;
+    }
+    head = newNode;
   }
-
+`,
+    addTail: `
   public void addTail(int value) {
-    // ...
+    Node newNode = new Node(value);
+    if (head == null) {
+      head = newNode;
+      return;
+    }
+    Node current = head;
+    while (current.next != null) {
+      current = current.next;
+    }
+    current.next = newNode;
+    newNode.prev = current;
   }
-
+`,
+    addAtIndex: `
+  public void addAtIndex(int index, int value) {
+    if (index == 0) {
+      addHead(value);
+      return;
+    }
+    Node newNode = new Node(value);
+    Node current = head;
+    for (int i = 0; i < index - 1 && current != null; i++) {
+      current = current.next;
+    }
+    if (current != null) {
+      newNode.next = current.next;
+      newNode.prev = current;
+      if (current.next != null) {
+        current.next.prev = newNode;
+      }
+      current.next = newNode;
+    }
+  }
+`,
+    deleteHead: `
+  public void deleteHead() {
+    if (head != null) {
+      head = head.next;
+      if (head != null) {
+        head.prev = null;
+      }
+    }
+  }
+`,
+    deleteTail: `
+  public void deleteTail() {
+    if (head == null) return;
+    if (head.next == null) {
+      head = null;
+      return;
+    }
+    Node current = head;
+    while (current.next != null) {
+      current = current.next;
+    }
+    current.prev.next = null;
+  }
+`,
+    deleteAtIndex: `
+  public void deleteAtIndex(int index) {
+    if (head == null) return;
+    if (index == 0) {
+      deleteHead();
+      return;
+    }
+    Node current = head;
+    for (int i = 0; i < index && current != null; i++) {
+      current = current.next;
+    }
+    if (current != null) {
+      if (current.next != null) {
+        current.next.prev = current.prev;
+      }
+      if (current.prev != null) {
+        current.prev.next = current.next;
+      }
+    }
+  }
+`,
+    deleteByValue: `
   public void deleteValue(int value) {
-    // ...
+    if (head == null) return;
+    Node current = head;
+    while (current != null && current.value != value) {
+      current = current.next;
+    }
+    if (current != null) {
+      if (current.prev != null) {
+        current.prev.next = current.next;
+      } else {
+        head = current.next;
+      }
+      if (current.next != null) {
+        current.next.prev = current.prev;
+      }
+    }
   }
-
+`,
+    search: `
   public boolean search(int value) {
     Node current = head;
     while (current != null) {
@@ -704,8 +1297,61 @@ class DoublyLinkedList {
     }
     return false;
   }
+`,
+    reverse: `
+  public void reverse() {
+    Node temp = null;
+    Node current = head;
+    
+    while (current != null) {
+      temp = current.prev;
+      current.prev = current.next;
+      current.next = temp;
+      current = current.prev;
+    }
+    
+    if (temp != null) {
+      head = temp.prev;
+    }
+  }
+`,
+    swap: `
+  public void swap(int index1, int index2) {
+    if (index1 == index2) return;
+    
+    Node node1 = head;
+    for (int i = 0; i < index1 && node1 != null; i++) {
+      node1 = node1.next;
+    }
+    
+    Node node2 = head;
+    for (int i = 0; i < index2 && node2 != null; i++) {
+      node2 = node2.next;
+    }
+    
+    if (node1 != null && node2 != null) {
+      int temp = node1.value;
+      node1.value = node2.value;
+      node2.value = temp;
+    }
+  }
 }
-  `,
+`
+  }
+};
+
+const complexities = {
+  base: { best: "-", avg: "-", worst: "-", space: "-" },
+  addHead: { best: "O(1)", avg: "O(1)", worst: "O(1)", space: "O(1)" },
+  addTail: { best: "O(1)", avg: "O(n)", worst: "O(n)", space: "O(1)" }, // Traversing because no tail pointer is kept
+  addAtIndex: { best: "O(1)", avg: "O(n)", worst: "O(n)", space: "O(1)" },
+  deleteHead: { best: "O(1)", avg: "O(1)", worst: "O(1)", space: "O(1)" },
+  deleteTail: { best: "O(1)", avg: "O(n)", worst: "O(n)", space: "O(1)" },
+  deleteAtIndex: { best: "O(1)", avg: "O(n)", worst: "O(n)", space: "O(1)" },
+  deleteByValue: { best: "O(1)", avg: "O(n)", worst: "O(n)", space: "O(1)" },
+  search: { best: "O(1)", avg: "O(n)", worst: "O(n)", space: "O(1)" },
+  reverse: { best: "O(n)", avg: "O(n)", worst: "O(n)", space: "O(1)" },
+  swap: { best: "O(1)", avg: "O(n)", worst: "O(n)", space: "O(1)" }
 };
 
 /**
@@ -715,25 +1361,30 @@ class DoublyLinkedList {
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // --- Main Component ---
-
-export default function DoublyLinkedList() {
+export default function DoublyLinkedListVisualizer() {
   // We use an array to represent the linked list for easier state management
   const [list, setList] = useState([]);
   const [value, setValue] = useState("");
   const [index, setIndex] = useState("");
+  const [index2, setIndex2] = useState("");
+  const [randomSize, setRandomSize] = useState("5");
   
   const [language, setLanguage] = useState("c");
   const [speed, setSpeed] = useState(500);
-  const [status, setStatus] = useState("Create a new list or add a node.");
+  const [status, setStatus] = useState("Create a new doubly linked list or add a node.");
   const [executionLog, setExecutionLog] = useState([]);
   const [highlightLineNum, setHighlightLineNum] = useState(-1);
+  const [currentOperation, setCurrentOperation] = useState('base');
   
-  const [isVisualizing, setIsVisualizing] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
+  // Frame-based Animation State
+  const [frames, setFrames] = useState([]);
+  const [currentFrameIdx, setCurrentFrameIdx] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  
+  // Derived state
+  const isVisualizing = frames.length > 0 && currentFrameIdx < frames.length - 1;
   const [error, setError] = useState(null);
 
-  const pausedRef = useRef(false);
-  const isCancelledRef = useRef(false);
   const logContainerRef = useRef(null);
 
   // Auto-scroll log
@@ -743,417 +1394,492 @@ export default function DoublyLinkedList() {
     }
   }, [executionLog]);
   
-  // --- Helper: Animate List Changes ---
-  // This helper highlights nodes one by one
-  const traverseTo = async (targetIndex, startState, endState) => {
-    for (let i = 0; i < targetIndex; i++) {
-        if (isCancelledRef.current) return;
-        await checkPause();
-        
-        setList(prev => prev.map((n, idx) => ({
-            ...n,
-            state: idx === i ? startState : n.state
-        })));
-        await sleep(speed);
-        setList(prev => prev.map((n, idx) => ({
-            ...n,
-            state: idx === i ? endState : n.state
-        })));
+  // Playback Engine
+  useEffect(() => {
+    let timer;
+    if (isPlaying && currentFrameIdx < frames.length - 1) {
+        timer = setTimeout(() => {
+            setCurrentFrameIdx(prev => prev + 1);
+        }, speed);
+    } else if (isPlaying && currentFrameIdx >= frames.length - 1) {
+        setIsPlaying(false);
     }
-  };
+    return () => clearTimeout(timer);
+  }, [isPlaying, currentFrameIdx, frames.length, speed]);
+
+  // Apply current frame to UI
+  useEffect(() => {
+    if (frames.length > 0 && currentFrameIdx >= 0 && currentFrameIdx < frames.length) {
+        const frame = frames[currentFrameIdx];
+        setList(frame.list);
+        setStatus(frame.status);
+        setExecutionLog(frame.log);
+    }
+  }, [currentFrameIdx, frames]);
   
-  // --- Helper: Reset All Node States ---
-  const resetNodeStates = (delay = 0) => {
-    setTimeout(() => {
-        setList(prev => prev.map(n => ({ ...n, state: 'default' })));
-    }, delay);
-  };
+  const cloneList = (lst) => lst.map(n => ({...n}));
   
-  // --- Helper: Validate Value/Index ---
   const getVal = () => {
       const num = parseInt(value);
-      if (isNaN(num)) {
-          setError("Please enter a valid number for 'Value'.");
-          return null;
-      }
+      if (isNaN(num)) { setError("Please enter a valid number for 'Value'."); return null; }
       return num;
   };
   
   const getIdx = () => {
       const num = parseInt(index);
-      if (isNaN(num) || num < 0) {
-          setError("Please enter a valid, non-negative number for 'Index'.");
-          return null;
-      }
+      if (isNaN(num) || num < 0) { setError("Please enter a valid, non-negative number for 'Index'."); return null; }
       return num;
   };
-  
-  // --- Pause Helper ---
-  const checkPause = async () => {
-    while (pausedRef.current && !isCancelledRef.current) {
-      setStatus("Paused. Press Resume to continue.");
-      await sleep(100);
-    }
+
+  const runOperation = (opName, frameGen) => {
+      setError(null);
+      setCurrentOperation(opName);
+      const newFrames = frameGen();
+      if (!newFrames || newFrames.length === 0) return;
+      
+      setFrames(newFrames);
+      setCurrentFrameIdx(0);
+      setIsPlaying(true);
+      setValue("");
+      setIndex("");
   };
-  
+
   // --- Operation: Add Head ---
-  const handleAddHead = async () => {
+  const handleAddHead = () => {
     const val = getVal();
     if (val === null) return;
-    
-    setError(null);
-    setIsVisualizing(true);
-    setExecutionLog(prev => [...prev, `Adding ${val} to HEAD`]);
-    setStatus(`Adding ${val} to HEAD...`);
-    
-    const newNode = { value: val, id: uuidv4(), state: 'found' };
-    
-    await sleep(speed);
-    setList(prev => [newNode, ...prev]);
-    
-    resetNodeStates(speed);
-    setIsVisualizing(false);
-    setValue("");
+    runOperation('addHead', () => {
+        const f = [];
+        let currList = cloneList(list);
+        let currLog = [...executionLog, `Adding ${val} to HEAD`];
+        
+        f.push({ list: cloneList(currList), status: `Adding ${val} to HEAD...`, log: currLog });
+        
+        const newNode = { value: val, id: uuidv4(), state: 'found' };
+        currList = [newNode, ...currList];
+        f.push({ list: cloneList(currList), status: `Added ${val} to HEAD. Linking Prev/Next.`, log: currLog });
+        
+        currList = currList.map(n => ({...n, state: 'default'}));
+        f.push({ list: cloneList(currList), status: `Added ${val} to HEAD successfully.`, log: currLog });
+        return f;
+    });
   };
   
   // --- Operation: Add Tail ---
-  const handleAddTail = async () => {
+  const handleAddTail = () => {
     const val = getVal();
     if (val === null) return;
     
-    setError(null);
-    setIsVisualizing(true);
-    setExecutionLog(prev => [...prev, `Adding ${val} to TAIL`]);
-    setStatus(`Traversing to TAIL...`);
-    
-    await traverseTo(list.length, 'visiting', 'default');
-    
-    if (isCancelledRef.current) {
-        setIsVisualizing(false);
-        return;
-    }
-    
-    setStatus(`Adding ${val} to TAIL...`);
-    const newNode = { value: val, id: uuidv4(), state: 'found' };
-    
-    setList(prev => [...prev, newNode]);
-    
-    resetNodeStates(speed);
-    setIsVisualizing(false);
-    setValue("");
+    runOperation('addTail', () => {
+        const f = [];
+        let currList = cloneList(list);
+        let currLog = [...executionLog, `Adding ${val} to TAIL`];
+        
+        f.push({ list: cloneList(currList), status: `Traversing to TAIL...`, log: currLog });
+        
+        for(let i=0; i<currList.length; i++) {
+            currList = currList.map((n, idx) => ({...n, state: idx === i ? 'visiting' : 'default'}));
+            f.push({ list: cloneList(currList), status: `Traversing to TAIL... checking index ${i}`, log: currLog });
+        }
+        currList = currList.map(n => ({...n, state: 'default'}));
+        
+        const newNode = { value: val, id: uuidv4(), state: 'found' };
+        currList = [...currList, newNode];
+        f.push({ list: cloneList(currList), status: `Adding ${val} to TAIL. Linking Prev/Next...`, log: currLog });
+        
+        currList = currList.map(n => ({...n, state: 'default'}));
+        f.push({ list: cloneList(currList), status: `Added ${val} to TAIL successfully.`, log: currLog });
+        return f;
+    });
   };
   
   // --- Operation: Add At Index ---
-  const handleAddAtIndex = async () => {
+  const handleAddAtIndex = () => {
     const val = getVal();
     const idx = getIdx();
     if (val === null || idx === null) return;
+    if (idx > list.length) { setError(`Index ${idx} is out of bounds for insertion.`); return; }
+    if (idx === 0) { handleAddHead(); return; }
     
-    if (idx > list.length) {
-        setError(`Index ${idx} is out of bounds for insertion.`);
-        return;
-    }
-    
-    setError(null);
-    setIsVisualizing(true);
-    setExecutionLog(prev => [...prev, `Inserting ${val} at index ${idx}`]);
-    
-    if (idx === 0) {
-        await handleAddHead(); // Re-use head logic
-        setIndex("");
-        return;
-    }
-    
-    setStatus(`Traversing to index ${idx - 1}...`);
-    await traverseTo(idx, 'visiting', 'default');
-    
-    if (isCancelledRef.current) {
-        setIsVisualizing(false);
-        return;
-    }
-    
-    // Highlight the node *before* insertion
-    setList(prev => prev.map((n, i) => ({ ...n, state: i === idx - 1 ? 'pre-op' : 'default' })));
-    setStatus(`Inserting ${val} at index ${idx}`);
-    await sleep(speed);
-    
-    const newNode = { value: val, id: uuidv4(), state: 'found' };
-    setList(prev => {
-        const newList = [...prev];
-        newList.splice(idx, 0, newNode);
-        return newList;
+    runOperation('addAtIndex', () => {
+        const f = [];
+        let currList = cloneList(list);
+        let currLog = [...executionLog, `Inserting ${val} at index ${idx}`];
+        
+        for(let i=0; i<idx; i++) {
+            currList = currList.map((n, i2) => ({...n, state: i2 === i ? 'visiting' : 'default'}));
+            f.push({ list: cloneList(currList), status: `Traversing to index ${idx-1}... checking index ${i}`, log: currLog });
+        }
+        
+        currList = currList.map((n, i) => ({...n, state: i === idx - 1 ? 'pre-op' : 'default'}));
+        f.push({ list: cloneList(currList), status: `Found insertion point after index ${idx-1}.`, log: currLog });
+        
+        const newNode = { value: val, id: uuidv4(), state: 'found' };
+        currList.splice(idx, 0, newNode);
+        f.push({ list: cloneList(currList), status: `Inserted ${val} at index ${idx}. Linking Prev/Next.`, log: currLog });
+        
+        currList = currList.map(n => ({...n, state: 'default'}));
+        f.push({ list: cloneList(currList), status: `Inserted ${val} at index ${idx} successfully.`, log: currLog });
+        return f;
     });
-    
-    resetNodeStates(speed);
-    setIsVisualizing(false);
-    setValue("");
-    setIndex("");
   };
 
   // --- Operation: Delete Head ---
-  const handleDeleteHead = async () => {
-    if (list.length === 0) {
-        setError("List is already empty.");
-        return;
-    }
-    setError(null);
-    setIsVisualizing(true);
-    setExecutionLog(prev => [...prev, `Deleting HEAD (Value: ${list[0].value})`]);
-    setStatus(`Deleting HEAD...`);
-    
-    setList(prev => prev.map((n, i) => ({ ...n, state: i === 0 ? 'deleting' : 'default' })));
-    await sleep(speed);
-    
-    setList(prev => prev.slice(1));
-    
-    setStatus(`Deleted HEAD node.`);
-    resetNodeStates();
-    setIsVisualizing(false);
+  const handleDeleteHead = () => {
+    if (list.length === 0) { setError("List is already empty."); return; }
+    runOperation('deleteHead', () => {
+        const f = [];
+        let currList = cloneList(list);
+        let currLog = [...executionLog, `Deleting HEAD (Value: ${currList[0].value})`];
+        
+        currList[0].state = 'deleting';
+        f.push({ list: cloneList(currList), status: `Deleting HEAD... Removing Prev/Next links.`, log: currLog });
+        
+        currList = currList.slice(1);
+        f.push({ list: cloneList(currList), status: `Deleted HEAD node.`, log: currLog });
+        
+        currList = currList.map(n => ({...n, state: 'default'}));
+        f.push({ list: cloneList(currList), status: `Deleted HEAD node successfully.`, log: currLog });
+        return f;
+    });
   };
   
   // --- Operation: Delete Tail ---
-  const handleDeleteTail = async () => {
-    if (list.length === 0) {
-        setError("List is already empty.");
-        return;
-    }
+  const handleDeleteTail = () => {
+    if (list.length === 0) { setError("List is already empty."); return; }
+    if (list.length === 1) { handleDeleteHead(); return; }
     
-    if (list.length === 1) {
-        await handleDeleteHead();
-        return;
-    }
-    
-    setError(null);
-    setIsVisualizing(true);
-    setExecutionLog(prev => [...prev, `Deleting TAIL (Value: ${list[list.length - 1].value})`]);
-    setStatus(`Traversing to node before TAIL...`);
-    
-    await traverseTo(list.length - 1, 'visiting', 'default');
-    
-    if (isCancelledRef.current) {
-        setIsVisualizing(false);
-        return;
-    }
-    
-    setStatus(`Deleting TAIL...`);
-    setList(prev => prev.map((n, i) => ({
-        ...n,
-        state: i === list.length - 2 ? 'pre-op' : (i === list.length - 1 ? 'deleting' : 'default')
-    })));
-    
-    await sleep(speed);
-    setList(prev => prev.slice(0, -1));
-    
-    setStatus(`Deleted TAIL node.`);
-    resetNodeStates();
-    setIsVisualizing(false);
+    runOperation('deleteTail', () => {
+        const f = [];
+        let currList = cloneList(list);
+        let currLog = [...executionLog, `Deleting TAIL (Value: ${currList[currList.length - 1].value})`];
+        
+        for(let i=0; i<currList.length - 1; i++) {
+            currList = currList.map((n, idx) => ({...n, state: idx === i ? 'visiting' : 'default'}));
+            f.push({ list: cloneList(currList), status: `Traversing to TAIL... checking index ${i}`, log: currLog });
+        }
+        
+        currList = currList.map((n, i) => ({
+            ...n,
+            state: i === currList.length - 2 ? 'pre-op' : (i === currList.length - 1 ? 'deleting' : 'default')
+        }));
+        f.push({ list: cloneList(currList), status: `Deleting TAIL... Removing Prev/Next links.`, log: currLog });
+        
+        currList = currList.slice(0, -1);
+        currList = currList.map(n => ({...n, state: 'default'}));
+        f.push({ list: cloneList(currList), status: `Deleted TAIL node successfully.`, log: currLog });
+        return f;
+    });
   };
   
   // --- Operation: Delete At Index ---
-  const handleDeleteAtIndex = async () => {
+  const handleDeleteAtIndex = () => {
     const idx = getIdx();
     if (idx === null) return;
+    if (idx >= list.length) { setError(`Index ${idx} is out of bounds.`); return; }
+    if (idx === 0) { handleDeleteHead(); return; }
+    if (idx === list.length - 1) { handleDeleteTail(); return; }
     
-    if (idx >= list.length) {
-        setError(`Index ${idx} is out of bounds.`);
-        return;
-    }
-    
-    if (idx === 0) {
-        await handleDeleteHead();
-        setIndex("");
-        return;
-    }
-    
-    if (idx === list.length - 1) {
-        await handleDeleteTail();
-        setIndex("");
-        return;
-    }
-    
-    setError(null);
-    setIsVisualizing(true);
-    setExecutionLog(prev => [...prev, `Deleting node at index ${idx}`]);
-    setStatus(`Traversing to index ${idx - 1}...`);
-    
-    await traverseTo(idx, 'visiting', 'default');
-    
-    if (isCancelledRef.current) {
-        setIsVisualizing(false);
-        return;
-    }
-    
-    setStatus(`Deleting node at index ${idx}...`);
-    setList(prev => prev.map((n, i) => ({
-        ...n,
-        state: i === idx - 1 ? 'pre-op' : (i === idx ? 'deleting' : 'default')
-    })));
-    
-    await sleep(speed);
-    setList(prev => prev.filter((_, i) => i !== idx));
-    
-    setStatus(`Deleted node at index ${idx}.`);
-    resetNodeStates();
-    setIsVisualizing(false);
-    setIndex("");
+    runOperation('deleteAtIndex', () => {
+        const f = [];
+        let currList = cloneList(list);
+        let currLog = [...executionLog, `Deleting node at index ${idx}`];
+        
+        for(let i=0; i<=idx; i++) {
+            currList = currList.map((n, i2) => ({...n, state: i2 === i ? 'visiting' : 'default'}));
+            f.push({ list: cloneList(currList), status: `Traversing to index ${idx}... checking index ${i}`, log: currLog });
+        }
+        
+        currList = currList.map((n, i) => ({
+            ...n,
+            state: (i === idx - 1 || i === idx + 1) ? 'pre-op' : (i === idx ? 'deleting' : 'default')
+        }));
+        f.push({ list: cloneList(currList), status: `Deleting node at index ${idx}... Connecting Prev to Next.`, log: currLog });
+        
+        currList = currList.filter((_, i) => i !== idx);
+        currList = currList.map(n => ({...n, state: 'default'}));
+        f.push({ list: cloneList(currList), status: `Deleted node at index ${idx} successfully.`, log: currLog });
+        return f;
+    });
   };
   
   // --- Operation: Delete By Value ---
-  const handleDeleteByValue = async () => {
+  const handleDeleteByValue = () => {
     const val = getVal();
     if (val === null) return;
+    if (list.length === 0) { setError("List is already empty."); return; }
     
-    setError(null);
-    setIsVisualizing(true);
-    setExecutionLog(prev => [...prev, `Deleting first occurrence of value ${val}`]);
-    
-    let foundIndex = -1;
-    for (let i = 0; i < list.length; i++) {
-        if (isCancelledRef.current) {
-            setIsVisualizing(false);
-            return;
+    runOperation('deleteByValue', () => {
+        const f = [];
+        let currList = cloneList(list);
+        let currLog = [...executionLog, `Deleting first occurrence of value ${val}`];
+        
+        let foundIndex = -1;
+        for(let i=0; i<currList.length; i++) {
+            currList = currList.map((n, idx) => ({...n, state: idx === i ? 'visiting' : 'default'}));
+            f.push({ list: cloneList(currList), status: `Searching for ${val}... checking index ${i}`, log: currLog });
+            if (currList[i].value === val) {
+                foundIndex = i;
+                break;
+            }
         }
-        await checkPause();
         
-        setStatus(`Searching for ${val}... checking index ${i}`);
-        setList(prev => prev.map((n, idx) => ({
-            ...n,
-            state: idx === i ? 'visiting' : 'default'
-        })));
-        await sleep(speed);
-        
-        if (list[i].value === val) {
-            foundIndex = i;
-            break;
+        if (foundIndex === -1) {
+            currLog = [...currLog, `Value ${val} not found.`];
+            currList = currList.map(n => ({...n, state: 'default'}));
+            f.push({ list: cloneList(currList), status: `Value ${val} not found in list.`, log: currLog });
+            return f;
         }
-    }
-    
-    if (foundIndex === -1) {
-        setStatus(`Value ${val} not found in list.`);
-        setExecutionLog(prev => [...prev, `Value ${val} not found.`]);
-        resetNodeStates();
-        setIsVisualizing(false);
-        setValue("");
-        return;
-    }
-    
-    // Found it, now delete it using index logic
-    setIndex(String(foundIndex)); // Set index state for deletion
-    if (foundIndex === 0) {
-        await handleDeleteHead();
-    } else if (foundIndex === list.length - 1) {
-        await handleDeleteTail();
-    } else {
-        // We already traversed, so just do the delete part
-        setStatus(`Deleting node at index ${foundIndex}...`);
-        setList(prev => prev.map((n, i) => ({
-            ...n,
-            state: i === foundIndex - 1 ? 'pre-op' : (i === foundIndex ? 'deleting' : 'default')
-        })));
         
-        await sleep(speed);
-        setList(prev => prev.filter((_, i) => i !== foundIndex));
+        if (foundIndex === 0) {
+            currList[0].state = 'deleting';
+            f.push({ list: cloneList(currList), status: `Deleting node...`, log: currLog });
+            currList = currList.slice(1);
+        } else {
+            currList = currList.map((n, i) => ({
+                ...n,
+                state: (i === foundIndex - 1 || i === foundIndex + 1) ? 'pre-op' : (i === foundIndex ? 'deleting' : 'default')
+            }));
+            f.push({ list: cloneList(currList), status: `Deleting node at index ${foundIndex}... Connecting Prev to Next.`, log: currLog });
+            currList = currList.filter((_, i) => i !== foundIndex);
+        }
         
-        setStatus(`Deleted node at index ${foundIndex}.`);
-        resetNodeStates();
-    }
-    
-    setIsVisualizing(false);
-    setValue("");
-    setIndex("");
+        currList = currList.map(n => ({...n, state: 'default'}));
+        currLog = [...currLog, `Deleted node with value ${val}.`];
+        f.push({ list: cloneList(currList), status: `Deleted node at index ${foundIndex} successfully.`, log: currLog });
+        return f;
+    });
   };
   
   // --- Operation: Search ---
-  const handleSearch = async () => {
+  const handleSearch = () => {
     const val = getVal();
     if (val === null) return;
+    if (list.length === 0) { setError("List is already empty."); return; }
     
-    setError(null);
-    setIsVisualizing(true);
-    setExecutionLog(prev => [...prev, `Searching for value ${val}`]);
-    
-    let found = false;
-    for (let i = 0; i < list.length; i++) {
-        if (isCancelledRef.current) {
-            setIsVisualizing(false);
-            return;
-        }
-        await checkPause();
+    runOperation('search', () => {
+        const f = [];
+        let currList = cloneList(list);
+        let currLog = [...executionLog, `Searching for value ${val}`];
         
-        setStatus(`Searching... checking index ${i} (Value: ${list[i].value})`);
-        setList(prev => prev.map((n, idx) => ({
-            ...n,
-            state: idx === i ? 'visiting' : 'default'
-        })));
-        await sleep(speed);
-        
-        if (list[i].value === val) {
-            setStatus(`Found ${val} at index ${i}!`);
-            setExecutionLog(prev => [...prev, `Found ${val} at index ${i}!`]);
-            setList(prev => prev.map((n, idx) => ({
-                ...n,
-                state: idx === i ? 'found' : 'default'
-            })));
-            found = true;
-            break;
+        let found = false;
+        for(let i=0; i<currList.length; i++) {
+            currList = currList.map((n, idx) => ({...n, state: idx === i ? 'visiting' : 'default'}));
+            f.push({ list: cloneList(currList), status: `Searching... checking index ${i} (Value: ${currList[i].value})`, log: currLog });
+            
+            if (currList[i].value === val) {
+                currList[i].state = 'found';
+                currLog = [...currLog, `Found ${val} at index ${i}!`];
+                f.push({ list: cloneList(currList), status: `Found ${val} at index ${i}!`, log: currLog });
+                found = true;
+                break;
+            }
         }
-    }
-    
-    if (!found) {
-        setStatus(`Value ${val} not found in the list.`);
-        setExecutionLog(prev => [...prev, `Value ${val} not found.`]);
-    }
-    
-    resetNodeStates(speed * 2);
-    setIsVisualizing(false);
-    setValue("");
+        
+        if (!found) {
+            currLog = [...currLog, `Value ${val} not found.`];
+            currList = currList.map(n => ({...n, state: 'default'}));
+            f.push({ list: cloneList(currList), status: `Value ${val} not found in the list.`, log: currLog });
+        }
+        return f;
+    });
   };
 
-  /**
-   * Resets the entire visualizer.
-   */
+  // --- Operation: Reverse ---
+  const handleReverse = () => {
+    if (list.length < 2) { setError("Need at least 2 nodes to reverse."); return; }
+    
+    runOperation('reverse', () => {
+        const f = [];
+        let currList = cloneList(list).map(n => ({ ...n, pointers: [], state: 'default' }));
+        let currLog = [...executionLog, `Starting list reversal`, `temp = null`];
+        f.push({ list: cloneList(currList), status: "Initialize: temp = null", log: currLog });
+
+        const applyPointers = (lst, t, c) => {
+            return lst.map((node, idx) => {
+                const ptrs = [];
+                if (idx === t) ptrs.push('temp');
+                if (idx === c) ptrs.push('curr');
+                return { ...node, pointers: ptrs };
+            });
+        };
+
+        let N = currList.length;
+
+        for (let i = 0; i < N; i++) {
+            // Reversing effectively moves each visited node to the front in array sequence
+            let currIdx = i;
+            let tempIdx = i === 0 ? -1 : 0; 
+            
+            // Step 1: Assign curr
+            currList = applyPointers(currList, tempIdx, currIdx);
+            currList = currList.map((n, idx) => ({ ...n, state: idx === currIdx ? 'visiting' : 'default' }));
+            currLog = [...currLog, `curr = ${currList[currIdx].value}`];
+            f.push({ list: cloneList(currList), status: `curr = current node`, log: currLog });
+
+            // Step 2: Swap Prev and Next
+            if (i > 0) {
+                let nodeToMove = currList.splice(currIdx, 1)[0];
+                nodeToMove.state = 'found';
+                currList.unshift(nodeToMove);
+                
+                currList = applyPointers(currList, 1, 0); 
+                currLog = [...currLog, `Swapped prev and next for node ${nodeToMove.value}`];
+                f.push({ list: cloneList(currList), status: `Swapped curr.prev and curr.next`, log: currLog });
+            } else {
+                currList[0].state = 'found';
+                currLog = [...currLog, `Swapped prev and next for node ${currList[0].value}`];
+                f.push({ list: cloneList(currList), status: `Swapped curr.prev and curr.next`, log: currLog });
+            }
+        }
+        
+        currList = currList.map(n => ({...n, pointers: [], state: 'default'}));
+        currLog = [...currLog, `Doubly List reversal complete.`];
+        f.push({ list: cloneList(currList), status: `Doubly List reversal complete.`, log: currLog });
+        return f;
+    });
+  };
+
+  // --- Operation: Swap ---
+  const handleSwap = () => {
+    let idx1 = parseInt(index);
+    let idx2 = parseInt(index2);
+        
+    if (isNaN(idx1) || isNaN(idx2) || idx1 < 0 || idx2 < 0) {
+        setError("Please enter valid, non-negative numbers for both 'Index 1' and 'Index 2'.");
+        return;
+    }
+    if (idx1 >= list.length || idx2 >= list.length) {
+        setError("One or both indexes are out of bounds.");
+        return;
+    }
+    if (idx1 === idx2) {
+        setError("Indexes must be different for a swap.");
+        return;
+    }
+
+    let minIdx = Math.min(idx1, idx2);
+    let maxIdx = Math.max(idx1, idx2);
+
+    runOperation('swap', () => {
+        const f = [];
+        let currList = cloneList(list);
+        let currLog = [...executionLog, `Swapping nodes at index ${minIdx} and ${maxIdx}`];
+            
+        for(let i=0; i<=minIdx; i++) {
+            currList = currList.map((n, idx) => ({...n, state: idx === i ? 'visiting' : 'default'}));
+            f.push({ list: cloneList(currList), status: `Finding first node... checking index ${i}`, log: currLog });
+        }
+        currList[minIdx].state = 'pre-op';
+        f.push({ list: cloneList(currList), status: `Found first node at index ${minIdx}.`, log: currLog });
+
+        for(let i=minIdx+1; i<=maxIdx; i++) {
+            currList = currList.map((n, idx) => ({
+                ...n, 
+                state: idx === minIdx ? 'pre-op' : (idx === i ? 'visiting' : 'default')
+            }));
+            f.push({ list: cloneList(currList), status: `Finding second node... checking index ${i}`, log: currLog });
+        }
+        currList[maxIdx].state = 'pre-op';
+        f.push({ list: cloneList(currList), status: `Found second node at index ${maxIdx}.`, log: currLog });
+
+        // Swap operation values
+        let temp = currList[minIdx];
+        currList[minIdx] = currList[maxIdx];
+        currList[maxIdx] = temp;
+            
+        currList[minIdx].state = 'found';
+        currList[maxIdx].state = 'found';
+            
+        currLog = [...currLog, `Swapped nodes successfully.`];
+        f.push({ list: cloneList(currList), status: `Swapped nodes successfully!`, log: currLog });
+            
+        currList = currList.map(n => ({...n, state: 'default'}));
+        f.push({ list: cloneList(currList), status: `Swapped nodes successfully!`, log: currLog });
+            
+        return f;
+    });
+  };
+
   const handleReset = () => {
-    isCancelledRef.current = true;
-    setIsVisualizing(false);
-    setIsPaused(false);
-    pausedRef.current = false;
+    setFrames([]);
+    setCurrentFrameIdx(0);
+    setIsPlaying(false);
     
     setList([]);
     setValue("");
     setIndex("");
+    setIndex2("");
     setError(null);
-    setStatus("Create a new list or add a node.");
+    setStatus("Create a new doubly linked list or add a node.");
     setHighlightLineNum(-1);
+    setCurrentOperation('base');
     setExecutionLog([]);
-    
-    // Short delay to allow async processes to cancel
-    setTimeout(() => {
-        isCancelledRef.current = false;
-    }, 100);
   };
   
-  /**
-   * Toggles the pause state.
-   */
-  const togglePause = () => {
-    const newPausedState = !isPaused;
-    setIsPaused(newPausedState);
-    pausedRef.current = newPausedState;
-    if (newPausedState) {
-      setExecutionLog(prev => [...prev, "Paused."]);
+  const handleGenerateRandom = () => {
+    const size = parseInt(randomSize);
+    if (isNaN(size) || size <= 0 || size > 25) {
+      setError("Please enter a valid size (1-25) for the random list.");
+      return;
+    }
+
+    const newList = [];
+    for (let i = 0; i < size; i++) {
+      newList.push({
+        value: Math.floor(Math.random() * 99) + 1,
+        id: uuidv4(),
+        state: 'default'
+      });
+    }
+    
+    setFrames([]);
+    setCurrentFrameIdx(0);
+    setIsPlaying(false);
+    
+    setList(newList);
+    setValue("");
+    setIndex("");
+    setError(null);
+    setStatus(`Generated a random doubly linked list of ${size} nodes.`);
+    setHighlightLineNum(-1);
+    setCurrentOperation('base');
+    setExecutionLog([`Generated random doubly linked list of ${size} nodes.`]);
+  };
+
+  const togglePlay = () => {
+    if (frames.length === 0) return;
+    if (currentFrameIdx >= frames.length - 1) {
+        setCurrentFrameIdx(0);
+        setIsPlaying(true);
     } else {
-      setExecutionLog(prev => [...prev, "Resuming..."]);
+        setIsPlaying(!isPlaying);
     }
   };
 
+  const handleNext = () => {
+    if (currentFrameIdx < frames.length - 1) {
+        setCurrentFrameIdx(p => p + 1);
+        setIsPlaying(false);
+    }
+  };
 
-  const codeLines = codeSnippets[language].trim().split('\n');
+  const handlePrev = () => {
+    if (currentFrameIdx > 0) {
+        setCurrentFrameIdx(p => p - 1);
+        setIsPlaying(false);
+    }
+  };
+  
+  const currentCode = codeSnippets[language][currentOperation] || codeSnippets[language].base;
+  const codeLines = currentCode.trim().split('\n');
+  const currentComplexity = complexities[currentOperation] || complexities.base;
   
   const statusColor = status.includes("Found")
     ? "status-found"
     : status.includes("not found")
     ? "status-not-found"
-    : status.includes("Paused")
+    : (!isPlaying && frames.length > 0 && currentFrameIdx < frames.length - 1)
     ? "status-paused"
     : "status-default";
 
@@ -1164,7 +1890,7 @@ export default function DoublyLinkedList() {
       {/* --- Controls Sidebar --- */}
       <aside className="controls-sidebar">
         <h1 className="sidebar-title">
-          <ArrowLeftRight size={30} />
+          <List size={30} />
           Doubly Linked List
         </h1>
 
@@ -1182,7 +1908,7 @@ export default function DoublyLinkedList() {
               />
             </div>
             <div className="input-group">
-              <label htmlFor="index">Index</label>
+              <label htmlFor="index">Index 1</label>
               <input
                 id="index"
                 type="text"
@@ -1195,9 +1921,21 @@ export default function DoublyLinkedList() {
             </div>
         </div>
         
+        <div className="input-group" style={{marginBottom: '1.25rem'}}>
+          <label htmlFor="index2">Index 2 (For Swap Operation)</label>
+          <input
+            id="index2"
+            type="text"
+            placeholder="e.g., 4"
+            value={index2}
+            onChange={(e) => setIndex2(e.target.value)}
+            disabled={isVisualizing}
+            className="input-field"
+          />
+        </div>
+        
         {error && <div className="error-message">{error}</div>}
 
-        {/* --- Actions --- */}
         <div className="actions-grid">
             <button onClick={handleAddHead} disabled={isVisualizing} className="btn btn-green">Add Head</button>
             <button onClick={handleAddTail} disabled={isVisualizing} className="btn btn-green">Add Tail</button>
@@ -1216,28 +1954,38 @@ export default function DoublyLinkedList() {
              <button onClick={handleSearch} disabled={isVisualizing || list.length === 0} className="btn btn-cyan">Search</button>
         </div>
         
+        <div className="actions-grid">
+             <button onClick={handleSwap} disabled={isVisualizing || list.length < 2} className="btn btn-cyan">Swap Nodes</button>
+             <button onClick={handleReverse} disabled={isVisualizing || list.length < 2} className="btn btn-cyan">Reverse List</button>
+        </div>
+        
         <hr style={{borderColor: 'var(--border-gray-700)', margin: '1.5rem 0'}} />
 
         <div className="actions-grid">
-          <button
-            onClick={togglePause}
-            disabled={!isVisualizing}
-            className={`btn ${isPaused ? 'btn-resume' : 'btn-pause'}`}
-          >
-            {isPaused ? <Play size={18} /> : <Pause size={18} />}
-            {isPaused ? "Resume" : "Pause"}
-          </button>
-          
-          <button
-            onClick={handleReset}
-            className="btn btn-secondary"
-          >
-            <RefreshCw size={18} />
-            Reset List
+          <button onClick={handleReset} className="btn btn-secondary">
+            <RefreshCw size={18} /> Reset List
           </button>
         </div>
 
-        {/* --- Settings --- */}
+        <div className="actions-grid" style={{ gridTemplateColumns: '1fr 2.5fr' }}>
+          <input
+            id="randomSize"
+            type="number"
+            min="1"
+            max="25"
+            placeholder="Size"
+            value={randomSize}
+            onChange={(e) => setRandomSize(e.target.value)}
+            disabled={isVisualizing}
+            className="input-field"
+            style={{ textAlign: 'center', padding: '0.75rem 0.5rem' }}
+            title="Random List Size"
+          />
+          <button onClick={handleGenerateRandom} disabled={isVisualizing} className="btn btn-cyan">
+            <Shuffle size={18} /> Generate Random
+          </button>
+        </div>
+
         <div className="input-group">
           <label htmlFor="language">Code Language</label>
           <select
@@ -1288,38 +2036,103 @@ export default function DoublyLinkedList() {
           <div className="visualization-boxes">
             {list.length === 0 && <span style={{color: 'var(--text-gray-500)'}}>List is empty.</span>}
             
-            {list.length > 0 && <div className="null-node">NULL</div>}
-            
+            {/* Visual Header Null for Doubly Linked List */}
+            {list.length > 0 && (
+              <React.Fragment>
+                  <div className="null-node" style={{paddingRight: '0'}}>NULL</div>
+                  <ArrowLeft className="pointer-arrow" size={24} style={{margin: '0 4px'}} />
+              </React.Fragment>
+            )}
+
             {list.map((node, idx) => (
-              <div className="node-container" key={node.id}>
-                <ArrowLeftRight className="pointer-arrow" size={30} />
-                <div className="node-wrapper">
-                  {idx === 0 && <span className="head-label">HEAD</span>}
-                  {idx === list.length - 1 && <span className="tail-label">TAIL</span>}
-                  <div
-                    className={`box ${node.state}`}
-                  >
-                    {node.value}
+              <React.Fragment key={node.id}>
+                <div className="node-container">
+                  <div className="node-wrapper">
+                    {idx === 0 && <span className="head-label">HEAD</span>}
+                    <div className={`box ${node.state}`}>
+                      {node.value}
+                    </div>
+                    <span className="box-index">[{idx}]</span>
+                    
+                    <div className="node-pointers">
+                      {node.pointers && node.pointers.map(p => (
+                        <span key={p} className={`pointer-badge ${p}`}>
+                          &uarr; {p}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                  <span className="box-index">[{idx}]</span>
                 </div>
-              </div>
+                {/* Visual Inter-node double arrows */}
+                {idx < list.length - 1 && (
+                  <ArrowLeftRight className="pointer-arrow" size={30} />
+                )}
+              </React.Fragment>
             ))}
-            {list.length > 0 && 
-                <div className="null-node">
-                    <ArrowLeftRight className="pointer-arrow" size={30} />
-                    NULL
-                </div>
-            }
+            
+            {/* Visual Tail Null for Doubly Linked List */}
+            {list.length > 0 && (
+                <React.Fragment>
+                    <ArrowRight className="pointer-arrow" size={24} style={{margin: '0 4px'}} />
+                    <div className="null-node" style={{paddingLeft: '0'}}>NULL</div>
+                </React.Fragment>
+            )}
           </div>
           
+          <div className="playback-controls-bar">
+            <button onClick={handlePrev} disabled={frames.length === 0 || currentFrameIdx === 0} className="btn btn-secondary">
+              <StepBack size={16} /> Prev
+            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+              <button
+                onClick={togglePlay}
+                disabled={frames.length === 0}
+                className={`btn ${isPlaying ? 'btn-pause' : 'btn-resume'}`}
+                style={{ borderRadius: '50%', padding: '0.6rem', minWidth: 'auto' }}
+                title={isPlaying ? "Pause" : "Play"}
+              >
+                {isPlaying ? <Pause size={16} /> : <Play size={16} />}
+              </button>
+              <span className="step-indicator">
+                Step {frames.length > 0 ? currentFrameIdx : 0}
+              </span>
+            </div>
+            <button onClick={handleNext} disabled={frames.length === 0 || currentFrameIdx === frames.length - 1} className="btn btn-secondary">
+              Next <StepForward size={16} />
+            </button>
+          </div>
+        </section>
+
+        {/* --- Complexity Analysis --- */}
+        <section className="complexity-bar">
+          <div className="complexity-card">
+            <span className="complexity-title">Best Case Time</span>
+            <span className="complexity-value">{currentComplexity.best}</span>
+          </div>
+          <div className="complexity-card">
+            <span className="complexity-title">Average Time</span>
+            <span className="complexity-value">{currentComplexity.avg}</span>
+          </div>
+          <div className="complexity-card">
+            <span className="complexity-title">Worst Case Time</span>
+            <span className="complexity-value">{currentComplexity.worst}</span>
+          </div>
+          <div className="complexity-card">
+            <span className="complexity-title">Space Complexity</span>
+            <span className="complexity-value">{currentComplexity.space}</span>
+          </div>
         </section>
 
         {/* --- Lower Content Area (Code & Log) --- */}
         <div className="lower-content-area">
           {/* --- Code Area --- */}
           <section className="code-section">
-            <h2 className="section-title">Code</h2>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem'}}>
+                <h2 className="section-title" style={{margin: 0}}>Code</h2>
+                <span style={{fontSize: '0.85rem', color: 'var(--cyan-400)', textTransform: 'uppercase', letterSpacing: '0.05em'}}>
+                  {currentOperation === 'base' ? 'Structure Definition' : currentOperation.replace(/([A-Z])/g, ' $1').trim()}
+                </span>
+            </div>
             <div className="code-block">
               <pre>
                 <code>
