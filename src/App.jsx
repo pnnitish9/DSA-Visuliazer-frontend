@@ -25,6 +25,7 @@ import AVLTreeVisualizer from "./components/Trees/AVL";
 import BFSDFS from "./components/BFS-DFS/bfsdfs";
 import HeapVisualizer from "./components/Search/heap";
 import HashTableVisualizer from "./components/HashTable/hashing";
+import TrieVisualizer from "./components/Trees/Trie";
 import UserAccount from "./components/UserAccount";
 function App() {
   return (
@@ -178,6 +179,14 @@ function App() {
           element={
             <RequireAuth>
               <HashTableVisualizer/>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/trie"
+          element={
+            <RequireAuth>
+              <TrieVisualizer/>
             </RequireAuth>
           }
         />

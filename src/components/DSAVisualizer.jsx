@@ -1,6 +1,6 @@
 // DSAVisualizer.jsx
 import React from "react";
-import { Link } from "react-router-dom"; 
+import { href, Link } from "react-router-dom"; 
 
 export default function DSAVisualizer() {
   const topics = [
@@ -21,6 +21,7 @@ export default function DSAVisualizer() {
     { name: "DFS & BFS", href: "bfsdfs" },
     { name: "Heap (MaxHeap, MinHeap)", href: "heap" },
     { name: "Hashing", href: "hashing" },
+    { name: "Trie", href: "trie"},
   ];
 
   return (
