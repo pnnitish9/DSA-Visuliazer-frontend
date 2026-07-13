@@ -17,6 +17,7 @@ import QuickSort from "./components/Sorting/QuickSort";
 import SinglyLinkedList from "./components/LinkedList/SinglyLinkedList";
 import CircularSinglyLinkedList from "./components/LinkedList/CircularLinkedList";
 import DoublyLinkedList from "./components/LinkedList/DoublyLinkedList";
+import CircularDoublyLinkedListVisualizer from "./components/LinkedList/CircularDoublyLinkedList";
 import Stack from "./components/Stack/Stack";
 import Queue from "./components/Queue/Queue";
 import BST from "./components/Trees/BST";
@@ -105,6 +106,14 @@ function App() {
           element={
             <RequireAuth>
               <CircularSinglyLinkedList/>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/circulardoublylinkedlist"
+          element={
+            <RequireAuth>
+              <CircularDoublyLinkedListVisualizer />
             </RequireAuth>
           }
         />

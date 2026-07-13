@@ -13,6 +13,7 @@ export default function DSAVisualizer() {
     { name: "Singly LinkedList", href: "singlylinkedlist" },
     { name: "Circular Singly LinkedList", href: "circularsinglylinkedlist" },
     { name: "Doubly LinkedList", href: "doublylinkedlist" },
+    { name: "Circular Doubly LinkedList", href: "circulardoublylinkedlist" },
     { name: "Stack", href: "stack" },
     { name: "Queue", href: "queue" },
     { name: "Binary Tree", href: "bst" },
