@@ -73,6 +73,7 @@ const InjectedStyles = () => (
     .input-field:disabled { opacity: 0.5; cursor: not-allowed; }
     
     .row-flex { display: flex; gap: 0.5rem; align-items: center; }
+    .actions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
     
     /* Buttons */
     .btn { padding: 0.5rem; border-radius: 0.375rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 0.4rem; transition: all 0.15s ease; cursor: pointer; border: none; font-size: 0.8rem; width: 100%; }
@@ -167,72 +168,257 @@ const InjectedStyles = () => (
 );
 
 const ALGO_CODES = {
-  dijkstra: [
-    "def dijkstra(graph, start):",
-    "    dist = {node: INF for node in graph}",
-    "    dist[start] = 0",
-    "    pq = [(0, start)]",
-    "",
-    "    while pq:",
-    "        d, u = heapq.heappop(pq)",
-    "        if d > dist[u]: continue",
-    "",
-    "        for v, weight in graph[u]:",
-    "            if dist[u] + weight < dist[v]:",
-    "                dist[v] = dist[u] + weight",
-    "                heapq.heappush(pq, (dist[v], v))",
-    "    return dist"
-  ],
-  bellmanFord: [
-    "def bellman_ford(graph, V, start):",
-    "    dist = {node: INF for node in range(V)}",
-    "    dist[start] = 0",
-    "",
-    "    for _ in range(V - 1):",
-    "        for u, v, weight in graph.edges:",
-    "            if dist[u] + weight < dist[v]:",
-    "                dist[v] = dist[u] + weight",
-    "",
-    "    # Optional negative cycle check omitted for brevity",
-    "    return dist"
-  ],
-  floydWarshall: [
-    "def floyd_warshall(graph, V):",
-    "    dist = [[INF]*V for _ in range(V)]",
-    "    for u, v, w in graph.edges: dist[u][v] = w",
-    "    for i in range(V): dist[i][i] = 0",
-    "",
-    "    for k in range(V):",
-    "        for i in range(V):",
-    "            for j in range(V):",
-    "                if dist[i][k] + dist[k][j] < dist[i][j]:",
-    "                    dist[i][j] = dist[i][k] + dist[k][j]",
-    "    return dist"
-  ],
-  astar: [
-    "def a_star(graph, start, target):",
-    "    g_score = {node: INF for node in graph}",
-    "    g_score[start] = 0",
-    "    pq = [(heuristic(start, target), start)]",
-    "",
-    "    while pq:",
-    "        _, u = heapq.heappop(pq)",
-    "        if u == target: return g_score[u]",
-    "",
-    "        for v, weight in graph[u]:",
-    "            tentative_g = g_score[u] + weight",
-    "            if tentative_g < g_score[v]:",
-    "                g_score[v] = tentative_g",
-    "                f_score = tentative_g + heuristic(v, target)",
-    "                heapq.heappush(pq, (f_score, v))"
-  ]
+  dijkstra: {
+    python: [
+      "def dijkstra(graph, start):",
+      "    dist = {node: INF for node in graph}",
+      "    dist[start] = 0",
+      "    pq = [(0, start)]",
+      "",
+      "    while pq:",
+      "        d, u = heapq.heappop(pq)",
+      "        if d > dist[u]: continue",
+      "",
+      "        for v, weight in graph[u]:",
+      "            if dist[u] + weight < dist[v]:",
+      "                dist[v] = dist[u] + weight",
+      "                heapq.heappush(pq, (dist[v], v))",
+      "    return dist"
+    ],
+    cpp: [
+      "vector<int> dijkstra(int V, vector<vector<pair<int, int>>>& adj, int start) {",
+      "    vector<int> dist(V, INF);",
+      "    dist[start] = 0;",
+      "    priority_queue<pair<int, int>, vector<pair<int, int>>, greater<pair<int, int>>> pq;",
+      "    pq.push({0, start});",
+      "",
+      "    while (!pq.empty()) {",
+      "        auto [d, u] = pq.top(); pq.pop();",
+      "        if (d > dist[u]) continue;",
+      "",
+      "        for (auto& edge : adj[u]) {",
+      "            int v = edge.first, weight = edge.second;",
+      "            if (dist[u] + weight < dist[v]) {",
+      "                dist[v] = dist[u] + weight;",
+      "                pq.push({dist[v], v});",
+      "            }",
+      "        }",
+      "    }",
+      "    return dist;",
+      "}"
+    ],
+    java: [
+      "public int[] dijkstra(int V, List<List<int[]>> adj, int start) {",
+      "    int[] dist = new int[V];",
+      "    Arrays.fill(dist, Integer.MAX_VALUE);",
+      "    dist[start] = 0;",
+      "    PriorityQueue<int[]> pq = new PriorityQueue<>((a, b) -> Integer.compare(a[0], b[0]));",
+      "    pq.offer(new int[]{0, start});",
+      "",
+      "    while (!pq.isEmpty()) {",
+      "        int[] curr = pq.poll();",
+      "        int d = curr[0], u = curr[1];",
+      "        if (d > dist[u]) continue;",
+      "",
+      "        for (int[] edge : adj.get(u)) {",
+      "            int v = edge[0], weight = edge[1];",
+      "            if (dist[u] + weight < dist[v]) {",
+      "                dist[v] = dist[u] + weight;",
+      "                pq.offer(new int[]{dist[v], v});",
+      "            }",
+      "        }",
+      "    }",
+      "    return dist;",
+      "}"
+    ]
+  },
+  bellmanFord: {
+    python: [
+      "def bellman_ford(graph, V, start):",
+      "    dist = {node: INF for node in range(V)}",
+      "    dist[start] = 0",
+      "",
+      "    for _ in range(V - 1):",
+      "        for u, v, weight in graph.edges:",
+      "            if dist[u] + weight < dist[v]:",
+      "                dist[v] = dist[u] + weight",
+      "",
+      "    # Optional negative cycle check omitted for brevity",
+      "    return dist"
+    ],
+    cpp: [
+      "vector<int> bellman_ford(int V, vector<vector<int>>& edges, int start) {",
+      "    vector<int> dist(V, INF);",
+      "    dist[start] = 0;",
+      "",
+      "    for (int i = 0; i < V - 1; i++) {",
+      "        for (auto& edge : edges) {",
+      "            int u = edge[0], v = edge[1], weight = edge[2];",
+      "            if (dist[u] != INF && dist[u] + weight < dist[v]) {",
+      "                dist[v] = dist[u] + weight;",
+      "            }",
+      "        }",
+      "    }",
+      "    return dist;",
+      "}"
+    ],
+    java: [
+      "public int[] bellmanFord(int V, int[][] edges, int start) {",
+      "    int[] dist = new int[V];",
+      "    Arrays.fill(dist, Integer.MAX_VALUE);",
+      "    dist[start] = 0;",
+      "",
+      "    for (int i = 0; i < V - 1; i++) {",
+      "        for (int[] edge : edges) {",
+      "            int u = edge[0], v = edge[1], weight = edge[2];",
+      "            if (dist[u] != Integer.MAX_VALUE && dist[u] + weight < dist[v]) {",
+      "                dist[v] = dist[u] + weight;",
+      "            }",
+      "        }",
+      "    }",
+      "    return dist;",
+      "}"
+    ]
+  },
+  floydWarshall: {
+    python: [
+      "def floyd_warshall(graph, V):",
+      "    dist = [[INF]*V for _ in range(V)]",
+      "    for u, v, w in graph.edges: dist[u][v] = w",
+      "    for i in range(V): dist[i][i] = 0",
+      "",
+      "    for k in range(V):",
+      "        for i in range(V):",
+      "            for j in range(V):",
+      "                if dist[i][k] + dist[k][j] < dist[i][j]:",
+      "                    dist[i][j] = dist[i][k] + dist[k][j]",
+      "    return dist"
+    ],
+    cpp: [
+      "void floyd_warshall(int V, vector<vector<int>>& dist) {",
+      "    // dist is initialized with graph edges, 0 on diagonal, INF otherwise",
+      "    for (int k = 0; k < V; k++) {",
+      "        for (int i = 0; i < V; i++) {",
+      "            for (int j = 0; j < V; j++) {",
+      "                if (dist[i][k] != INF && dist[k][j] != INF) {",
+      "                    if (dist[i][k] + dist[k][j] < dist[i][j]) {",
+      "                        dist[i][j] = dist[i][k] + dist[k][j];",
+      "                    }",
+      "                }",
+      "            }",
+      "        }",
+      "    }",
+      "}"
+    ],
+    java: [
+      "public void floydWarshall(int V, int[][] dist) {",
+      "    // dist is initialized with graph edges, 0 on diagonal, INF otherwise",
+      "    for (int k = 0; k < V; k++) {",
+      "        for (int i = 0; i < V; i++) {",
+      "            for (int j = 0; j < V; j++) {",
+      "                if (dist[i][k] != Integer.MAX_VALUE && dist[k][j] != Integer.MAX_VALUE) {",
+      "                    if (dist[i][k] + dist[k][j] < dist[i][j]) {",
+      "                        dist[i][j] = dist[i][k] + dist[k][j];",
+      "                    }",
+      "                }",
+      "            }",
+      "        }",
+      "    }",
+      "}"
+    ]
+  },
+  astar: {
+    python: [
+      "def a_star(graph, start, target):",
+      "    g_score = {node: INF for node in graph}",
+      "    g_score[start] = 0",
+      "    pq = [(heuristic(start, target), start)]",
+      "",
+      "    while pq:",
+      "        _, u = heapq.heappop(pq)",
+      "        if u == target: return g_score[u]",
+      "",
+      "        for v, weight in graph[u]:",
+      "            tentative_g = g_score[u] + weight",
+      "            if tentative_g < g_score[v]:",
+      "                g_score[v] = tentative_g",
+      "                f_score = tentative_g + heuristic(v, target)",
+      "                heapq.heappush(pq, (f_score, v))"
+    ],
+    cpp: [
+      "int a_star(int V, vector<vector<pair<int, int>>>& adj, int start, int target) {",
+      "    vector<int> g_score(V, INF);",
+      "    g_score[start] = 0;",
+      "    priority_queue<pair<int, int>, vector<pair<int, int>>, greater<pair<int, int>>> pq;",
+      "    pq.push({heuristic(start, target), start});",
+      "",
+      "    while (!pq.empty()) {",
+      "        auto [f, u] = pq.top(); pq.pop();",
+      "        if (u == target) return g_score[u];",
+      "",
+      "        for (auto& edge : adj[u]) {",
+      "            int v = edge.first, weight = edge.second;",
+      "            int tentative_g = g_score[u] + weight;",
+      "            if (tentative_g < g_score[v]) {",
+      "                g_score[v] = tentative_g;",
+      "                int f_score = tentative_g + heuristic(v, target);",
+      "                pq.push({f_score, v});",
+      "            }",
+      "        }",
+      "    }",
+      "    return -1;",
+      "}"
+    ],
+    java: [
+      "public int aStar(int V, List<List<int[]>> adj, int start, int target) {",
+      "    int[] gScore = new int[V];",
+      "    Arrays.fill(gScore, Integer.MAX_VALUE);",
+      "    gScore[start] = 0;",
+      "    PriorityQueue<int[]> pq = new PriorityQueue<>((a, b) -> Integer.compare(a[0], b[0]));",
+      "    pq.offer(new int[]{heuristic(start, target), start});",
+      "",
+      "    while (!pq.isEmpty()) {",
+      "        int[] curr = pq.poll();",
+      "        int f = curr[0], u = curr[1];",
+      "        if (u == target) return gScore[u];",
+      "",
+      "        for (int[] edge : adj.get(u)) {",
+      "            int v = edge[0], weight = edge[1];",
+      "            int tentativeG = gScore[u] + weight;",
+      "            if (tentativeG < gScore[v]) {",
+      "                gScore[v] = tentativeG;",
+      "                int fScore = tentativeG + heuristic(v, target);",
+      "                pq.offer(new int[]{fScore, v});",
+      "            }",
+      "        }",
+      "    }",
+      "    return -1;",
+      "}"
+    ]
+  }
 };
 
 const LINE_MAPS = {
-  dijkstra: { init: 2, loop: 6, pop: 7, skip: 8, loopNeighbors: 10, check: 11, relax: 12, push: 13 },
-  bellmanFord: { init: 2, loopV: 5, loopE: 6, check: 7, relax: 8 },
-  floydWarshall: { init: 2, loopK: 6, loopI: 7, loopJ: 8, check: 9, relax: 10 },
-  astar: { init: 2, loop: 6, pop: 7, targetMatch: 8, loopNeighbors: 10, check: 12, relax: 13, push: 15 }
+  dijkstra: { 
+    python: { init: 2, loop: 6, pop: 7, skip: 8, loopNeighbors: 10, check: 11, relax: 12, push: 13 },
+    cpp: { init: 2, loop: 7, pop: 8, skip: 9, loopNeighbors: 11, check: 13, relax: 14, push: 15 },
+    java: { init: 2, loop: 8, pop: 9, skip: 11, loopNeighbors: 13, check: 15, relax: 16, push: 17 }
+  },
+  bellmanFord: { 
+    python: { init: 2, loopV: 5, loopE: 6, check: 7, relax: 8 },
+    cpp: { init: 2, loopV: 5, loopE: 6, check: 8, relax: 9 },
+    java: { init: 2, loopV: 6, loopE: 7, check: 9, relax: 10 }
+  },
+  floydWarshall: { 
+    python: { init: 2, loopK: 6, loopI: 7, loopJ: 8, check: 9, relax: 10 },
+    cpp: { init: 2, loopK: 3, loopI: 4, loopJ: 5, check: 7, relax: 8 },
+    java: { init: 2, loopK: 3, loopI: 4, loopJ: 5, check: 7, relax: 8 }
+  },
+  astar: { 
+    python: { init: 2, loop: 6, pop: 7, targetMatch: 8, loopNeighbors: 10, check: 12, relax: 13, push: 15 },
+    cpp: { init: 2, loop: 7, pop: 8, targetMatch: 9, loopNeighbors: 11, check: 14, relax: 15, push: 17 },
+    java: { init: 2, loop: 8, pop: 9, targetMatch: 11, loopNeighbors: 13, check: 16, relax: 17, push: 19 }
+  }
 };
 
 const PRESETS = {
@@ -279,34 +465,34 @@ const generateDijkstraFrames = (nodes, edges, startId) => {
   let pq = [{ id: startId, dist: 0 }];
   let nodeStates = {}; let edgeStates = {};
   
-  const addFrame = (line, msg, overrides = {}) => {
-    frames.push({ dist: {...dist}, pq: [...pq], nodeStates: {...nodeStates}, edgeStates: {...edgeStates}, line, logMsg: msg, ...overrides });
+  const addFrame = (lineKey, msg, overrides = {}) => {
+    frames.push({ dist: {...dist}, pq: [...pq], nodeStates: {...nodeStates}, edgeStates: {...edgeStates}, lineKey, logMsg: msg, ...overrides });
   };
 
-  addFrame(LINE_MAPS.dijkstra.init, `Initialized distances. Set dist[${nodes.find(n=>n.id===startId).label}] = 0. Enqueued start node.`);
+  addFrame('init', `Initialized distances. Set dist[${nodes.find(n=>n.id===startId).label}] = 0. Enqueued start node.`);
   
   while (pq.length > 0) {
     pq.sort((a, b) => a.dist - b.dist);
-    addFrame(LINE_MAPS.dijkstra.loop, `Priority Queue not empty. Preparing to extract min.`);
+    addFrame('loop', `Priority Queue not empty. Preparing to extract min.`);
     
     const curr = pq.shift();
     const currLabel = nodes.find(n=>n.id===curr.id).label;
     nodeStates[curr.id] = 'visiting';
-    addFrame(LINE_MAPS.dijkstra.pop, `Popped node ${currLabel} with distance ${curr.dist}.`);
+    addFrame('pop', `Popped node ${currLabel} with distance ${curr.dist}.`);
 
     if (curr.dist > dist[curr.id]) {
-      addFrame(LINE_MAPS.dijkstra.skip, `Distance ${curr.dist} > dist[${currLabel}] (${dist[curr.id]}). Stale entry, skipping.`);
+      addFrame('skip', `Distance ${curr.dist} > dist[${currLabel}] (${dist[curr.id]}). Stale entry, skipping.`);
       nodeStates[curr.id] = 'visited';
       continue;
     }
 
     const neighbors = edges.filter(e => e.from === curr.id);
-    addFrame(LINE_MAPS.dijkstra.loopNeighbors, `Exploring ${neighbors.length} neighbors of ${currLabel}.`);
+    addFrame('loopNeighbors', `Exploring ${neighbors.length} neighbors of ${currLabel}.`);
 
     for (const edge of neighbors) {
       const neighborLabel = nodes.find(n=>n.id===edge.to).label;
       edgeStates[`${edge.from}-${edge.to}`] = 'inspecting';
-      addFrame(LINE_MAPS.dijkstra.check, `Checking edge ${currLabel} -> ${neighborLabel} (Weight: ${edge.weight}).`);
+      addFrame('check', `Checking edge ${currLabel} -> ${neighborLabel} (Weight: ${edge.weight}).`);
 
       if (dist[curr.id] + edge.weight < dist[edge.to]) {
         const oldDist = dist[edge.to];
@@ -315,12 +501,12 @@ const generateDijkstraFrames = (nodes, edges, startId) => {
         edgeStates[`${edge.from}-${edge.to}`] = 'relaxed';
         
         pq.push({ id: edge.to, dist: dist[edge.to] });
-        addFrame(LINE_MAPS.dijkstra.relax, `Relaxed! dist[${neighborLabel}] updated from ${oldDist === INF ? '∞' : oldDist} to ${dist[edge.to]}.`, { updatedNode: edge.to });
-        addFrame(LINE_MAPS.dijkstra.push, `Pushed ${neighborLabel} to Priority Queue with new distance.`);
+        addFrame('relax', `Relaxed! dist[${neighborLabel}] updated from ${oldDist === INF ? '∞' : oldDist} to ${dist[edge.to]}.`, { updatedNode: edge.to });
+        addFrame('push', `Pushed ${neighborLabel} to Priority Queue with new distance.`);
         
         nodeStates[edge.to] = 'default';
       } else {
-        addFrame(LINE_MAPS.dijkstra.check, `No improvement. dist[${currLabel}] + ${edge.weight} >= dist[${neighborLabel}].`);
+        addFrame('check', `No improvement. dist[${currLabel}] + ${edge.weight} >= dist[${neighborLabel}].`);
       }
       edgeStates[`${edge.from}-${edge.to}`] = 'default';
     }
@@ -336,14 +522,14 @@ const generateBellmanFordFrames = (nodes, edges, startId) => {
   dist[startId] = 0;
   let nodeStates = {}; let edgeStates = {};
   
-  const addFrame = (line, msg, overrides = {}) => {
-    frames.push({ dist: {...dist}, pq: [], nodeStates: {...nodeStates}, edgeStates: {...edgeStates}, line, logMsg: msg, ...overrides });
+  const addFrame = (lineKey, msg, overrides = {}) => {
+    frames.push({ dist: {...dist}, pq: [], nodeStates: {...nodeStates}, edgeStates: {...edgeStates}, lineKey, logMsg: msg, ...overrides });
   };
 
-  addFrame(LINE_MAPS.bellmanFord.init, `Initialized distances. Set dist[${nodes.find(n=>n.id===startId).label}] = 0.`);
+  addFrame('init', `Initialized distances. Set dist[${nodes.find(n=>n.id===startId).label}] = 0.`);
   
   for (let i = 0; i < nodes.length - 1; i++) {
-    addFrame(LINE_MAPS.bellmanFord.loopV, `--- Iteration ${i + 1} of ${nodes.length - 1} ---`);
+    addFrame('loopV', `--- Iteration ${i + 1} of ${nodes.length - 1} ---`);
     
     for (const edge of edges) {
       const uLabel = nodes.find(n=>n.id===edge.from).label;
@@ -351,16 +537,16 @@ const generateBellmanFordFrames = (nodes, edges, startId) => {
       
       edgeStates[`${edge.from}-${edge.to}`] = 'inspecting';
       nodeStates[edge.from] = 'visiting'; nodeStates[edge.to] = 'visiting';
-      addFrame(LINE_MAPS.bellmanFord.loopE, `Inspecting edge ${uLabel} -> ${vLabel} (Weight: ${edge.weight}).`);
+      addFrame('loopE', `Inspecting edge ${uLabel} -> ${vLabel} (Weight: ${edge.weight}).`);
 
       if (dist[edge.from] !== INF && dist[edge.from] + edge.weight < dist[edge.to]) {
         const oldDist = dist[edge.to];
         dist[edge.to] = dist[edge.from] + edge.weight;
         edgeStates[`${edge.from}-${edge.to}`] = 'relaxed';
         nodeStates[edge.to] = 'relaxed';
-        addFrame(LINE_MAPS.bellmanFord.relax, `Relaxed! dist[${vLabel}] updated from ${oldDist === INF ? '∞' : oldDist} to ${dist[edge.to]}.`, { updatedNode: edge.to });
+        addFrame('relax', `Relaxed! dist[${vLabel}] updated from ${oldDist === INF ? '∞' : oldDist} to ${dist[edge.to]}.`, { updatedNode: edge.to });
       } else {
-        addFrame(LINE_MAPS.bellmanFord.check, `No improvement for ${uLabel} -> ${vLabel}.`);
+        addFrame('check', `No improvement for ${uLabel} -> ${vLabel}.`);
       }
       
       edgeStates[`${edge.from}-${edge.to}`] = 'default';
@@ -382,19 +568,18 @@ const generateFloydWarshallFrames = (nodes, edges) => {
   
   let nodeStates = {}; let edgeStates = {};
   
-  const addFrame = (line, msg, overrides = {}) => {
-    // Deep copy matrix
+  const addFrame = (lineKey, msg, overrides = {}) => {
     const matCopy = {};
     Object.keys(matrix).forEach(k => matCopy[k] = {...matrix[k]});
-    frames.push({ dist: {}, pq: [], matrix: matCopy, nodeStates: {...nodeStates}, edgeStates: {...edgeStates}, line, logMsg: msg, ...overrides });
+    frames.push({ dist: {}, pq: [], matrix: matCopy, nodeStates: {...nodeStates}, edgeStates: {...edgeStates}, lineKey, logMsg: msg, ...overrides });
   };
 
-  addFrame(LINE_MAPS.floydWarshall.init, `Initialized APSP Matrix with edge weights and 0s on diagonal.`);
+  addFrame('init', `Initialized APSP Matrix with edge weights and 0s on diagonal.`);
   
   for (let k = 0; k < nodes.length; k++) {
     const kLabel = nodes[k].label;
-    nodeStates[nodes[k].id] = 'visiting'; // Intermediate node
-    addFrame(LINE_MAPS.floydWarshall.loopK, `--- Using ${kLabel} as intermediate node ---`, { kId: nodes[k].id });
+    nodeStates[nodes[k].id] = 'visiting'; 
+    addFrame('loopK', `--- Using ${kLabel} as intermediate node ---`, { kId: nodes[k].id });
     
     for (let i = 0; i < nodes.length; i++) {
       for (let j = 0; j < nodes.length; j++) {
@@ -404,13 +589,13 @@ const generateFloydWarshallFrames = (nodes, edges) => {
         const currentPath = matrix[nodes[i].id][nodes[j].id];
         const viaPath = matrix[nodes[i].id][nodes[k].id] + matrix[nodes[k].id][nodes[j].id];
         
-        addFrame(LINE_MAPS.floydWarshall.check, `Checking path ${iLabel}→${jLabel} via ${kLabel}. Current: ${currentPath===INF?'∞':currentPath}, Via ${kLabel}: ${viaPath>=INF?'∞':viaPath}`, { kId: nodes[k].id, iId: nodes[i].id, jId: nodes[j].id });
+        addFrame('check', `Checking path ${iLabel}→${jLabel} via ${kLabel}. Current: ${currentPath===INF?'∞':currentPath}, Via ${kLabel}: ${viaPath>=INF?'∞':viaPath}`, { kId: nodes[k].id, iId: nodes[i].id, jId: nodes[j].id });
 
         if (viaPath < currentPath) {
           matrix[nodes[i].id][nodes[j].id] = viaPath;
           edgeStates[`${nodes[i].id}-${nodes[k].id}`] = 'relaxed';
           edgeStates[`${nodes[k].id}-${nodes[j].id}`] = 'relaxed';
-          addFrame(LINE_MAPS.floydWarshall.relax, `Path improved! Updating matrix[${iLabel}][${jLabel}] to ${viaPath}.`, { kId: nodes[k].id, iId: nodes[i].id, jId: nodes[j].id, updated: true });
+          addFrame('relax', `Path improved! Updating matrix[${iLabel}][${jLabel}] to ${viaPath}.`, { kId: nodes[k].id, iId: nodes[i].id, jId: nodes[j].id, updated: true });
           edgeStates[`${nodes[i].id}-${nodes[k].id}`] = 'default';
           edgeStates[`${nodes[k].id}-${nodes[j].id}`] = 'default';
         }
@@ -433,29 +618,29 @@ const generateAStarFrames = (nodes, edges, startId, targetId) => {
   let pq = [{ id: startId, f: getHeuristic(startNode, targetNode), g: 0 }];
   let nodeStates = {}; let edgeStates = {};
   
-  const addFrame = (line, msg, overrides = {}) => {
-    frames.push({ dist: {...gScore}, pq: [...pq], nodeStates: {...nodeStates}, edgeStates: {...edgeStates}, line, logMsg: msg, ...overrides });
+  const addFrame = (lineKey, msg, overrides = {}) => {
+    frames.push({ dist: {...gScore}, pq: [...pq], nodeStates: {...nodeStates}, edgeStates: {...edgeStates}, lineKey, logMsg: msg, ...overrides });
   };
 
-  addFrame(LINE_MAPS.astar.init, `Initialized g_scores. Calculated initial heuristic for Start. Enqueued.`);
+  addFrame('init', `Initialized g_scores. Calculated initial heuristic for Start. Enqueued.`);
   
   while (pq.length > 0) {
     pq.sort((a, b) => a.f - b.f);
-    addFrame(LINE_MAPS.astar.loop, `Priority Queue sorted by f_score (g_score + heuristic).`);
+    addFrame('loop', `Priority Queue sorted by f_score (g_score + heuristic).`);
     
     const curr = pq.shift();
     const currLabel = nodes.find(n=>n.id===curr.id).label;
     nodeStates[curr.id] = 'visiting';
-    addFrame(LINE_MAPS.astar.pop, `Popped node ${currLabel} (f_score: ${curr.f}).`);
+    addFrame('pop', `Popped node ${currLabel} (f_score: ${curr.f}).`);
 
     if (curr.id === targetId) {
       nodeStates[curr.id] = 'target';
-      addFrame(LINE_MAPS.astar.targetMatch, `Target ${currLabel} reached! Optimal path found.`);
+      addFrame('targetMatch', `Target ${currLabel} reached! Optimal path found.`);
       return frames;
     }
 
     const neighbors = edges.filter(e => e.from === curr.id);
-    addFrame(LINE_MAPS.astar.loopNeighbors, `Exploring ${neighbors.length} neighbors of ${currLabel}.`);
+    addFrame('loopNeighbors', `Exploring ${neighbors.length} neighbors of ${currLabel}.`);
 
     for (const edge of neighbors) {
       const neighborNode = nodes.find(n=>n.id===edge.to);
@@ -463,7 +648,7 @@ const generateAStarFrames = (nodes, edges, startId, targetId) => {
       edgeStates[`${edge.from}-${edge.to}`] = 'inspecting';
       
       const tentativeG = gScore[curr.id] + edge.weight;
-      addFrame(LINE_MAPS.astar.check, `Checking ${currLabel} -> ${neighborLabel}. Tentative g_score: ${tentativeG}.`);
+      addFrame('check', `Checking ${currLabel} -> ${neighborLabel}. Tentative g_score: ${tentativeG}.`);
 
       if (tentativeG < gScore[edge.to]) {
         gScore[edge.to] = tentativeG;
@@ -474,12 +659,12 @@ const generateAStarFrames = (nodes, edges, startId, targetId) => {
         edgeStates[`${edge.from}-${edge.to}`] = 'relaxed';
         
         pq.push({ id: edge.to, f, g: tentativeG });
-        addFrame(LINE_MAPS.astar.relax, `Path improved! g_score[${neighborLabel}] = ${tentativeG}. Heuristic = ${h}. f_score = ${f}.`, { updatedNode: edge.to });
-        addFrame(LINE_MAPS.astar.push, `Pushed ${neighborLabel} to Priority Queue with f_score ${f}.`);
+        addFrame('relax', `Path improved! g_score[${neighborLabel}] = ${tentativeG}. Heuristic = ${h}. f_score = ${f}.`, { updatedNode: edge.to });
+        addFrame('push', `Pushed ${neighborLabel} to Priority Queue with f_score ${f}.`);
         
         nodeStates[edge.to] = 'default';
       } else {
-        addFrame(LINE_MAPS.astar.check, `No improvement. Existing g_score is better or equal.`);
+        addFrame('check', `No improvement. Existing g_score is better or equal.`);
       }
       edgeStates[`${edge.from}-${edge.to}`] = 'default';
     }
@@ -494,6 +679,7 @@ export default function ShortestPathVisualizer() {
   const [nodes, setNodes] = useState(PRESETS.standard.nodes);
   const [edges, setEdges] = useState(PRESETS.standard.edges);
   const [activeAlgo, setActiveAlgo] = useState("dijkstra");
+  const [language, setLanguage] = useState("python");
   const [startId, setStartId] = useState(PRESETS.standard.start);
   const [targetId, setTargetId] = useState(PRESETS.standard.target);
   
@@ -526,15 +712,16 @@ export default function ShortestPathVisualizer() {
 
   const resetSim = () => { setFrames([]); setFrameIdx(-1); setIsPlaying(false); };
 
-  // Editor Handlers
+  // Editor Handlers (disabled during execution)
   const handleAddNode = () => {
-    if (!nodeLabel.trim()) return;
+    if (frames.length > 0 || !nodeLabel.trim()) return;
     const newId = nodes.length > 0 ? Math.max(...nodes.map(n => n.id)) + 1 : 0;
     setNodes([...nodes, { id: newId, label: nodeLabel.toUpperCase().substring(0,2), x: 50, y: 50 }]);
     setNodeLabel(""); resetSim();
   };
 
   const handleAddEdge = () => {
+    if (frames.length > 0) return;
     const f = parseInt(edgeFrom), t = parseInt(edgeTo), w = parseInt(edgeWeight);
     if (isNaN(f) || isNaN(t) || isNaN(w) || f === t) return;
     if (edges.some(e => e.from === f && e.to === t)) return; // Prevent duplicate directed edges
@@ -542,11 +729,18 @@ export default function ShortestPathVisualizer() {
     setEdgeFrom(""); setEdgeTo(""); setEdgeWeight("1"); resetSim();
   };
 
-  const handleClear = () => { setNodes([]); setEdges([]); setStartId(""); setTargetId(""); resetSim(); };
-  const loadPreset = (key) => { const p = PRESETS[key]; setNodes(p.nodes); setEdges(p.edges); setStartId(p.start); setTargetId(p.target); resetSim(); };
+  const handleClear = () => { 
+    if (frames.length > 0) return;
+    setNodes([]); setEdges([]); setStartId(""); setTargetId(""); resetSim(); 
+  };
+  
+  const loadPreset = (key) => { 
+    if (frames.length > 0) return;
+    const p = PRESETS[key]; setNodes(p.nodes); setEdges(p.edges); setStartId(p.start); setTargetId(p.target); resetSim(); 
+  };
 
   const handleMouseMove = (e) => {
-    if (draggedNodeId === null || !canvasRef.current) return;
+    if (draggedNodeId === null || !canvasRef.current || frames.length > 0) return;
     const rect = canvasRef.current.getBoundingClientRect();
     let x = ((e.clientX - rect.left) / rect.width) * 100;
     let y = ((e.clientY - rect.top) / rect.height) * 100;
@@ -565,8 +759,10 @@ export default function ShortestPathVisualizer() {
     setFrames(newFrames); setFrameIdx(0); setIsPlaying(true);
   };
 
-  const currFrame = frames[frameIdx] || { dist: {}, pq: [], matrix: null, nodeStates: {}, edgeStates: {}, logMsg: 'Ready. Compile & Run to visualize.', line: -1 };
+  const currFrame = frames[frameIdx] || { dist: {}, pq: [], matrix: null, nodeStates: {}, edgeStates: {}, logMsg: 'Ready. Compile & Run to visualize.', lineKey: null };
+  const highlightLine = currFrame.lineKey ? LINE_MAPS[activeAlgo][language][currFrame.lineKey] : -1;
   const isFW = activeAlgo === 'floydWarshall';
+  const isLocked = frames.length > 0;
 
   return (
     <div className="visualizer-container">
@@ -577,19 +773,24 @@ export default function ShortestPathVisualizer() {
         <h1 className="sidebar-title"><Map size={24} /> Shortest Paths</h1>
         
         <div className="playback-panel">
-          <button onClick={executeAlgorithm} className="btn btn-purple" style={{marginBottom:'0.75rem'}} disabled={!nodes.length || (startId==="" && !isFW)}>
-            <Play size={16}/> Compile & Run
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+            <button onClick={executeAlgorithm} className="btn btn-purple" disabled={isLocked || !nodes.length || (startId==="" && !isFW)}>
+              <Play size={16}/> Compile
+            </button>
+            <button onClick={resetSim} className="btn btn-secondary" disabled={!isLocked} title="Reset Simulation">
+              <RefreshCw size={16}/> Reset
+            </button>
+          </div>
           
-          <input type="range" className="slider" min="-1" max={frames.length ? frames.length-1 : 0} value={frameIdx} onChange={e => {setFrameIdx(Number(e.target.value)); setIsPlaying(false);}} disabled={!frames.length} />
+          <input type="range" className="slider" min="-1" max={frames.length ? frames.length-1 : 0} value={frameIdx} onChange={e => {setFrameIdx(Number(e.target.value)); setIsPlaying(false);}} disabled={!isLocked} />
           
           <div className="player-controls">
             <button className="ctrl-btn" onClick={() => {setFrameIdx(-1); setIsPlaying(false);}} disabled={frameIdx <= -1}><RotateCcw size={16}/></button>
             <button className="ctrl-btn" onClick={() => {setFrameIdx(p=>p-1); setIsPlaying(false);}} disabled={frameIdx <= 0}><SkipBack size={16}/></button>
-            <button className="ctrl-btn" onClick={() => setIsPlaying(!isPlaying)} disabled={!frames.length || frameIdx === frames.length-1}>
+            <button className="ctrl-btn" onClick={() => setIsPlaying(!isPlaying)} disabled={!isLocked || frameIdx === frames.length-1}>
               {isPlaying ? <Pause size={16}/> : <Play size={16}/>}
             </button>
-            <button className="ctrl-btn" onClick={() => {setFrameIdx(p=>p+1); setIsPlaying(false);}} disabled={!frames.length || frameIdx >= frames.length-1}><SkipForward size={16}/></button>
+            <button className="ctrl-btn" onClick={() => {setFrameIdx(p=>p+1); setIsPlaying(false);}} disabled={!isLocked || frameIdx >= frames.length-1}><SkipForward size={16}/></button>
           </div>
           
           <div style={{marginTop: '0.75rem'}}>
@@ -600,7 +801,7 @@ export default function ShortestPathVisualizer() {
 
         <div className="input-group">
           <label>Algorithm</label>
-          <select value={activeAlgo} onChange={e => {setActiveAlgo(e.target.value); resetSim();}} className="input-field" disabled={frames.length > 0}>
+          <select value={activeAlgo} onChange={e => {setActiveAlgo(e.target.value); resetSim();}} className="input-field" disabled={isLocked}>
             <option value="dijkstra">Dijkstra's Algorithm</option>
             <option value="bellmanFord">Bellman-Ford</option>
             <option value="floydWarshall">Floyd-Warshall (APSP)</option>
@@ -611,14 +812,14 @@ export default function ShortestPathVisualizer() {
         <div className="actions-grid">
           <div>
             <label style={{fontSize:'0.65rem'}}>Start Node</label>
-            <select value={startId} onChange={e => {setStartId(Number(e.target.value)); resetSim();}} className="input-field" disabled={frames.length > 0 || isFW}>
+            <select value={startId} onChange={e => {setStartId(Number(e.target.value)); resetSim();}} className="input-field" disabled={isLocked || isFW}>
               <option value="">--</option>
               {nodes.map(n => <option key={n.id} value={n.id}>{n.label}</option>)}
             </select>
           </div>
           <div>
             <label style={{fontSize:'0.65rem'}}>Target Node {activeAlgo!=='astar'&&'(Opt)'}</label>
-            <select value={targetId} onChange={e => {setTargetId(Number(e.target.value)); resetSim();}} className="input-field" disabled={frames.length > 0 || isFW || activeAlgo==='bellmanFord'}>
+            <select value={targetId} onChange={e => {setTargetId(Number(e.target.value)); resetSim();}} className="input-field" disabled={isLocked || isFW || activeAlgo==='bellmanFord'}>
               <option value="">--</option>
               {nodes.map(n => <option key={n.id} value={n.id}>{n.label}</option>)}
             </select>
@@ -631,29 +832,29 @@ export default function ShortestPathVisualizer() {
         <div className="action-panel" style={{background: 'var(--bg-dark-950)'}}>
           <div className="panel-header" style={{display:'flex', justifyContent:'space-between'}}>
             <span>Graph Editor</span>
-            <select onChange={e => loadPreset(e.target.value)} className="input-field" style={{width:'auto', padding:'0.2rem', fontSize:'0.7rem'}} disabled={frames.length>0}>
+            <select onChange={e => loadPreset(e.target.value)} className="input-field" style={{width:'auto', padding:'0.2rem', fontSize:'0.7rem'}} disabled={isLocked}>
               <option value="standard">Preset: Standard</option>
               <option value="complex">Preset: Complex</option>
             </select>
           </div>
           
           <div className="row-flex" style={{marginBottom: '0.5rem'}}>
-            <input type="text" placeholder="Node Name" value={nodeLabel} onChange={e=>setNodeLabel(e.target.value)} className="input-field" disabled={frames.length>0} />
-            <button onClick={handleAddNode} className="btn btn-green" style={{width:'auto'}} disabled={frames.length>0}><Plus size={16}/></button>
+            <input type="text" placeholder="Node Name" value={nodeLabel} onChange={e=>setNodeLabel(e.target.value)} className="input-field" disabled={isLocked} />
+            <button onClick={handleAddNode} className="btn btn-green" style={{width:'auto'}} disabled={isLocked}><Plus size={16}/></button>
           </div>
           
           <div className="row-flex" style={{marginBottom: '0.5rem'}}>
-            <select value={edgeFrom} onChange={e=>setEdgeFrom(e.target.value)} className="input-field" style={{padding:'0.4rem'}} disabled={frames.length>0}><option value="">From</option>{nodes.map(n=><option key={n.id} value={n.id}>{n.label}</option>)}</select>
+            <select value={edgeFrom} onChange={e=>setEdgeFrom(e.target.value)} className="input-field" style={{padding:'0.4rem'}} disabled={isLocked}><option value="">From</option>{nodes.map(n=><option key={n.id} value={n.id}>{n.label}</option>)}</select>
             <ArrowRight size={14} style={{color:'var(--text-gray-500)', flexShrink:0}}/>
-            <select value={edgeTo} onChange={e=>setEdgeTo(e.target.value)} className="input-field" style={{padding:'0.4rem'}} disabled={frames.length>0}><option value="">To</option>{nodes.map(n=><option key={n.id} value={n.id}>{n.label}</option>)}</select>
+            <select value={edgeTo} onChange={e=>setEdgeTo(e.target.value)} className="input-field" style={{padding:'0.4rem'}} disabled={isLocked}><option value="">To</option>{nodes.map(n=><option key={n.id} value={n.id}>{n.label}</option>)}</select>
           </div>
           <div className="row-flex" style={{marginBottom: '0.75rem'}}>
-            <input type="number" placeholder="Weight (e.g. 5)" value={edgeWeight} onChange={e=>setEdgeWeight(e.target.value)} className="input-field" disabled={frames.length>0}/>
-            <button onClick={handleAddEdge} className="btn btn-cyan" style={{width:'80px'}} disabled={frames.length>0}>Add</button>
+            <input type="number" placeholder="Weight (e.g. 5)" value={edgeWeight} onChange={e=>setEdgeWeight(e.target.value)} className="input-field" disabled={isLocked}/>
+            <button onClick={handleAddEdge} className="btn btn-cyan" style={{width:'80px'}} disabled={isLocked}>Add</button>
           </div>
 
           <div className="row-flex">
-            <button onClick={handleClear} className="btn btn-red" disabled={frames.length>0}><Trash2 size={14}/> Clear</button>
+            <button onClick={handleClear} className="btn btn-red" disabled={isLocked}><Trash2 size={14}/> Clear Nodes</button>
           </div>
         </div>
       </aside>
@@ -693,7 +894,7 @@ export default function ShortestPathVisualizer() {
 
             {nodes.map(node => (
               <div key={node.id} className={`graph-node ${currFrame.nodeStates[node.id] || 'default'} ${node.id === startId && !isFW ? 'start' : ''} ${node.id === targetId && activeAlgo==='astar' ? 'target' : ''}`}
-                   style={{left:`${node.x}%`, top:`${node.y}%`, cursor: frames.length?'default':'grab'}} onMouseDown={e => {if(!frames.length) { e.preventDefault(); setDraggedNodeId(node.id); }}}>
+                   style={{left:`${node.x}%`, top:`${node.y}%`, cursor: isLocked ? 'default' : 'grab'}} onMouseDown={e => {if(!isLocked) { e.preventDefault(); setDraggedNodeId(node.id); }}}>
                 {node.label}
               </div>
             ))}
@@ -768,14 +969,32 @@ export default function ShortestPathVisualizer() {
           </div>
         </div>
 
-        {/* Bottom Row */}
+        {/* Bottom Row: Code & Logs */}
         <div className="bottom-layout">
           <div className="panel-box">
-             <div className="ds-header" style={{display:'flex', gap:'0.5rem', alignItems:'center'}}><Code size={14}/> Algorithm Tracker (Python)</div>
+             <div className="ds-header" style={{display:'flex', gap:'0.5rem', alignItems:'center', justifyContent: 'space-between'}}>
+               <div style={{display:'flex', gap:'0.5rem', alignItems:'center'}}>
+                 <Code size={14}/> Algorithm Tracker
+               </div>
+               <select 
+                 value={language} 
+                 onChange={e => setLanguage(e.target.value)} 
+                 style={{ background: 'var(--bg-dark-900)', color: 'var(--cyan-400)', border: '1px solid var(--border-gray-700)', borderRadius: '0.25rem', padding: '0.1rem 0.4rem', fontSize: '0.75rem', outline: 'none', cursor: 'pointer' }}
+               >
+                 <option value="python">Python</option>
+                 <option value="cpp">C++</option>
+                 <option value="java">Java</option>
+               </select>
+             </div>
               <pre className="code-content"><code>
-                {ALGO_CODES[activeAlgo].map((line, idx) => (
-                  <span key={idx} className={`code-line ${currFrame.line === (idx + 1) ? 'highlight' : ''}`}>{line || '\u00A0'}</span>
-                ))}
+                {ALGO_CODES[activeAlgo][language].map((line, idx) => {
+                  const isComment = line.trim().startsWith('#') || line.trim().startsWith('//');
+                  return (
+                    <span key={idx} className={`code-line ${highlightLine === (idx + 1) ? 'highlight' : ''}`} style={isComment ? {color: 'var(--text-gray-500)', fontStyle: 'italic'} : {}}>
+                      {line || '\u00A0'}
+                    </span>
+                  );
+                })}
               </code></pre>
           </div>
           
