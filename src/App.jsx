@@ -26,6 +26,7 @@ import BFSDFS from "./components/BFS-DFS/bfsdfs";
 import HeapVisualizer from "./components/Search/heap";
 import HashTableVisualizer from "./components/HashTable/hashing";
 import TrieVisualizer from "./components/Trees/Trie";
+import SegmentTreeVisualizer from "./components/Trees/SegmentTree";
 import UserAccount from "./components/UserAccount";
 function App() {
   return (
@@ -187,6 +188,14 @@ function App() {
           element={
             <RequireAuth>
               <TrieVisualizer/>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/segmenttree"
+          element={
+            <RequireAuth>
+              <SegmentTreeVisualizer/>
             </RequireAuth>
           }
         />

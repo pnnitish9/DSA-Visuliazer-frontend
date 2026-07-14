@@ -22,6 +22,7 @@ export default function DSAVisualizer() {
     { name: "Heap (MaxHeap, MinHeap)", href: "heap" },
     { name: "Hashing", href: "hashing" },
     { name: "Trie", href: "trie"},
+    { name: "Segment Tree", href: "segmenttree"},
   ];
 
   return (
