@@ -194,58 +194,158 @@ const InjectedStyles = () => (
   `}</style>
 );
 
-const cppCode = `
-// Segment Tree (C++ Competitive Programming Template)
-const int MAXN = 100005;
-int tree[4 * MAXN], lazy[4 * MAXN], arr[MAXN];
-
-void push(int node, int L, int R) {
-    if (lazy[node] != 0) {
-        tree[node] += lazy[node] * (R - L + 1); // For Sum
-        if (L != R) {
-            lazy[2 * node] += lazy[node];
-            lazy[2 * node + 1] += lazy[node];
-        }
-        lazy[node] = 0;
-    }
-}
-
-void build(int node, int L, int R) {
-    if (L == R) {
-        tree[node] = arr[L];
-        return;
-    }
-    int mid = (L + R) / 2;
-    build(2 * node, L, mid);
-    build(2 * node + 1, mid + 1, R);
-    tree[node] = tree[2 * node] + tree[2 * node + 1];
-}
-
-void update(int node, int L, int R, int qL, int qR, int val) {
-    push(node, L, R);
-    if (qL > R || qR < L) return; // Out of bounds
-    if (qL <= L && R <= qR) { // Full overlap
-        lazy[node] += val;
-        push(node, L, R);
-        return;
-    }
-    int mid = (L + R) / 2;
-    update(2 * node, L, mid, qL, qR, val);
-    update(2 * node + 1, mid + 1, R, qL, qR, val);
-    tree[node] = tree[2 * node] + tree[2 * node + 1];
-}
-
-int query(int node, int L, int R, int qL, int qR) {
-    push(node, L, R);
-    if (qL > R || qR < L) return 0; // Null value
-    if (qL <= L && R <= qR) return tree[node]; // Full overlap
-    
-    int mid = (L + R) / 2;
-    int leftAns = query(2 * node, L, mid, qL, qR);
-    int rightAns = query(2 * node + 1, mid + 1, R, qL, qR);
-    return leftAns + rightAns;
-}
-`.trim().split('\n');
+const CODE_SNIPPETS = {
+  cpp: [
+    "// Segment Tree (C++ Competitive Programming Template)",
+    "const int MAXN = 100005;",
+    "int tree[4 * MAXN], lazy[4 * MAXN], arr[MAXN];",
+    "",
+    "void push(int node, int L, int R) {",
+    "    if (lazy[node] != 0) {",
+    "        tree[node] += lazy[node] * (R - L + 1); // For Sum",
+    "        if (L != R) {",
+    "            lazy[2 * node] += lazy[node];",
+    "            lazy[2 * node + 1] += lazy[node];",
+    "        }",
+    "        lazy[node] = 0;",
+    "    }",
+    "}",
+    "",
+    "void build(int node, int L, int R) {",
+    "    if (L == R) {",
+    "        tree[node] = arr[L];",
+    "        return;",
+    "    }",
+    "    int mid = (L + R) / 2;",
+    "    build(2 * node, L, mid);",
+    "    build(2 * node + 1, mid + 1, R);",
+    "    tree[node] = tree[2 * node] + tree[2 * node + 1];",
+    "}",
+    "",
+    "void update(int node, int L, int R, int qL, int qR, int val) {",
+    "    push(node, L, R);",
+    "    if (qL > R || qR < L) return; // Out of bounds",
+    "    if (qL <= L && R <= qR) { // Full overlap",
+    "        lazy[node] += val;",
+    "        push(node, L, R);",
+    "        return;",
+    "    }",
+    "    int mid = (L + R) / 2;",
+    "    update(2 * node, L, mid, qL, qR, val);",
+    "    update(2 * node + 1, mid + 1, R, qL, qR, val);",
+    "    tree[node] = tree[2 * node] + tree[2 * node + 1];",
+    "}",
+    "",
+    "int query(int node, int L, int R, int qL, int qR) {",
+    "    push(node, L, R);",
+    "    if (qL > R || qR < L) return 0; // Null value",
+    "    if (qL <= L && R <= qR) return tree[node]; // Full overlap",
+    "    ",
+    "    int mid = (L + R) / 2;",
+    "    int leftAns = query(2 * node, L, mid, qL, qR);",
+    "    int rightAns = query(2 * node + 1, mid + 1, R, qL, qR);",
+    "    return leftAns + rightAns;",
+    "}"
+  ],
+  java: [
+    "// Segment Tree (Java Template)",
+    "int[] tree = new int[4 * MAXN];",
+    "int[] lazy = new int[4 * MAXN];",
+    "int[] arr = new int[MAXN];",
+    "",
+    "void push(int node, int L, int R) {",
+    "    if (lazy[node] != 0) {",
+    "        tree[node] += lazy[node] * (R - L + 1); // For Sum",
+    "        if (L != R) {",
+    "            lazy[2 * node] += lazy[node];",
+    "            lazy[2 * node + 1] += lazy[node];",
+    "        }",
+    "        lazy[node] = 0;",
+    "    }",
+    "}",
+    "",
+    "void build(int node, int L, int R) {",
+    "    if (L == R) {",
+    "        tree[node] = arr[L];",
+    "        return;",
+    "    }",
+    "    int mid = (L + R) / 2;",
+    "    build(2 * node, L, mid);",
+    "    build(2 * node + 1, mid + 1, R);",
+    "    tree[node] = tree[2 * node] + tree[2 * node + 1];",
+    "}",
+    "",
+    "void update(int node, int L, int R, int qL, int qR, int val) {",
+    "    push(node, L, R);",
+    "    if (qL > R || qR < L) return; // Out of bounds",
+    "    if (qL <= L && R <= qR) { // Full overlap",
+    "        lazy[node] += val;",
+    "        push(node, L, R);",
+    "        return;",
+    "    }",
+    "    int mid = (L + R) / 2;",
+    "    update(2 * node, L, mid, qL, qR, val);",
+    "    update(2 * node + 1, mid + 1, R, qL, qR, val);",
+    "    tree[node] = tree[2 * node] + tree[2 * node + 1];",
+    "}",
+    "",
+    "int query(int node, int L, int R, int qL, int qR) {",
+    "    push(node, L, R);",
+    "    if (qL > R || qR < L) return 0; // Null value",
+    "    if (qL <= L && R <= qR) return tree[node]; // Full overlap",
+    "    ",
+    "    int mid = (L + R) / 2;",
+    "    int leftAns = query(2 * node, L, mid, qL, qR);",
+    "    int rightAns = query(2 * node + 1, mid + 1, R, qL, qR);",
+    "    return leftAns + rightAns;",
+    "}"
+  ],
+  python: [
+    "# Segment Tree (Python Template)",
+    "tree = [0] * (4 * MAXN)",
+    "lazy = [0] * (4 * MAXN)",
+    "arr = [0] * MAXN",
+    "",
+    "def push(node, L, R):",
+    "    if lazy[node] != 0:",
+    "        tree[node] += lazy[node] * (R - L + 1)",
+    "        if L != R:",
+    "            lazy[2 * node] += lazy[node]",
+    "            lazy[2 * node + 1] += lazy[node]",
+    "        lazy[node] = 0",
+    "",
+    "def build(node, L, R):",
+    "    if L == R:",
+    "        tree[node] = arr[L]",
+    "        return",
+    "    mid = (L + R) // 2",
+    "    build(2 * node, L, mid)",
+    "    build(2 * node + 1, mid + 1, R)",
+    "    tree[node] = tree[2 * node] + tree[2 * node + 1]",
+    "",
+    "def update(node, L, R, qL, qR, val):",
+    "    push(node, L, R)",
+    "    if qL > R or qR < L: return # Out of bounds",
+    "    if qL <= L and R <= qR: # Full overlap",
+    "        lazy[node] += val",
+    "        push(node, L, R)",
+    "        return",
+    "    mid = (L + R) // 2",
+    "    update(2 * node, L, mid, qL, qR, val)",
+    "    update(2 * node + 1, mid + 1, R, qL, qR, val)",
+    "    tree[node] = tree[2 * node] + tree[2 * node + 1]",
+    "",
+    "def query(node, L, R, qL, qR):",
+    "    push(node, L, R)",
+    "    if qL > R or qR < L: return 0 # Null value",
+    "    if qL <= L and R <= qR: return tree[node] # Full overlap",
+    "    ",
+    "    mid = (L + R) // 2",
+    "    leftAns = query(2 * node, L, mid, qL, qR)",
+    "    rightAns = query(2 * node + 1, mid + 1, R, qL, qR)",
+    "    return leftAns + rightAns"
+  ]
+};
 
 const LINE_MAP = {
   push: { check: 4, apply: 6, propagate: 8, clear: 11 },
@@ -253,6 +353,34 @@ const LINE_MAP = {
   update: { push: 27, outOfBounds: 28, fullOverlapCheck: 29, fullOverlapApply: 30, recursive: 35, merge: 37 },
   query: { push: 41, outOfBounds: 42, fullOverlap: 43, recursive: 46, merge: 48 }
 };
+
+const LINE_MAPS = {
+  cpp: {
+    push: { check: 6, apply: 7, propagate: 9, clear: 12 },
+    build: { baseCheck: 17, baseSet: 18, recursive: 22, merge: 24 },
+    update: { push: 28, outOfBounds: 29, fullOverlapCheck: 30, fullOverlapApply: 31, recursive: 36, merge: 38 },
+    query: { push: 42, outOfBounds: 43, fullOverlap: 44, recursive: 47, merge: 49 }
+  },
+  java: {
+    push: { check: 7, apply: 8, propagate: 10, clear: 13 },
+    build: { baseCheck: 18, baseSet: 19, recursive: 23, merge: 25 },
+    update: { push: 29, outOfBounds: 30, fullOverlapCheck: 31, fullOverlapApply: 32, recursive: 37, merge: 39 },
+    query: { push: 43, outOfBounds: 44, fullOverlap: 45, recursive: 48, merge: 50 }
+  },
+  python: {
+    push: { check: 7, apply: 8, propagate: 10, clear: 12 },
+    build: { baseCheck: 15, baseSet: 16, recursive: 19, merge: 21 },
+    update: { push: 24, outOfBounds: 25, fullOverlapCheck: 26, fullOverlapApply: 27, recursive: 31, merge: 33 },
+    query: { push: 36, outOfBounds: 37, fullOverlap: 38, recursive: 41, merge: 43 }
+  }
+};
+
+const C_LINE_TO_KEY = {};
+Object.keys(LINE_MAP).forEach(group => {
+  Object.keys(LINE_MAP[group]).forEach(step => {
+    C_LINE_TO_KEY[LINE_MAP[group][step]] = `${group}.${step}`;
+  });
+});
 
 // Math utilities
 const gcd = (a, b) => b === 0 ? Math.abs(a) : gcd(b, a % b);
@@ -275,6 +403,7 @@ export default function SegmentTreeVisualizer() {
   const [arrayInput, setArrayInput] = useState("5, 2, 7, 3, 4, 1, 8, 6");
   const [baseArray, setBaseArray] = useState([5, 2, 7, 3, 4, 1, 8, 6]);
   const [treeType, setTreeType] = useState('sum');
+  const [language, setLanguage] = useState('cpp');
   
   // Forms
   const [pointIdx, setPointIdx] = useState("3");
@@ -698,7 +827,7 @@ export default function SegmentTreeVisualizer() {
         </div>
 
         <div className="tree-canvas-wrapper" style={{ overflow: 'auto' }}>
-          <div style={{ minWidth: `${Math.max(800, minCanvasWidth)}px`, display: 'flex', flexDirection: 'column', flex: 1, paddingBottom: '2rem' }}>
+          <div style={{ width: `${Math.max(400, N * 75)}px`, margin: '0 auto', display: 'flex', flexDirection: 'column', flex: 1, paddingBottom: '2rem' }}>
             <div className="tree-canvas" style={{ minHeight: `${minCanvasHeight}px`, position: 'relative' }}>
               {}
               <svg className="absolute inset-0 pointer-events-none" style={{ width: '100%', height: '100%', minHeight: `${minCanvasHeight}px` }}>
@@ -744,17 +873,41 @@ export default function SegmentTreeVisualizer() {
         {/* Bottom Row: Code & Logs */}
         <div className="bottom-row">
           <div className="panel-box">
-             <div className="panel-box-header"><Code size={14}/> C++ Logic Tracker</div>
+             <div className="panel-box-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                   <Code size={14}/> Logic Tracker
+                </div>
+                <select 
+                   value={language} 
+                   onChange={e => setLanguage(e.target.value)} 
+                   style={{ background: 'var(--bg-dark-900)', color: 'var(--cyan-400)', border: '1px solid var(--border-gray-700)', borderRadius: '0.25rem', padding: '0.1rem 0.4rem', fontSize: '0.75rem', outline: 'none', cursor: 'pointer' }}
+                >
+                   <option value="cpp">C++</option>
+                   <option value="java">Java</option>
+                   <option value="python">Python</option>
+                </select>
+             </div>
               <pre className="code-content">
-                {cppCode.map((line, idx) => {
+                {CODE_SNIPPETS[language].map((line, idx) => {
                   const lineNum = idx + 1;
-                  const isHighlight = currFrame.line === lineNum;
+                  
+                  // Translate C++ line number (currFrame.line) to current language line number
+                  let activeLineNum = -1;
+                  if (currFrame.line !== -1) {
+                    const key = C_LINE_TO_KEY[currFrame.line];
+                    if (key) {
+                      const [group, step] = key.split('.');
+                      activeLineNum = LINE_MAPS[language][group][step];
+                    }
+                  }
+                  
+                  const isHighlight = activeLineNum === lineNum;
                   
                   // Simple syntax highlighting classes
                   let styleClass = '';
-                  if (line.includes('//')) styleClass = 'comment';
-                  else if (line.match(/(void|int)\s+\w+\(/)) styleClass = 'func';
-                  else if (line.match(/(if|else|return|const)/)) styleClass = 'keyword';
+                  if (line.includes('//') || line.trim().startsWith('#')) styleClass = 'comment';
+                  else if (line.match(/(void|int|def)\s+\w+\(/)) styleClass = 'func';
+                  else if (line.match(/\b(if|elif|else|return|const|def|and|or)\b/)) styleClass = 'keyword';
                   
                   return (
                     <span key={idx} className={`code-line ${isHighlight ? 'highlight' : ''} ${styleClass}`}>
