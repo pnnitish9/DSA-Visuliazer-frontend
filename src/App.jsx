@@ -27,6 +27,7 @@ import HeapVisualizer from "./components/Search/heap";
 import HashTableVisualizer from "./components/HashTable/hashing";
 import TrieVisualizer from "./components/Trees/Trie";
 import SegmentTreeVisualizer from "./components/Trees/SegmentTree";
+import ShortestPathVisualizer from "./components/ADS/Shortestpath";
 import UserAccount from "./components/UserAccount";
 function App() {
   return (
@@ -196,6 +197,14 @@ function App() {
           element={
             <RequireAuth>
               <SegmentTreeVisualizer/>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/shortestpath"
+          element={
+            <RequireAuth>
+              <ShortestPathVisualizer/>
             </RequireAuth>
           }
         />
