@@ -420,6 +420,7 @@ export default function BFSDFSGraphVisualizer() {
     let currFrames = [];
     let q = [startNodeId];
     let vis = new Set([startNodeId]);
+    let traversalOrder = [];
     
     let nodeStates = {}; nodes.forEach(n => nodeStates[n.id] = 'default');
     let edgeStates = {}; edges.forEach(e => edgeStates[`${e.from}-${e.to}`] = 'default');
@@ -433,6 +434,7 @@ export default function BFSDFSGraphVisualizer() {
         nodeStates: { ...nodeStates },
         edgeStates: { ...edgeStates },
         ds: [...q],
+        traversal: [...traversalOrder],
         highlightLineNum: lineNum,
         status,
         logs: [...currentLogs]
@@ -446,10 +448,13 @@ export default function BFSDFSGraphVisualizer() {
       addFrame(lines.loop_cond, `Queue contents: [ ${q.map(id => nodes.find(n => n.id === id)?.label).join(', ')} ]`, null);
 
       const current = q.shift();
+      const currentLabel = nodes.find(n => n.id === current)?.label;
+      traversalOrder.push(currentLabel);
+      
       nodeStates[current] = 'pre-op';
-      addFrame(lines.pop, `Dequeued node ${nodes.find(n => n.id === current)?.label}.`, null);
+      addFrame(lines.pop, `Dequeued node ${currentLabel}.`, null);
 
-      addFrame(lines.check_target, `Checking if ${nodes.find(n => n.id === current)?.label} is the target.`, null);
+      addFrame(lines.check_target, `Checking if ${currentLabel} is the target.`, null);
       if (targetNodeId && current === targetNodeId) {
         nodeStates[current] = 'found';
         addFrame(lines.check_target, `Search successful! Found node ${nodes.find(n => n.id === current)?.label}`, `BFS Success: Target reached at ${nodes.find(n => n.id === current)?.label}`);
@@ -490,6 +495,7 @@ export default function BFSDFSGraphVisualizer() {
     let currFrames = [];
     let stack = [startNodeId];
     let vis = new Set();
+    let traversalOrder = [];
     
     let nodeStates = {}; nodes.forEach(n => nodeStates[n.id] = 'default');
     let edgeStates = {}; edges.forEach(e => edgeStates[`${e.from}-${e.to}`] = 'default');
@@ -503,6 +509,7 @@ export default function BFSDFSGraphVisualizer() {
         nodeStates: { ...nodeStates },
         edgeStates: { ...edgeStates },
         ds: [...stack],
+        traversal: [...traversalOrder],
         highlightLineNum: lineNum,
         status,
         logs: [...currentLogs]
@@ -516,13 +523,16 @@ export default function BFSDFSGraphVisualizer() {
       addFrame(lines.loop_cond, `Stack contents: [ ${stack.map(id => nodes.find(n => n.id === id)?.label).join(', ')} ]`, null);
 
       const current = stack.pop();
+      const currentLabel = nodes.find(n => n.id === current)?.label;
+      
       nodeStates[current] = 'pre-op';
-      addFrame(lines.pop, `Popped node ${nodes.find(n => n.id === current)?.label} from stack.`, null);
+      addFrame(lines.pop, `Popped node ${currentLabel} from stack.`, null);
 
       if (!vis.has(current)) {
         vis.add(current);
+        traversalOrder.push(currentLabel);
 
-        addFrame(lines.check_target, `Checking if ${nodes.find(n => n.id === current)?.label} is the target.`, null);
+        addFrame(lines.check_target, `Checking if ${currentLabel} is the target.`, null);
         if (targetNodeId && current === targetNodeId) {
           nodeStates[current] = 'found';
           addFrame(lines.check_target, `Search successful! Found node ${nodes.find(n => n.id === current)?.label}`, `DFS Success: Target reached at ${nodes.find(n => n.id === current)?.label}`);
@@ -637,6 +647,7 @@ export default function BFSDFSGraphVisualizer() {
   const displayLogs = isTimeTraveling && currentFrame ? currentFrame.logs : ["[System] Graph initialized. Ready to execute."];
   const displayLineNum = isTimeTraveling && currentFrame ? currentFrame.highlightLineNum : -1;
   const displayDs = isTimeTraveling && currentFrame ? currentFrame.ds : [];
+  const displayTraversal = isTimeTraveling && currentFrame && currentFrame.traversal ? currentFrame.traversal : [];
 
   const codeLines = codeSnippets[activeAlgo][language].trim().split('\n');
   const statusColor = displayStatus.includes("successful") || displayStatus.includes("Traversal complete") ? "status-found" : displayStatus.includes("unreachable") ? "status-not-found" : "status-default";
@@ -749,6 +760,24 @@ export default function BFSDFSGraphVisualizer() {
           
           <div className="status-bar"><span className={`status-text ${statusColor}`}>{displayStatus}</span></div>
           
+          <div style={{ width: '100%', padding: '0.75rem', marginBottom: '1rem', backgroundColor: 'var(--bg-dark-950)', border: '1px solid var(--border-gray-700)', borderRadius: '0.375rem', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--cyan-400)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Traversal Order:</span>
+            {displayTraversal.length === 0 ? (
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-gray-500)' }}>[ ]</span>
+            ) : (
+              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                {displayTraversal.map((label, idx) => (
+                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span style={{ background: 'var(--cyan-600)', color: 'white', padding: '0.15rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.85rem', fontWeight: 'bold', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
+                      {label}
+                    </span>
+                    {idx < displayTraversal.length - 1 && <span style={{ color: 'var(--text-gray-500)', fontSize: '0.8rem' }}>→</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="visualization-layout">
             <div className="visualization-boxes" ref={canvasRef} onMouseMove={handleMouseMove} onMouseUp={() => setDraggedNodeId(null)} onMouseLeave={() => setDraggedNodeId(null)}>
               <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }}>
