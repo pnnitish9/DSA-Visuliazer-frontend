@@ -149,6 +149,8 @@ const InjectedStyles = () => (
     .st-node-lazy { position: absolute; top: -10px; right: -10px; background: var(--purple-500); color: white; font-size: 0.65rem; font-weight: bold; padding: 0.1rem 0.4rem; border-radius: 999px; border: 2px solid var(--bg-dark-900); animation: pulse 2s infinite; }
     
     /* Node States */
+    .st-node.uninitialized { border-style: dashed; opacity: 0.6; }
+    .st-node-val.uninitialized { color: var(--text-gray-500); }
     .st-node.visiting { border-color: var(--yellow-500); background: rgba(234, 179, 8, 0.1); transform: translate(-50%, -50%) scale(1.1); box-shadow: 0 0 15px rgba(234, 179, 8, 0.4); z-index: 5; }
     .st-node.overlap-full { border-color: var(--green-500); background: rgba(34, 197, 94, 0.15); transform: translate(-50%, -50%) scale(1.15); box-shadow: 0 0 20px rgba(34, 197, 94, 0.5); z-index: 5; }
     .st-node.overlap-partial { border-color: var(--orange-500); background: rgba(249, 115, 22, 0.1); }
@@ -257,8 +259,8 @@ const gcd = (a, b) => b === 0 ? Math.abs(a) : gcd(b, a % b);
 const NULL_VALUES = { sum: 0, min: Infinity, max: -Infinity, gcd: 0, xor: 0 };
 
 const applyOperation = (a, b, type) => {
-  if (a === null || a === undefined) return b;
-  if (b === null || b === undefined) return a;
+  if (a === null || a === undefined || a === '?') return b;
+  if (b === null || b === undefined || b === '?') return a;
   switch (type) {
     case 'sum': return a + b;
     case 'min': return Math.min(a, b);
@@ -305,7 +307,7 @@ export default function SegmentTreeVisualizer() {
   const runSimulation = (operationType) => {
     let currentArray = [...baseArray];
     const N = currentArray.length;
-    let st = Array(4 * N + 1).fill(null).map(() => ({ val: NULL_VALUES[treeType], lazy: 0, L: 0, R: 0 }));
+    let st = Array(4 * N + 1).fill(null).map(() => ({ val: '?', lazy: 0, L: 0, R: 0, exists: false }));
     
     let simFrames = [];
     let logs = [];
@@ -327,7 +329,7 @@ export default function SegmentTreeVisualizer() {
 
     // Pre-calculate L and R for all nodes via a dummy build
     const initTreeLimits = (node, L, R) => {
-      st[node] = { val: NULL_VALUES[treeType], lazy: 0, L, R };
+      st[node] = { val: '?', lazy: 0, L, R, exists: true };
       if (L === R) return;
       const mid = Math.floor((L + R) / 2);
       initTreeLimits(2 * node, L, mid);
@@ -381,6 +383,7 @@ export default function SegmentTreeVisualizer() {
         nState[node] = 'overlap-full';
         captureFrame(LINE_MAP.build.baseSet, `Leaf reached. Setting Node [${L}, ${L}] = Array[${L}] = ${currentArray[L]}`, nState, eState, [L]);
         nState[node] = 'default';
+        if (node > 1) eState[`${Math.floor(node/2)}-${node}`] = 'returning';
         return;
       }
       
@@ -388,14 +391,16 @@ export default function SegmentTreeVisualizer() {
       captureFrame(LINE_MAP.build.recursive, `Dividing range [${L}, ${R}] at ${mid}.`, nState, eState);
       
       build(2 * node, L, mid);
+      eState[`${node}-${2*node}`] = 'default'; // Clean up left edge returning state
+      
       build(2 * node + 1, mid + 1, R);
       
       nState[node] = 'returning';
       st[node].val = applyOperation(st[2 * node].val, st[2 * node + 1].val, treeType);
       
-      if (node > 1) eState[`${Math.floor(node/2)}-${node}`] = 'returning';
       eState[`${node}-${2*node}`] = 'returning';
       eState[`${node}-${2*node+1}`] = 'returning';
+      if (node > 1) eState[`${Math.floor(node/2)}-${node}`] = 'returning';
       
       captureFrame(LINE_MAP.build.merge, `Merged children to update Node [${L}, ${R}]. Value = ${st[node].val}`, nState, eState);
       
@@ -509,7 +514,7 @@ export default function SegmentTreeVisualizer() {
     // Execution Trigger
     if (operationType === 'build') {
       // Build requires a fresh tree mapping
-      st = Array(4 * N + 1).fill(null).map(() => ({ val: NULL_VALUES[treeType], lazy: 0, L: 0, R: 0 }));
+      st = Array(4 * N + 1).fill(null).map(() => ({ val: '?', lazy: 0, L: 0, R: 0, exists: false }));
       initTreeLimits(1, 0, N - 1);
       build(1, 0, N - 1);
       captureFrame(-1, `Build Complete! Segment tree is ready.`, {}, {});
@@ -539,7 +544,7 @@ export default function SegmentTreeVisualizer() {
   };
 
   const buildSilently = (node, L, R, tr, arr) => {
-    tr[node].L = L; tr[node].R = R;
+    tr[node].L = L; tr[node].R = R; tr[node].exists = true;
     if (L === R) { tr[node].val = arr[L]; return; }
     const mid = Math.floor((L + R) / 2);
     buildSilently(2 * node, L, mid, tr, arr);
@@ -578,7 +583,7 @@ export default function SegmentTreeVisualizer() {
     if (L > R) return;
     const pos = getNodePos(L, R, depth);
     const data = currFrame.tree[node];
-    if (data && data.val !== undefined && data.val !== NULL_VALUES[treeType]) {
+    if (data && data.exists) {
         renderNodes.push({ id: node, L, R, pos, data, state: currFrame.nodeStates[node] || 'default' });
         
         if (L !== R) {
@@ -587,14 +592,14 @@ export default function SegmentTreeVisualizer() {
             const rightPos = getNodePos(mid + 1, R, depth + 1);
             
             // Check if children actually exist/were explored
-            if (currFrame.tree[2*node] && currFrame.tree[2*node].L !== undefined) {
+            if (currFrame.tree[2*node] && currFrame.tree[2*node].exists) {
                 renderEdges.push({ 
                     key: `${node}-${2*node}`, x1: pos.x, y1: pos.y, x2: leftPos.x, y2: leftPos.y, 
                     state: currFrame.edgeStates[`${node}-${2*node}`] || 'default' 
                 });
                 computeRenderTree(2 * node, L, mid, depth + 1);
             }
-            if (currFrame.tree[2*node+1] && currFrame.tree[2*node+1].L !== undefined) {
+            if (currFrame.tree[2*node+1] && currFrame.tree[2*node+1].exists) {
                 renderEdges.push({ 
                     key: `${node}-${2*node+1}`, x1: pos.x, y1: pos.y, x2: rightPos.x, y2: rightPos.y, 
                     state: currFrame.edgeStates[`${node}-${2*node+1}`] || 'default' 
@@ -613,7 +618,7 @@ export default function SegmentTreeVisualizer() {
       
       {}
       <aside className="controls-sidebar">
-        <h1 className="sidebar-title"><Zap size={20} /> SegTree CP</h1>
+        <h1 className="sidebar-title"><Zap size={20} /> Segment Tree</h1>
         
         <div className="playback-panel">
           <div className="panel-header" style={{margin:0}}>Time Travel Controls</div>
@@ -701,9 +706,9 @@ export default function SegmentTreeVisualizer() {
             
             {/* Draw Tree Nodes */}
             {renderNodes.map(n => (
-              <div key={n.id} className={`st-node ${n.state}`} style={{ left: `${n.pos.x}%`, top: `${n.pos.y}px` }}>
+              <div key={n.id} className={`st-node ${n.state} ${n.data.val === '?' ? 'uninitialized' : ''}`} style={{ left: `${n.pos.x}%`, top: `${n.pos.y}px` }}>
                 <span className="st-node-range">[{n.L},{n.R}]</span>
-                <span className="st-node-val">{n.data.val}</span>
+                <span className={`st-node-val ${n.data.val === '?' ? 'uninitialized' : ''}`}>{n.data.val}</span>
                 {n.data.lazy !== 0 && <div className="st-node-lazy">L:{n.data.lazy}</div>}
               </div>
             ))}
