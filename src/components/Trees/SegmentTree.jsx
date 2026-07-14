@@ -128,7 +128,7 @@ const InjectedStyles = () => (
     
     /* Tree Canvas */
     .tree-canvas-wrapper {
-      flex: 3; background: var(--bg-dark-900); border: 1px solid var(--border-gray-700); border-radius: 0.5rem; position: relative; min-height: 400px; display: flex; flex-direction: column; overflow: hidden;
+      flex: 3; background: var(--bg-dark-900); border: 1px solid var(--border-gray-700); border-radius: 0.5rem; position: relative; min-height: 400px; display: flex; flex-direction: column; overflow: auto;
     }
     .tree-canvas { flex: 1; position: relative; width: 100%; height: 100%; }
     
@@ -160,9 +160,9 @@ const InjectedStyles = () => (
 
     /* Base Array Display */
     .base-array-container {
-      display: flex; justify-content: center; gap: 0.25rem; padding: 1rem; background: var(--bg-dark-950); border-top: 1px solid var(--border-gray-700); position: relative; z-index: 3;
+      display: block; height: 85px; background: var(--bg-dark-950); border-top: 1px solid var(--border-gray-700); position: relative; z-index: 3; width: 100%;
     }
-    .array-cell-wrapper { display: flex; flex-direction: column; align-items: center; width: 45px; }
+    .array-cell-wrapper { display: flex; flex-direction: column; align-items: center; width: 45px; position: absolute; transform: translateX(-50%); top: 12px; }
     .array-idx { font-size: 0.65rem; color: var(--text-gray-400); margin-bottom: 0.2rem; font-family: 'Fira Code', monospace; }
     .array-cell {
       width: 100%; height: 40px; display: flex; justify-content: center; align-items: center; background: var(--bg-dark-800); border: 2px solid var(--border-gray-600); border-radius: 0.375rem; font-family: 'Fira Code', monospace; font-weight: 700; font-size: 0.9rem; transition: all 0.3s;
@@ -567,6 +567,8 @@ export default function SegmentTreeVisualizer() {
   const N = currFrame.array.length;
   const MAX_DEPTH = Math.ceil(Math.log2(N)) + 1;
   const ROW_HEIGHT = 80;
+  const minCanvasHeight = MAX_DEPTH * ROW_HEIGHT + 40;
+  const minCanvasWidth = Math.max(100, N * 65);
   
   // To draw correctly, X position is based on the midpoint of the range [L, R]
   const getNodePos = (L, R, depth) => {
@@ -695,41 +697,51 @@ export default function SegmentTreeVisualizer() {
           <span style={{fontSize:'0.75rem', color:'var(--text-gray-500)'}}>OP: {treeType.toUpperCase()} | N = {N}</span>
         </div>
 
-        <div className="tree-canvas-wrapper">
-          <div className="tree-canvas">
-            {/* Draw SVG Edges */}
-            <svg className="absolute inset-0 w-full h-full pointer-events-none">
-              {renderEdges.map(edge => (
-                <line key={edge.key} x1={`${edge.x1}%`} y1={edge.y1} x2={`${edge.x2}%`} y2={edge.y2} className={`edge ${edge.state}`} />
-              ))}
-            </svg>
-            
-            {/* Draw Tree Nodes */}
-            {renderNodes.map(n => (
-              <div key={n.id} className={`st-node ${n.state} ${n.data.val === '?' ? 'uninitialized' : ''}`} style={{ left: `${n.pos.x}%`, top: `${n.pos.y}px` }}>
-                <span className="st-node-range">[{n.L},{n.R}]</span>
-                <span className={`st-node-val ${n.data.val === '?' ? 'uninitialized' : ''}`}>{n.data.val}</span>
-                {n.data.lazy !== 0 && <div className="st-node-lazy">L:{n.data.lazy}</div>}
-              </div>
-            ))}
-            {frames.length === 0 && <div style={{position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', color:'var(--text-gray-600)'}}>No data to display. Generate a tree.</div>}
-          </div>
-          
-          {/* Base Array Display */}
-          <div className="base-array-container">
-            {currFrame.array.map((val, idx) => {
-              const isActive = currFrame.highlightArr.includes(idx);
-              return (
-                <div key={idx} className="array-cell-wrapper">
-                  <span className="array-idx">{idx}</span>
-                  <div className={`array-cell ${isActive ? 'active' : ''}`}>{val}</div>
+        <div className="tree-canvas-wrapper" style={{ overflow: 'auto' }}>
+          <div style={{ minWidth: `${Math.max(800, minCanvasWidth)}px`, display: 'flex', flexDirection: 'column', flex: 1, paddingBottom: '2rem' }}>
+            <div className="tree-canvas" style={{ minHeight: `${minCanvasHeight}px`, position: 'relative' }}>
+              {}
+              <svg className="absolute inset-0 pointer-events-none" style={{ width: '100%', height: '100%', minHeight: `${minCanvasHeight}px` }}>
+                {renderEdges.map(edge => (
+                  <line
+                    key={edge.key}
+                    x1={`${edge.x1}%`}
+                    y1={edge.y1}
+                    x2={`${edge.x2}%`}
+                    y2={edge.y2}
+                    className={`edge ${edge.state}`}
+                  />
+                ))}
+              </svg>
+              
+              {}
+              {renderNodes.map(n => (
+                <div key={n.id} className={`st-node ${n.state} ${n.data.val === '?' ? 'uninitialized' : ''}`} style={{ left: `${n.pos.x}%`, top: `${n.pos.y}px` }}>
+                  <span className="st-node-range">[{n.L},{n.R}]</span>
+                  <span className={`st-node-val ${n.data.val === '?' ? 'uninitialized' : ''}`}>{n.data.val}</span>
+                  {n.data.lazy !== 0 && <div className="st-node-lazy">L:{n.data.lazy}</div>}
                 </div>
-              );
-            })}
+              ))}
+              {frames.length === 0 && <div style={{position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', color:'var(--text-gray-600)'}}>No data to display. Generate a tree.</div>}
+            </div>
+            
+            {}
+            <div className="base-array-container" style={{ width: '100%', marginTop: '1rem' }}>
+              {currFrame.array.map((val, idx) => {
+                const isActive = currFrame.highlightArr.includes(idx);
+                const cellCenter = ((idx + 0.5) / N) * 100;
+                return (
+                  <div key={idx} className="array-cell-wrapper" style={{ left: `${cellCenter}%` }}>
+                    <span className="array-idx">{idx}</span>
+                    <div className={`array-cell ${isActive ? 'active' : ''}`}>{val}</div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
 
-        {}
+        {/* Bottom Row: Code & Logs */}
         <div className="bottom-row">
           <div className="panel-box">
              <div className="panel-box-header"><Code size={14}/> C++ Logic Tracker</div>
