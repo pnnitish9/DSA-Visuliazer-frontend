@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { GitFork, Pause, Play, RefreshCw, Search, Info, HelpCircle } from 'lucide-react';
+import { GitFork, Pause, Play, RefreshCw, Search, Info, HelpCircle, X, Shuffle, BarChart2, StepForward, StepBack } from 'lucide-react';
 
 const InjectedStyles = () => (
   <style>{`
@@ -212,6 +212,43 @@ const InjectedStyles = () => (
       color: var(--text-gray-200);
     }
 
+    /* --- Stats Bar --- */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    @media (min-width: 768px) {
+      .stats-bar {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+    .stat-card {
+      background-color: var(--bg-dark-800);
+      border: 1px solid var(--border-gray-700);
+      border-radius: 0.375rem;
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.2);
+    }
+    .stat-title {
+      font-size: 0.75rem;
+      color: var(--text-gray-400);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+    }
+    .stat-value {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--cyan-400);
+      font-family: 'Fira Code', 'Courier New', monospace;
+    }
+
     .visualization-section {
       display: flex;
       flex-direction: column;
@@ -274,7 +311,6 @@ const InjectedStyles = () => (
       to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
     }
 
-    /* Green circular style from image_eed3d6.png */
     .tree-circle-node.default {
       background-color: #e2f0d9;
       border: 2.5px solid #8cc07e;
@@ -310,18 +346,17 @@ const InjectedStyles = () => (
       opacity: 0.7;
     }
 
-    /* Rotation diagnostic node visual styles */
     .tree-circle-node.pivot {
-      background-color: #fce7f3; /* pink-100 */
-      border: 2.5px solid #db2777; /* pink-600 */
-      color: #831843; /* pink-900 */
+      background-color: #fce7f3;
+      border: 2.5px solid #db2777;
+      color: #831843;
       transform: translate(-50%, -50%) scale(1.15);
       box-shadow: 0 0 20px rgba(219, 39, 119, 0.75);
     }
     .tree-circle-node.detached {
-      background-color: #f3e8ff; /* purple-100 */
-      border: 2.5px dashed #a855f7; /* purple-500 */
-      color: #581c87; /* purple-900 */
+      background-color: #f3e8ff;
+      border: 2.5px dashed #a855f7;
+      color: #581c87;
       transform: translate(-50%, -50%) scale(0.92);
       box-shadow: 0 0 12px rgba(168, 85, 247, 0.5);
     }
@@ -400,6 +435,52 @@ const InjectedStyles = () => (
     @keyframes slideInHUD {
       from { transform: translateY(-10px); opacity: 0; }
       to { transform: translateY(0); opacity: 1; }
+    }
+
+    .hud-close-btn {
+      position: absolute;
+      top: 0.4rem;
+      right: 0.4rem;
+      background: transparent;
+      border: none;
+      color: var(--text-gray-400);
+      cursor: pointer;
+      padding: 0.2rem;
+      border-radius: 0.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .hud-close-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+    }
+
+    /* --- Playback Controls Bar --- */
+    .playback-controls-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 2rem;
+      padding: 0.75rem 1.5rem;
+      background-color: var(--bg-dark-800);
+      border-radius: 0.375rem;
+      margin-top: 1rem;
+      border: 1px solid var(--border-gray-700);
+    }
+
+    .playback-controls-bar .btn {
+      min-width: 90px;
+    }
+
+    .step-indicator {
+      font-family: 'Fira Code', 'Courier New', monospace;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-gray-200);
+      min-width: 80px;
+      text-align: center;
     }
 
     .lower-content-area {
@@ -799,37 +880,411 @@ const LINE_MAPS = {
   }
 };
 
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// ---------------------------------------------------------
+// Global Helper Functions (Accessible by components and classes)
+// ---------------------------------------------------------
+const getNodeHeight = (node) => {
+  return node ? (node.height || 1) : 0;
+};
+
+const getBalanceFactor = (node) => {
+  return node ? getNodeHeight(node.left) - getNodeHeight(node.right) : 0;
+};
+
+// ---------------------------------------------------------
+// Frame Generator Engine (Synchronously builds animation steps)
+// ---------------------------------------------------------
+class FrameGenerator {
+  constructor(initialTree, initialLog, initialStats, concept, language) {
+    this.tree = this.cloneTree(initialTree);
+    this.log = [...initialLog];
+    this.stats = { ...initialStats };
+    this.status = "";
+    this.callStackEdges = [];
+    this.backtrackEdge = null;
+    this.rotationDiagnostic = null;
+    this.highlightLineNum = -1;
+    this.concept = concept;
+    this.language = language;
+    this.frames = [];
+  }
+
+  cloneTree(node) {
+    if (!node) return null;
+    return {
+      ...node,
+      left: this.cloneTree(node.left),
+      right: this.cloneTree(node.right)
+    };
+  }
+
+  pushFrame() {
+    this.frames.push({
+      tree: this.cloneTree(this.tree),
+      log: [...this.log],
+      stats: { ...this.stats },
+      status: this.status,
+      callStackEdges: [...this.callStackEdges],
+      backtrackEdge: this.backtrackEdge ? { ...this.backtrackEdge } : null,
+      rotationDiagnostic: this.rotationDiagnostic ? { ...this.rotationDiagnostic } : null,
+      highlightLineNum: this.highlightLineNum,
+      activeConcept: this.concept
+    });
+  }
+
+  addLog(msg) {
+    this.log.push(msg);
+  }
+
+  setHighlight(key) {
+    if (LINE_MAPS[this.concept] && LINE_MAPS[this.concept][this.language]) {
+      this.highlightLineNum = LINE_MAPS[this.concept][this.language][key] ?? -1;
+    } else {
+      this.highlightLineNum = -1;
+    }
+  }
+
+  updateNodeByValue(node, targetValue, newState) {
+    if (!node) return null;
+    let newNode = { ...node };
+    if (node.value === targetValue) {
+      newNode.state = newState;
+    }
+    newNode.left = this.updateNodeByValue(node.left, targetValue, newState);
+    newNode.right = this.updateNodeByValue(node.right, targetValue, newState);
+    return newNode;
+  }
+
+  replaceSubtree(node, targetId, replacement) {
+    if (!node) return null;
+    if (node.id === targetId) return replacement;
+    return {
+      ...node,
+      left: this.replaceSubtree(node.left, targetId, replacement),
+      right: this.replaceSubtree(node.right, targetId, replacement)
+    };
+  }
+
+  pushStack(fromId, toId) {
+    this.callStackEdges.push({ from: fromId, to: toId });
+  }
+
+  popStack(fromId, toId) {
+    this.callStackEdges = this.callStackEdges.filter(e => !(e.from === fromId && e.to === toId));
+    this.backtrackEdge = { from: toId, to: fromId };
+  }
+  
+  clearBacktrack() {
+    this.backtrackEdge = null;
+  }
+
+  getNodeHeight(node) {
+    return node ? (node.height || 1) : 0;
+  }
+
+  getBalanceFactor(node) {
+    return node ? this.getNodeHeight(node.left) - this.getNodeHeight(node.right) : 0;
+  }
+  
+  resetAllStates(node) {
+    if (!node) return null;
+    return {
+      ...node,
+      state: 'default',
+      left: this.resetAllStates(node.left),
+      right: this.resetAllStates(node.right)
+    };
+  }
+
+  performRightRotation(y) {
+    this.stats.rightRotations += 1;
+    this.stats.totalRotations += 1;
+    let x = y.left;
+    let T2 = x ? x.right : null;
+
+    this.status = `Imbalance detected! Initiating Right Rotation. Stage 1: Identifying Pivot node ${y.value} (pink) and child ${x?.value || ''}.`;
+    this.addLog(`[Rotation Phase 1] Pivot: ${y.value}, Left Child: ${x?.value || ''}`);
+    
+    this.rotationDiagnostic = {
+      type: 'Right Rotation (Single R)',
+      pivot: y.value,
+      target: x?.value,
+      orphan: T2 ? T2.value : 'None',
+      phase: 'Step 1: Identifying Pivot and Subtrees'
+    };
+
+    const highlightPivotNode = {
+      ...y,
+      state: 'pivot',
+      left: x ? {
+        ...x,
+        state: 'visiting',
+        right: T2 ? { ...T2, state: 'default' } : null
+      } : null
+    };
+    this.tree = this.replaceSubtree(this.tree, y.id, highlightPivotNode);
+    this.pushFrame();
+    this.pushFrame(); 
+
+    if (T2) {
+      this.status = `Stage 2: Isolating orphan subtree under node ${T2.value} (purple) before pointer shifts...`;
+      this.rotationDiagnostic.phase = 'Step 2: Detaching and Isolating Orphan T2';
+      const isolateOrphanNode = {
+        ...y,
+        state: 'pivot',
+        left: x ? {
+          ...x,
+          state: 'visiting',
+          right: { ...T2, state: 'detached' }
+        } : null
+      };
+      this.tree = this.replaceSubtree(this.tree, y.id, isolateOrphanNode);
+      this.pushFrame();
+    }
+
+    this.status = `Stage 3: Swinging pivot node ${y.value} down, and sliding child node ${x?.value || ''} upwards.`;
+    this.rotationDiagnostic.phase = 'Step 3: Swinging Pivot node down';
+
+    let intermediateX = {
+      ...x,
+      state: 'pre-op',
+      right: {
+        ...y,
+        state: 'visiting',
+        left: null 
+      }
+    };
+    this.tree = this.replaceSubtree(this.tree, y.id, intermediateX);
+    this.pushFrame();
+
+    if (T2) {
+      this.status = `Stage 4: Reattaching isolated orphan subtree ${T2.value} as left child of pivot node ${y.value}.`;
+      this.rotationDiagnostic.phase = 'Step 4: Re-attaching isolated subtrees';
+      let attachedX = {
+        ...x,
+        state: 'pre-op',
+        right: {
+          ...y,
+          state: 'visiting',
+          left: { ...T2, state: 'default' }
+        }
+      };
+      this.tree = this.replaceSubtree(this.tree, y.id, attachedX);
+      this.pushFrame();
+    }
+
+    this.status = `Stage 5: Recalculation complete. Settling node placement coordinates.`;
+    this.addLog(`[Rotation Success] Completed Right Rotation under parent node ${x?.value || ''}`);
+
+    let finalX = {
+      ...x,
+      state: 'default',
+      right: {
+        ...y,
+        state: 'default',
+        left: T2 ? { ...T2, state: 'default' } : null
+      }
+    };
+
+    finalX.right.height = 1 + Math.max(this.getNodeHeight(finalX.right.left), this.getNodeHeight(finalX.right.right));
+    finalX.height = 1 + Math.max(this.getNodeHeight(finalX.left), this.getNodeHeight(finalX.right));
+
+    return finalX;
+  }
+
+  performLeftRotation(x) {
+    this.stats.leftRotations += 1;
+    this.stats.totalRotations += 1;
+    let y = x.right;
+    let T2 = y ? y.left : null;
+
+    this.status = `Imbalance detected! Initiating Left Rotation. Stage 1: Identifying Pivot node ${x.value} (pink) and child ${y?.value || ''}.`;
+    this.addLog(`[Rotation Phase 1] Pivot: ${x.value}, Right Child: ${y?.value || ''}`);
+
+    this.rotationDiagnostic = {
+      type: 'Left Rotation (Single L)',
+      pivot: x.value,
+      target: y?.value,
+      orphan: T2 ? T2.value : 'None',
+      phase: 'Step 1: Identifying Pivot and Subtrees'
+    };
+
+    const highlightPivotNode = {
+      ...x,
+      state: 'pivot',
+      right: y ? {
+        ...y,
+        state: 'visiting',
+        left: T2 ? { ...T2, state: 'default' } : null
+      } : null
+    };
+    this.tree = this.replaceSubtree(this.tree, x.id, highlightPivotNode);
+    this.pushFrame();
+    this.pushFrame();
+
+    if (T2) {
+      this.status = `Stage 2: Isolating orphan subtree under node ${T2.value} (purple) before pointer shifts...`;
+      this.rotationDiagnostic.phase = 'Step 2: Detaching and Isolating Orphan T2';
+      const isolateOrphanNode = {
+        ...x,
+        state: 'pivot',
+        right: y ? {
+          ...y,
+          state: 'visiting',
+          left: { ...T2, state: 'detached' }
+        } : null
+      };
+      this.tree = this.replaceSubtree(this.tree, x.id, isolateOrphanNode);
+      this.pushFrame();
+    }
+
+    this.status = `Stage 3: Swinging pivot node ${x.value} down, and sliding child node ${y?.value || ''} upwards.`;
+    this.rotationDiagnostic.phase = 'Step 3: Swinging Pivot node down';
+
+    let intermediateY = {
+      ...y,
+      state: 'pre-op',
+      left: {
+        ...x,
+        state: 'visiting',
+        right: null
+      }
+    };
+    this.tree = this.replaceSubtree(this.tree, x.id, intermediateY);
+    this.pushFrame();
+
+    if (T2) {
+      this.status = `Stage 4: Reattaching isolated orphan subtree ${T2.value} as right child of pivot node ${x.value}.`;
+      this.rotationDiagnostic.phase = 'Step 4: Re-attaching isolated subtrees';
+      let attachedY = {
+        ...y,
+        state: 'pre-op',
+        left: {
+          ...x,
+          state: 'visiting',
+          right: { ...T2, state: 'default' }
+        }
+      };
+      this.tree = this.replaceSubtree(this.tree, x.id, attachedY);
+      this.pushFrame();
+    }
+
+    this.status = `Stage 5: Recalculation complete. Settling node placement coordinates.`;
+    this.addLog(`[Rotation Success] Completed Left Rotation under parent node ${y?.value || ''}`);
+
+    let finalY = {
+      ...y,
+      state: 'default',
+      left: {
+        ...x,
+        state: 'default',
+        right: T2 ? { ...T2, state: 'default' } : null
+      }
+    };
+
+    finalY.left.height = 1 + Math.max(this.getNodeHeight(finalY.left.left), this.getNodeHeight(finalY.left.right));
+    finalY.height = 1 + Math.max(this.getNodeHeight(finalY.left), this.getNodeHeight(finalY.right));
+
+    return finalY;
+  }
+}
+
+// ---------------------------------------------------------
+// Main React Component
+// ---------------------------------------------------------
 export default function AVLTreeVisualizer() {
   const [tree, setTree] = useState(null);
   const [value, setValue] = useState("");
+  const [randomSize, setRandomSize] = useState("10");
   const [language, setLanguage] = useState("python");
   const [speed, setSpeed] = useState(1000);
   const [status, setStatus] = useState("Tree is empty. Insert a node to begin self-balancing visualization.");
   const [executionLog, setExecutionLog] = useState(["[System] AVL visualizer active. All nodes auto-balance upon insert/delete."]);
   const [highlightLineNum, setHighlightLineNum] = useState(-1);
   const [activeConcept, setActiveConcept] = useState("insert"); 
+  const [stats, setStats] = useState({ leftRotations: 0, rightRotations: 0, totalRotations: 0 });
+  const [isHudVisible, setIsHudVisible] = useState(true);
 
   const [callStackEdges, setCallStackEdges] = useState([]); 
   const [backtrackEdge, setBacktrackEdge] = useState(null); 
-
-  const [isVisualizing, setIsVisualizing] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const [error, setError] = useState(null);
-
-  // Rotation step feedback hud state
   const [rotationDiagnostic, setRotationDiagnostic] = useState(null);
 
-  const pausedRef = useRef(false);
-  const isCancelledRef = useRef(false);
+  const [error, setError] = useState(null);
   const logContainerRef = useRef(null);
+
+  // --- Frame Based Playback State ---
+  const [frames, setFrames] = useState([]);
+  const [currentFrameIdx, setCurrentFrameIdx] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  const isVisualizing = frames.length > 0 && currentFrameIdx < frames.length - 1;
 
   useEffect(() => {
     if (logContainerRef.current) {
       logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
     }
   }, [executionLog]);
+
+  // --- Playback Engine ---
+  useEffect(() => {
+    let timer;
+    if (isPlaying && currentFrameIdx < frames.length - 1) {
+        timer = setTimeout(() => {
+            setCurrentFrameIdx(prev => prev + 1);
+        }, speed);
+    } else if (isPlaying && currentFrameIdx >= frames.length - 1) {
+        setIsPlaying(false);
+    }
+    return () => clearTimeout(timer);
+  }, [isPlaying, currentFrameIdx, frames.length, speed]);
+
+  // Apply current frame to UI
+  useEffect(() => {
+    if (frames.length > 0 && currentFrameIdx >= 0 && currentFrameIdx < frames.length) {
+        const frame = frames[currentFrameIdx];
+        setTree(frame.tree);
+        setStatus(frame.status);
+        setExecutionLog(frame.log);
+        setCallStackEdges(frame.callStackEdges);
+        setBacktrackEdge(frame.backtrackEdge);
+        setRotationDiagnostic(frame.rotationDiagnostic);
+        setHighlightLineNum(frame.highlightLineNum);
+        setStats(frame.stats);
+        setActiveConcept(frame.activeConcept);
+    }
+  }, [currentFrameIdx, frames]);
+
+  const togglePlay = () => {
+    if (frames.length === 0) return;
+    if (currentFrameIdx >= frames.length - 1) {
+        setCurrentFrameIdx(0);
+        setIsPlaying(true);
+    } else {
+        setIsPlaying(!isPlaying);
+    }
+  };
+
+  const handleNext = () => {
+    if (currentFrameIdx < frames.length - 1) {
+        setCurrentFrameIdx(p => p + 1);
+        setIsPlaying(false);
+    }
+  };
+
+  const handlePrev = () => {
+    if (currentFrameIdx > 0) {
+        setCurrentFrameIdx(p => p - 1);
+        setIsPlaying(false);
+    }
+  };
+
+  const runOperation = (opName, newFrames) => {
+      setFrames(newFrames);
+      setCurrentFrameIdx(0);
+      setIsPlaying(true);
+      setValue("");
+  };
 
   const getLayoutElements = (root) => {
     const nodesList = [];
@@ -855,16 +1310,6 @@ export default function AVLTreeVisualizer() {
     return { nodesList, edgesList };
   };
 
-  const getNodeHeight = (node) => {
-    if (!node) return 0;
-    return node.height || 1;
-  };
-
-  const getBalanceFactor = (node) => {
-    if (!node) return 0;
-    return getNodeHeight(node.left) - getNodeHeight(node.right);
-  };
-
   const updateHeightsAndBFs = (node) => {
     if (!node) return null;
     const leftUpdated = updateHeightsAndBFs(node.left);
@@ -878,37 +1323,6 @@ export default function AVLTreeVisualizer() {
     };
   };
 
-  const resetAllStates = (node) => {
-    if (!node) return null;
-    return {
-      ...node,
-      state: 'default',
-      left: resetAllStates(node.left),
-      right: resetAllStates(node.right)
-    };
-  };
-
-  const updateNodeByValue = (node, targetValue, newState) => {
-    if (!node) return null;
-    let newNode = { ...node };
-    if (node.value === targetValue) {
-      newNode.state = newState;
-    }
-    newNode.left = updateNodeByValue(node.left, targetValue, newState);
-    newNode.right = updateNodeByValue(node.right, targetValue, newState);
-    return newNode;
-  };
-
-  const replaceSubtree = (node, targetId, replacement) => {
-    if (!node) return null;
-    if (node.id === targetId) return replacement;
-    return {
-      ...node,
-      left: replaceSubtree(node.left, targetId, replacement),
-      right: replaceSubtree(node.right, targetId, replacement)
-    };
-  };
-
   const getVal = () => {
     const num = parseInt(value);
     if (isNaN(num)) {
@@ -918,372 +1332,198 @@ export default function AVLTreeVisualizer() {
     return num;
   };
 
-  const checkPause = async () => {
-    while (pausedRef.current && !isCancelledRef.current) {
-      setStatus("Paused. Press Resume to continue.");
-      await sleep(100);
+  const handleGenerateRandom = () => {
+    const size = parseInt(randomSize);
+    if (isNaN(size) || size < 1 || size > 25) {
+      setError("Please enter a valid size (1-25) for the random tree.");
+      return;
     }
-  };
-
-  const cleanup = () => {
-    setIsVisualizing(false);
-    setValue("");
-    setTimeout(() => {
-      if (!isCancelledRef.current) {
-        setTree(prev => resetAllStates(prev));
-        setStatus("Ready.");
-        setHighlightLineNum(-1);
-        setCallStackEdges([]); 
-        setBacktrackEdge(null); 
-      }
-    }, speed * 1.5);
-  };
-
-  const highlightLine = (concept, key) => {
-    if (LINE_MAPS[concept] && LINE_MAPS[concept][language]) {
-      setHighlightLineNum(LINE_MAPS[concept][language][key] ?? -1);
-    } else {
-      setHighlightLineNum(-1);
-    }
-  };
-
-  const performRightRotation = async (y) => {
-    let x = y.left;
-    let T2 = x ? x.right : null;
-
-    // Phase 1: Diagnose Imbalance & Highlight Pivot Nodes
-    setStatus(`Imbalance detected! Initiating Right Rotation. Stage 1: Identifying Pivot node ${y.value} (pink) and child ${x?.value || ''}.`);
-    setExecutionLog(prev => [...prev, `[Rotation Phase 1] Pivot: ${y.value}, Left Child: ${x?.value || ''}`]);
-    
-    setRotationDiagnostic({
-      type: 'Right Rotation (Single R)',
-      pivot: y.value,
-      target: x?.value,
-      orphan: T2 ? T2.value : 'None',
-      phase: 'Step 1: Identifying Pivot and Subtrees'
-    });
-
-    const highlightPivotNode = {
-      ...y,
-      state: 'pivot',
-      left: x ? {
-        ...x,
-        state: 'visiting',
-        right: T2 ? { ...T2, state: 'default' } : null
-      } : null
-    };
-    setTree(prev => replaceSubtree(prev, y.id, highlightPivotNode));
-    await sleep(speed * 1.5);
-
-    // Phase 2: Isolate and visually detach Orphan Subtree T2
-    if (T2) {
-      setStatus(`Stage 2: Isolating orphan subtree under node ${T2.value} (purple) before pointer shifts...`);
-      setRotationDiagnostic(prev => prev ? { ...prev, phase: 'Step 2: Detaching and Isolating Orphan T2' } : null);
-      const isolateOrphanNode = {
-        ...y,
-        state: 'pivot',
-        left: x ? {
-          ...x,
-          state: 'visiting',
-          right: { ...T2, state: 'detached' }
-        } : null
-      };
-      setTree(prev => replaceSubtree(prev, y.id, isolateOrphanNode));
-      await sleep(speed * 1.5);
-    }
-
-    // Phase 3: Swing Pivot Node downwards, promoting the child to new local root
-    setStatus(`Stage 3: Swinging pivot node ${y.value} down, and sliding child node ${x?.value || ''} upwards.`);
-    setRotationDiagnostic(prev => prev ? { ...prev, phase: 'Step 3: Swinging Pivot node down' } : null);
-
-    let intermediateX = {
-      ...x,
-      state: 'pre-op',
-      right: {
-        ...y,
-        state: 'visiting',
-        left: null // Temporarily empty to visually highlight connection break
-      }
-    };
-    setTree(prev => replaceSubtree(prev, y.id, intermediateX));
-    await sleep(speed * 1.8);
-
-    // Phase 4: Re-integrate and reattach the detached Orphan Subtree
-    if (T2) {
-      setStatus(`Stage 4: Reattaching isolated orphan subtree ${T2.value} as left child of pivot node ${y.value}.`);
-      setRotationDiagnostic(prev => prev ? { ...prev, phase: 'Step 4: Re-attaching isolated subtrees' } : null);
-      let attachedX = {
-        ...x,
-        state: 'pre-op',
-        right: {
-          ...y,
-          state: 'visiting',
-          left: { ...T2, state: 'default' }
-        }
-      };
-      setTree(prev => replaceSubtree(prev, y.id, attachedX));
-      await sleep(speed * 1.5);
-    }
-
-    // Phase 5: Recalculate node height metrics & settle balanced subtrees
-    setStatus(`Stage 5: Recalculation complete. Settling node placement coordinates.`);
-    setExecutionLog(prev => [...prev, `[Rotation Success] Completed Right Rotation under parent node ${x?.value || ''}`]);
-
-    let finalX = {
-      ...x,
-      state: 'default',
-      right: {
-        ...y,
-        state: 'default',
-        left: T2 ? { ...T2, state: 'default' } : null
-      }
-    };
-
-    finalX.right.height = 1 + Math.max(getNodeHeight(finalX.right.left), getNodeHeight(finalX.right.right));
-    finalX.height = 1 + Math.max(getNodeHeight(finalX.left), getNodeHeight(finalX.right));
-
-    return finalX;
-  };
-
-  const performLeftRotation = async (x) => {
-    let y = x.right;
-    let T2 = y ? y.left : null;
-
-    // Phase 1: Diagnose Imbalance & Highlight Pivot Nodes
-    setStatus(`Imbalance detected! Initiating Left Rotation. Stage 1: Identifying Pivot node ${x.value} (pink) and child ${y?.value || ''}.`);
-    setExecutionLog(prev => [...prev, `[Rotation Phase 1] Pivot: ${x.value}, Right Child: ${y?.value || ''}`]);
-
-    setRotationDiagnostic({
-      type: 'Left Rotation (Single L)',
-      pivot: x.value,
-      target: y?.value,
-      orphan: T2 ? T2.value : 'None',
-      phase: 'Step 1: Identifying Pivot and Subtrees'
-    });
-
-    const highlightPivotNode = {
-      ...x,
-      state: 'pivot',
-      right: y ? {
-        ...y,
-        state: 'visiting',
-        left: T2 ? { ...T2, state: 'default' } : null
-      } : null
-    };
-    setTree(prev => replaceSubtree(prev, x.id, highlightPivotNode));
-    await sleep(speed * 1.5);
-
-    // Phase 2: Isolate and visually detach Orphan Subtree T2
-    if (T2) {
-      setStatus(`Stage 2: Isolating orphan subtree under node ${T2.value} (purple) before pointer shifts...`);
-      setRotationDiagnostic(prev => prev ? { ...prev, phase: 'Step 2: Detaching and Isolating Orphan T2' } : null);
-      const isolateOrphanNode = {
-        ...x,
-        state: 'pivot',
-        right: y ? {
-          ...y,
-          state: 'visiting',
-          left: { ...T2, state: 'detached' }
-        } : null
-      };
-      setTree(prev => replaceSubtree(prev, x.id, isolateOrphanNode));
-      await sleep(speed * 1.5);
-    }
-
-    // Phase 3: Swing Pivot Node downwards, promoting the child to new local root
-    setStatus(`Stage 3: Swinging pivot node ${x.value} down, and sliding child node ${y?.value || ''} upwards.`);
-    setRotationDiagnostic(prev => prev ? { ...prev, phase: 'Step 3: Swinging Pivot node down' } : null);
-
-    let intermediateY = {
-      ...y,
-      state: 'pre-op',
-      left: {
-        ...x,
-        state: 'visiting',
-        right: null // Temporarily empty to visually highlight connection break
-      }
-    };
-    setTree(prev => replaceSubtree(prev, x.id, intermediateY));
-    await sleep(speed * 1.8);
-
-    // Phase 4: Re-integrate and reattach the detached Orphan Subtree
-    if (T2) {
-      setStatus(`Stage 4: Reattaching isolated orphan subtree ${T2.value} as right child of pivot node ${x.value}.`);
-      setRotationDiagnostic(prev => prev ? { ...prev, phase: 'Step 4: Re-attaching isolated subtrees' } : null);
-      let attachedY = {
-        ...y,
-        state: 'pre-op',
-        left: {
-          ...x,
-          state: 'visiting',
-          right: { ...T2, state: 'default' }
-        }
-      };
-      setTree(prev => replaceSubtree(prev, x.id, attachedY));
-      await sleep(speed * 1.5);
-    }
-
-    // Phase 5: Recalculate node height metrics & settle balanced subtrees
-    setStatus(`Stage 5: Recalculation complete. Settling node placement coordinates.`);
-    setExecutionLog(prev => [...prev, `[Rotation Success] Completed Left Rotation under parent node ${y?.value || ''}`]);
-
-    let finalY = {
-      ...y,
-      state: 'default',
-      left: {
-        ...x,
-        state: 'default',
-        right: T2 ? { ...T2, state: 'default' } : null
-      }
-    };
-
-    finalY.left.height = 1 + Math.max(getNodeHeight(finalY.left.left), getNodeHeight(finalY.left.right));
-    finalY.height = 1 + Math.max(getNodeHeight(finalY.left), getNodeHeight(finalY.right));
-
-    return finalY;
-  };
-
-  const handleInsert = async () => {
-    const val = getVal();
-    if (val === null) return;
-
     setError(null);
-    setIsVisualizing(true);
-    setActiveConcept("insert");
+    
+    // Pure fast generation algorithm for instant layout (without animation)
+    function pureGetHeight(node) { return node ? node.height : 0; }
+    function pureGetBf(node) { return node ? pureGetHeight(node.left) - pureGetHeight(node.right) : 0; }
+    function pureRightRotate(y) {
+        let x = y.left; let T2 = x.right;
+        x.right = y; y.left = T2;
+        y.height = Math.max(pureGetHeight(y.left), pureGetHeight(y.right)) + 1;
+        x.height = Math.max(pureGetHeight(x.left), pureGetHeight(x.right)) + 1;
+        return x;
+    }
+    function pureLeftRotate(x) {
+        let y = x.right; let T2 = y.left;
+        y.left = x; x.right = T2;
+        x.height = Math.max(pureGetHeight(x.left), pureGetHeight(x.right)) + 1;
+        y.height = Math.max(pureGetHeight(y.left), pureGetHeight(y.right)) + 1;
+        return y;
+    }
+    function pureInsert(node, val) {
+        if (!node) return { value: val, id: Math.random().toString(36).substring(2,9), left: null, right: null, height: 1, state: 'default' };
+        if (val < node.value) node.left = pureInsert(node.left, val);
+        else if (val > node.value) node.right = pureInsert(node.right, val);
+        else return node; // Handle duplicates
+        
+        node.height = 1 + Math.max(pureGetHeight(node.left), pureGetHeight(node.right));
+        let bf = pureGetBf(node);
+        if (bf > 1 && val < node.left.value) return pureRightRotate(node);
+        if (bf < -1 && val > node.right.value) return pureLeftRotate(node);
+        if (bf > 1 && val > node.left.value) { node.left = pureLeftRotate(node.left); return pureRightRotate(node); }
+        if (bf < -1 && val < node.right.value) { node.right = pureRightRotate(node.right); return pureLeftRotate(node); }
+        return node;
+    }
+
+    let newTree = null;
+    const generatedVals = new Set();
+    while (generatedVals.size < size) {
+        const val = Math.floor(Math.random() * 99) + 1;
+        if (!generatedVals.has(val)) {
+            generatedVals.add(val);
+            newTree = pureInsert(newTree, val);
+        }
+    }
+
+    setFrames([]);
+    setCurrentFrameIdx(0);
+    setIsPlaying(false);
+    
+    setTree(newTree);
+    setStats({ leftRotations: 0, rightRotations: 0, totalRotations: 0 }); // Reset visual operation stats on new generation
+    setStatus(`Generated a random balanced AVL tree with ${size} nodes.`);
+    setExecutionLog([`[System] Generated random tree of size ${size}. Operation stats reset.`]);
     setCallStackEdges([]);
     setBacktrackEdge(null);
     setRotationDiagnostic(null);
-    setExecutionLog(prev => [...prev, `[Insert] Requesting balanced insertion of key: ${val}`]);
+    setIsHudVisible(true);
+    setHighlightLineNum(-1);
+    setValue("");
+  };
+
+  const handleInsert = () => {
+    const val = getVal();
+    if (val === null) return;
+    setError(null);
+    setIsHudVisible(true);
+
+    const gen = new FrameGenerator(tree, executionLog, stats, "insert", language);
+    gen.status = `[Insert] Requesting balanced insertion of key: ${val}`;
+    gen.addLog(gen.status);
+    gen.pushFrame();
 
     const uniqueId = Math.random().toString(36).substring(2, 9);
     const newNode = { value: val, id: uniqueId, left: null, right: null, height: 1, state: 'found' };
 
-    const pushStackSegment = (fromId, toId) => {
-      setCallStackEdges(prev => [...prev, { from: fromId, to: toId }]);
-    };
-
-    const popStackSegment = (fromId, toId) => {
-      setCallStackEdges(prev => prev.filter(e => !(e.from === fromId && e.to === toId)));
-      setBacktrackEdge({ from: toId, to: fromId });
-    };
-
-    const insertAVLRecursive = async (currNode, parentId = null) => {
-      if (isCancelledRef.current) return null;
-      await checkPause();
-
-      // Check Base Case
+    const insertAVLRecursive = (currNode, parentId = null) => {
       if (!currNode) {
-        highlightLine("insert", "check_null");
-        setStatus(`Base Case reached! Inserting new node ${val} here.`);
-        await sleep(speed);
+        gen.setHighlight("check_null");
+        gen.status = `Base Case reached! Inserting new node ${val} here.`;
+        gen.pushFrame();
         if (parentId) {
-          popStackSegment(parentId, uniqueId);
+          gen.popStack(parentId, uniqueId);
         }
         return newNode;
       }
 
       if (parentId) {
-        pushStackSegment(parentId, currNode.id);
-        setStatus(`Recursive descent: entering node ${currNode.value}.`);
-        await sleep(speed);
+        gen.pushStack(parentId, currNode.id);
+        gen.status = `Recursive descent: entering node ${currNode.value}.`;
+        gen.pushFrame();
       }
 
-      highlightLine("insert", "check_null");
-      setStatus(`Comparing insert value ${val} with node ${currNode.value}...`);
-      setTree(prev => updateNodeByValue(prev, currNode.value, 'visiting'));
-      await sleep(speed);
+      gen.setHighlight("check_null");
+      gen.status = `Comparing insert value ${val} with node ${currNode.value}...`;
+      gen.tree = gen.updateNodeByValue(gen.tree, currNode.value, 'visiting');
+      gen.pushFrame();
 
       if (val === currNode.value) {
-        setStatus(`Value ${val} already exists. AVL requires unique keys.`);
-        setExecutionLog(prev => [...prev, `[Duplicate] Key ${val} already in tree.`]);
+        gen.status = `Value ${val} already exists. AVL requires unique keys.`;
+        gen.addLog(`[Duplicate] Key ${val} already in tree.`);
+        gen.pushFrame();
         if (parentId) {
-          popStackSegment(parentId, currNode.id);
+          gen.popStack(parentId, currNode.id);
         }
         return currNode;
       }
 
-      setTree(prev => updateNodeByValue(prev, currNode.value, 'default'));
+      gen.tree = gen.updateNodeByValue(gen.tree, currNode.value, 'default');
 
       let updatedNode = { ...currNode };
 
       if (val < currNode.value) {
-        highlightLine("insert", "recurse_left");
-        updatedNode.left = await insertAVLRecursive(currNode.left, currNode.id);
+        gen.setHighlight("recurse_left");
+        updatedNode.left = insertAVLRecursive(currNode.left, currNode.id);
       } else {
-        highlightLine("insert", "recurse_right");
-        updatedNode.right = await insertAVLRecursive(currNode.right, currNode.id);
+        gen.setHighlight("recurse_right");
+        updatedNode.right = insertAVLRecursive(currNode.right, currNode.id);
       }
 
-      await checkPause();
-      if (isCancelledRef.current) return updatedNode;
-
-      // Unwinding the stack - Recalculate heights & balance factors
       if (parentId) {
-        popStackSegment(parentId, currNode.id);
-        setStatus(`Stack Unwinding: Recalculating height of node ${currNode.value}.`);
-        await sleep(speed);
+        gen.popStack(parentId, currNode.id);
+        gen.status = `Stack Unwinding: Recalculating height of node ${currNode.value}.`;
+        gen.pushFrame();
       }
 
-      highlightLine("insert", "height");
-      updatedNode.height = 1 + Math.max(getNodeHeight(updatedNode.left), getNodeHeight(updatedNode.right));
+      gen.setHighlight("height");
+      updatedNode.height = 1 + Math.max(gen.getNodeHeight(updatedNode.left), gen.getNodeHeight(updatedNode.right));
       
-      highlightLine("insert", "check_balance");
-      const balance = getNodeHeight(updatedNode.left) - getNodeHeight(updatedNode.right);
-      setStatus(`Node ${currNode.value} balance factor: ${balance}.`);
-      await sleep(speed);
+      gen.setHighlight("check_balance");
+      const balance = gen.getNodeHeight(updatedNode.left) - gen.getNodeHeight(updatedNode.right);
+      gen.status = `Node ${currNode.value} balance factor: ${balance}.`;
+      gen.pushFrame();
 
-      // LL Case
       if (balance > 1 && val < updatedNode.left.value) {
-        highlightLine("insert", "LL");
-        setTree(prev => updateNodeByValue(prev, currNode.value, 'pre-op'));
-        updatedNode = await performRightRotation(updatedNode);
+        gen.setHighlight("LL");
+        gen.tree = gen.updateNodeByValue(gen.tree, currNode.value, 'pre-op');
+        updatedNode = gen.performRightRotation(updatedNode);
       }
-      // RR Case
       else if (balance < -1 && val > updatedNode.right.value) {
-        highlightLine("insert", "RR");
-        setTree(prev => updateNodeByValue(prev, currNode.value, 'pre-op'));
-        updatedNode = await performLeftRotation(updatedNode);
+        gen.setHighlight("RR");
+        gen.tree = gen.updateNodeByValue(gen.tree, currNode.value, 'pre-op');
+        updatedNode = gen.performLeftRotation(updatedNode);
       }
-      // LR Case
       else if (balance > 1 && val > updatedNode.left.value) {
-        highlightLine("insert", "LR");
-        setStatus(`Double imbalance (LR) detected! Step 1: Left Rotating child ${updatedNode.left.value} first...`);
-        updatedNode.left = await performLeftRotation(updatedNode.left);
-        setStatus(`Step 2: Now performing Right Rotation on root pivot node ${currNode.value}...`);
-        updatedNode = await performRightRotation(updatedNode);
+        gen.setHighlight("LR");
+        gen.status = `Double imbalance (LR) detected! Step 1: Left Rotating child ${updatedNode.left.value} first...`;
+        updatedNode.left = gen.performLeftRotation(updatedNode.left);
+        gen.status = `Step 2: Now performing Right Rotation on root pivot node ${currNode.value}...`;
+        updatedNode = gen.performRightRotation(updatedNode);
       }
-      // RL Case
       else if (balance < -1 && val < updatedNode.right.value) {
-        highlightLine("insert", "RL");
-        setStatus(`Double imbalance (RL) detected! Step 1: Right Rotating child ${updatedNode.right.value} first...`);
-        updatedNode.right = await performRightRotation(updatedNode.right);
-        setStatus(`Step 2: Now performing Left Rotation on root pivot node ${currNode.value}...`);
-        updatedNode = await performLeftRotation(updatedNode);
+        gen.setHighlight("RL");
+        gen.status = `Double imbalance (RL) detected! Step 1: Right Rotating child ${updatedNode.right.value} first...`;
+        updatedNode.right = gen.performRightRotation(updatedNode.right);
+        gen.status = `Step 2: Now performing Left Rotation on root pivot node ${currNode.value}...`;
+        updatedNode = gen.performLeftRotation(updatedNode);
       }
 
-      setBacktrackEdge(null);
+      gen.clearBacktrack();
       return updatedNode;
     };
 
-    const finalTree = await insertAVLRecursive(tree);
-    if (!isCancelledRef.current) {
-      setTree(finalTree);
-      setExecutionLog(prev => [...prev, `[Success] Key ${val} inserted and AVL balance property verified.`]);
-    }
-    cleanup();
+    const finalTree = insertAVLRecursive(gen.tree);
+    gen.tree = finalTree;
+    gen.addLog(`[Success] Key ${val} inserted and AVL balanced.`);
+    
+    gen.tree = gen.resetAllStates(gen.tree);
+    gen.status = "Ready.";
+    gen.highlightLineNum = -1;
+    gen.callStackEdges = [];
+    gen.backtrackEdge = null;
+    gen.rotationDiagnostic = null;
+    gen.pushFrame();
+
+    runOperation("insert", gen.frames);
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     const val = getVal();
     if (val === null) return;
-
     setError(null);
-    setIsVisualizing(true);
-    setActiveConcept("delete");
-    setCallStackEdges([]);
-    setBacktrackEdge(null);
-    setRotationDiagnostic(null);
-    setExecutionLog(prev => [...prev, `[Delete] Requesting balanced deletion of key: ${val}`]);
+    setIsHudVisible(true);
+
+    const gen = new FrameGenerator(tree, executionLog, stats, "delete", language);
+    gen.status = `[Delete] Requesting balanced deletion of key: ${val}`;
+    gen.addLog(gen.status);
+    gen.pushFrame();
 
     const findMin = (node) => {
       let current = node;
@@ -1293,227 +1533,213 @@ export default function AVLTreeVisualizer() {
       return current;
     };
 
-    const pushStackSegment = (fromId, toId) => {
-      setCallStackEdges(prev => [...prev, { from: fromId, to: toId }]);
-    };
-
-    const popStackSegment = (fromId, toId) => {
-      setCallStackEdges(prev => prev.filter(e => !(e.from === fromId && e.to === toId)));
-      setBacktrackEdge({ from: toId, to: fromId });
-    };
-
-    const deleteAVLRecursive = async (currNode, value, parentId = null) => {
+    const deleteAVLRecursive = (currNode, value, parentId = null) => {
       if (!currNode) {
-        setStatus(`Key ${value} not found in the AVL tree.`);
+        gen.status = `Key ${value} not found in the AVL tree.`;
+        gen.pushFrame();
         return null;
       }
 
       if (parentId) {
-        pushStackSegment(parentId, currNode.id);
-        setStatus(`Recursive descent: entering node ${currNode.value}.`);
-        await sleep(speed);
+        gen.pushStack(parentId, currNode.id);
+        gen.status = `Recursive descent: entering node ${currNode.value}.`;
+        gen.pushFrame();
       }
 
-      highlightLine("delete", "check_null");
-      setStatus(`Searching for ${value}... checking node ${currNode.value}`);
-      setTree(prev => updateNodeByValue(prev, currNode.value, 'visiting'));
-      await sleep(speed);
+      gen.setHighlight("check_null");
+      gen.status = `Searching for ${value}... checking node ${currNode.value}`;
+      gen.tree = gen.updateNodeByValue(gen.tree, currNode.value, 'visiting');
+      gen.pushFrame();
 
       let updatedNode = { ...currNode };
 
       if (value < currNode.value) {
-        highlightLine("delete", "recurse_left");
-        setTree(prev => updateNodeByValue(prev, currNode.value, 'default'));
-        updatedNode.left = await deleteAVLRecursive(currNode.left, value, currNode.id);
+        gen.setHighlight("recurse_left");
+        gen.tree = gen.updateNodeByValue(gen.tree, currNode.value, 'default');
+        updatedNode.left = deleteAVLRecursive(currNode.left, value, currNode.id);
       } else if (value > currNode.value) {
-        highlightLine("delete", "recurse_right");
-        setTree(prev => updateNodeByValue(prev, currNode.value, 'default'));
-        updatedNode.right = await deleteAVLRecursive(currNode.right, value, currNode.id);
+        gen.setHighlight("recurse_right");
+        gen.tree = gen.updateNodeByValue(gen.tree, currNode.value, 'default');
+        updatedNode.right = deleteAVLRecursive(currNode.right, value, currNode.id);
       } else {
-        // Node Found
-        setTree(prev => updateNodeByValue(prev, currNode.value, 'deleting'));
-        setStatus(`Found node ${value}. Preparing removal process.`);
-        await sleep(speed);
+        gen.tree = gen.updateNodeByValue(gen.tree, currNode.value, 'deleting');
+        gen.status = `Found node ${value}. Preparing removal process.`;
+        gen.pushFrame();
 
         if (!currNode.left && !currNode.right) {
-          highlightLine("delete", "leaf");
-          setStatus(`Node ${value} is a leaf node. Freeing allocation.`);
-          await sleep(speed);
-          if (parentId) popStackSegment(parentId, currNode.id);
+          gen.setHighlight("leaf");
+          gen.status = `Node ${value} is a leaf node. Freeing allocation.`;
+          gen.pushFrame();
+          if (parentId) gen.popStack(parentId, currNode.id);
           return null;
         }
 
         if (!currNode.left) {
-          highlightLine("delete", "one_child");
-          setStatus(`Node ${value} has 1 right child. Rewiring subtree up.`);
-          await sleep(speed);
-          if (parentId) popStackSegment(parentId, currNode.id);
+          gen.setHighlight("one_child");
+          gen.status = `Node ${value} has 1 right child. Rewiring subtree up.`;
+          gen.pushFrame();
+          if (parentId) gen.popStack(parentId, currNode.id);
           return currNode.right;
         }
         if (!currNode.right) {
-          highlightLine("delete", "one_child");
-          setStatus(`Node ${value} has 1 left child. Rewiring subtree up.`);
-          await sleep(speed);
-          if (parentId) popStackSegment(parentId, currNode.id);
+          gen.setHighlight("one_child");
+          gen.status = `Node ${value} has 1 left child. Rewiring subtree up.`;
+          gen.pushFrame();
+          if (parentId) gen.popStack(parentId, currNode.id);
           return currNode.left;
         }
 
-        highlightLine("delete", "find_min");
-        setStatus(`Node ${value} has 2 children. Searching for in-order successor...`);
+        gen.setHighlight("find_min");
+        gen.status = `Node ${value} has 2 children. Searching for in-order successor...`;
         const successor = findMin(currNode.right);
 
-        setTree(prev => updateNodeByValue(prev, successor.value, 'pre-op'));
-        highlightLine("delete", "copy_val");
-        setStatus(`In-order successor is ${successor.value}. Overriding value.`);
-        await sleep(speed);
+        gen.tree = gen.updateNodeByValue(gen.tree, successor.value, 'pre-op');
+        gen.setHighlight("copy_val");
+        gen.status = `In-order successor is ${successor.value}. Overriding value.`;
+        gen.pushFrame();
 
         updatedNode.value = successor.value;
-        highlightLine("delete", "delete_min");
-        updatedNode.right = await deleteAVLRecursive(currNode.right, successor.value, currNode.id);
+        gen.setHighlight("delete_min");
+        updatedNode.right = deleteAVLRecursive(currNode.right, successor.value, currNode.id);
       }
 
-      if (isCancelledRef.current) return updatedNode;
-
-      // Balance Stack back-propagation
       if (parentId) {
-        popStackSegment(parentId, currNode.id);
-        setStatus(`Stack Unwinding: Rebalancing node ${currNode.value}.`);
-        await sleep(speed);
+        gen.popStack(parentId, currNode.id);
+        gen.status = `Stack Unwinding: Rebalancing node ${currNode.value}.`;
+        gen.pushFrame();
       }
 
-      highlightLine("delete", "rebalance");
-      updatedNode.height = 1 + Math.max(getNodeHeight(updatedNode.left), getNodeHeight(updatedNode.right));
-      const balance = getBalanceFactor(updatedNode);
+      gen.setHighlight("rebalance");
+      updatedNode.height = 1 + Math.max(gen.getNodeHeight(updatedNode.left), gen.getNodeHeight(updatedNode.right));
+      const balance = gen.getBalanceFactor(updatedNode);
 
-      setStatus(`Rebalance Check: BF of ${updatedNode.value} is ${balance}.`);
-      await sleep(speed);
+      gen.status = `Rebalance Check: BF of ${updatedNode.value} is ${balance}.`;
+      gen.pushFrame();
 
-      // LL balance cases
-      if (balance > 1 && getBalanceFactor(updatedNode.left) >= 0) {
-        updatedNode = await performRightRotation(updatedNode);
-      }
-      if (balance > 1 && getBalanceFactor(updatedNode.left) < 0) {
-        updatedNode.left = await performLeftRotation(updatedNode.left);
-        updatedNode = await performRightRotation(updatedNode);
-      }
-      // RR balance cases
-      if (balance < -1 && getBalanceFactor(updatedNode.right) <= 0) {
-        updatedNode = await performLeftRotation(updatedNode);
-      }
-      if (balance < -1 && getBalanceFactor(updatedNode.right) > 0) {
-        updatedNode.right = await performRightRotation(updatedNode.right);
-        updatedNode = await performLeftRotation(updatedNode);
+      if (balance > 1 && gen.getBalanceFactor(updatedNode.left) >= 0) {
+        updatedNode = gen.performRightRotation(updatedNode);
+      } else if (balance > 1 && gen.getBalanceFactor(updatedNode.left) < 0) {
+        updatedNode.left = gen.performLeftRotation(updatedNode.left);
+        updatedNode = gen.performRightRotation(updatedNode);
+      } else if (balance < -1 && gen.getBalanceFactor(updatedNode.right) <= 0) {
+        updatedNode = gen.performLeftRotation(updatedNode);
+      } else if (balance < -1 && gen.getBalanceFactor(updatedNode.right) > 0) {
+        updatedNode.right = gen.performRightRotation(updatedNode.right);
+        updatedNode = gen.performLeftRotation(updatedNode);
       }
 
-      setBacktrackEdge(null);
+      gen.clearBacktrack();
       return updatedNode;
     };
 
-    const finalTree = await deleteAVLRecursive(tree, val);
-    if (!isCancelledRef.current) {
-      setTree(finalTree);
-      setExecutionLog(prev => [...prev, `[Success] Key ${val} deleted & AVL balanced.`]);
-    }
-    cleanup();
+    const finalTree = deleteAVLRecursive(gen.tree, val);
+    gen.tree = finalTree;
+    gen.addLog(`[Success] Key ${val} deleted & AVL balanced.`);
+    
+    gen.tree = gen.resetAllStates(gen.tree);
+    gen.status = "Ready.";
+    gen.highlightLineNum = -1;
+    gen.callStackEdges = [];
+    gen.backtrackEdge = null;
+    gen.rotationDiagnostic = null;
+    gen.pushFrame();
+
+    runOperation("delete", gen.frames);
   };
 
-  const handleSearch = async () => {
+  const handleSearch = () => {
     const val = getVal();
     if (val === null) return;
-
     setError(null);
-    setIsVisualizing(true);
-    setActiveConcept("search");
-    setCallStackEdges([]);
-    setBacktrackEdge(null);
-    setRotationDiagnostic(null);
-    setExecutionLog(prev => [...prev, `--- Initiating AVL Search for key: ${val} ---`]);
+    setIsHudVisible(true);
 
-    const pushStackSegment = (fromId, toId) => {
-      setCallStackEdges(prev => [...prev, { from: fromId, to: toId }]);
-    };
+    const gen = new FrameGenerator(tree, executionLog, stats, "search", language);
+    gen.status = `--- Initiating AVL Search for key: ${val} ---`;
+    gen.addLog(gen.status);
+    gen.pushFrame();
 
-    const popStackSegment = (fromId, toId) => {
-      setCallStackEdges(prev => prev.filter(e => !(e.from === fromId && e.to === toId)));
-      setBacktrackEdge({ from: toId, to: fromId });
-    };
-
-    const searchRecursive = async (currNode, parentId = null) => {
-      if (isCancelledRef.current) return null;
-      await checkPause();
-
+    const searchRecursive = (currNode, parentId = null) => {
       if (parentId) {
-        pushStackSegment(parentId, currNode.id);
-        setStatus(`Recursive descent call: searching node ${currNode.value}.`);
-        await sleep(speed);
+        gen.pushStack(parentId, currNode.id);
+        gen.status = `Recursive descent call: searching node ${currNode.value}.`;
+        gen.pushFrame();
       }
 
-      highlightLine("search", "check_target");
-      setStatus(`Checking if node ${currNode.value} matches target ${val}...`);
-      setTree(prev => updateNodeByValue(prev, currNode.value, 'visiting'));
-      await sleep(speed);
+      gen.setHighlight("check_target");
+      gen.status = `Checking if node ${currNode.value} matches target ${val}...`;
+      gen.tree = gen.updateNodeByValue(gen.tree, currNode.value, 'visiting');
+      gen.pushFrame();
 
       if (currNode.value === val) {
-        setStatus(`Target ${val} found!`);
-        setTree(prev => updateNodeByValue(prev, currNode.value, 'found'));
-        setExecutionLog(prev => [...prev, `[Success] Target ${val} found successfully.`]);
-        await sleep(speed * 1.5);
+        gen.status = `Target ${val} found!`;
+        gen.tree = gen.updateNodeByValue(gen.tree, currNode.value, 'found');
+        gen.addLog(`[Success] Target ${val} found successfully.`);
+        gen.pushFrame();
         
         if (parentId) {
-          popStackSegment(parentId, currNode.id);
-          await sleep(speed);
-          setBacktrackEdge(null);
+          gen.popStack(parentId, currNode.id);
+          gen.clearBacktrack();
+          gen.pushFrame();
         }
         return currNode;
       }
 
-      setTree(prev => updateNodeByValue(prev, currNode.value, 'default'));
+      gen.tree = gen.updateNodeByValue(gen.tree, currNode.value, 'default');
 
       let foundResult = null;
       if (val < currNode.value) {
-        highlightLine("search", "recurse_left");
+        gen.setHighlight("recurse_left");
         if (currNode.left) {
-          foundResult = await searchRecursive(currNode.left, currNode.id);
+          foundResult = searchRecursive(currNode.left, currNode.id);
         } else {
-          setStatus(`No left child. Node ${currNode.value} is greater than ${val}, target not found.`);
-          await sleep(speed);
+          gen.status = `No left child. Node ${currNode.value} is greater than ${val}, target not found.`;
+          gen.pushFrame();
         }
       } else {
-        highlightLine("search", "recurse_right");
+        gen.setHighlight("recurse_right");
         if (currNode.right) {
-          foundResult = await searchRecursive(currNode.right, currNode.id);
+          foundResult = searchRecursive(currNode.right, currNode.id);
         } else {
-          setStatus(`No right child. Node ${currNode.value} is smaller than ${val}, target not found.`);
-          await sleep(speed);
+          gen.status = `No right child. Node ${currNode.value} is smaller than ${val}, target not found.`;
+          gen.pushFrame();
         }
       }
 
-      if (parentId && !isCancelledRef.current) {
-        popStackSegment(parentId, currNode.id);
-        setStatus(`Returning up stack from node ${currNode.value}.`);
-        await sleep(speed);
-        setBacktrackEdge(null);
+      if (parentId) {
+        gen.popStack(parentId, currNode.id);
+        gen.status = `Returning up stack from node ${currNode.value}.`;
+        gen.clearBacktrack();
+        gen.pushFrame();
       }
 
       return foundResult;
     };
 
-    const result = await searchRecursive(tree);
-    if (!result && !isCancelledRef.current) {
-      setStatus(`Value ${val} not found in the AVL tree.`);
-      setExecutionLog(prev => [...prev, `[Failed] Key ${val} not present.`]);
+    const result = searchRecursive(gen.tree);
+    if (!result) {
+      gen.status = `Value ${val} not found in the AVL tree.`;
+      gen.addLog(`[Failed] Key ${val} not present.`);
     }
-    cleanup();
+    
+    gen.tree = gen.resetAllStates(gen.tree);
+    gen.status = "Ready.";
+    gen.highlightLineNum = -1;
+    gen.callStackEdges = [];
+    gen.backtrackEdge = null;
+    gen.rotationDiagnostic = null;
+    gen.pushFrame();
+
+    runOperation("search", gen.frames);
   };
 
   const handleReset = () => {
-    isCancelledRef.current = true;
-    setIsVisualizing(false);
-    setIsPaused(false);
-    pausedRef.current = false;
+    setFrames([]);
+    setCurrentFrameIdx(0);
+    setIsPlaying(false);
     
     setTree(null);
     setValue("");
+    setStats({ leftRotations: 0, rightRotations: 0, totalRotations: 0 });
     setError(null);
     setStatus("Tree is empty. Insert a node to begin self-balancing visualization.");
     setHighlightLineNum(-1);
@@ -1521,21 +1747,7 @@ export default function AVLTreeVisualizer() {
     setCallStackEdges([]); 
     setBacktrackEdge(null); 
     setRotationDiagnostic(null);
-    
-    setTimeout(() => {
-      isCancelledRef.current = false;
-    }, 100);
-  };
-
-  const togglePause = () => {
-    const nextPaused = !isPaused;
-    setIsPaused(nextPaused);
-    pausedRef.current = nextPaused;
-    if (nextPaused) {
-      setExecutionLog(prev => [...prev, "Paused AVL balancing visual."]);
-    } else {
-      setExecutionLog(prev => [...prev, "Resuming search frames..."]);
-    }
+    setIsHudVisible(true);
   };
 
   const codeLines = codeSnippets[activeConcept][language].trim().split('\n');
@@ -1591,12 +1803,12 @@ export default function AVLTreeVisualizer() {
 
         <div className="actions-grid">
           <button
-            onClick={togglePause}
-            disabled={!isVisualizing}
-            className={`btn ${isPaused ? 'btn-resume' : 'btn-pause'}`}
+            onClick={togglePlay}
+            disabled={frames.length === 0}
+            className={`btn ${isPlaying ? 'btn-pause' : 'btn-resume'}`}
           >
-            {isPaused ? <Play size={18} /> : <Pause size={18} />}
-            {isPaused ? "Resume" : "Pause"}
+            {isPlaying ? <Pause size={18} /> : <Play size={18} />}
+            {isPlaying ? "Pause" : "Resume"}
           </button>
           
           <button
@@ -1605,6 +1817,30 @@ export default function AVLTreeVisualizer() {
           >
             <RefreshCw size={18} />
             Reset Tree
+          </button>
+        </div>
+
+        <div className="actions-grid" style={{ gridTemplateColumns: '1fr 2.5fr' }}>
+          <input
+            id="randomSize"
+            type="number"
+            min="1"
+            max="25"
+            placeholder="Size"
+            value={randomSize}
+            onChange={(e) => setRandomSize(e.target.value)}
+            disabled={isVisualizing}
+            className="input-field"
+            style={{ textAlign: 'center', padding: '0.75rem 0.5rem' }}
+            title="Random Tree Size"
+          />
+          <button
+            onClick={handleGenerateRandom}
+            disabled={isVisualizing}
+            className="btn btn-cyan"
+          >
+            <Shuffle size={18} />
+            Random
           </button>
         </div>
 
@@ -1645,6 +1881,27 @@ export default function AVLTreeVisualizer() {
 
       {/* --- Main Content Area --- */}
       <main className="main-content">
+        
+        {/* --- Dynamic Stat Board --- */}
+        <div className="stats-bar">
+           <div className="stat-card">
+              <span className="stat-title">Total Operations</span>
+              <strong className="stat-value">{stats.totalRotations}</strong>
+           </div>
+           <div className="stat-card">
+              <span className="stat-title">Left Rotations</span>
+              <strong className="stat-value" style={{color: 'var(--purple-400)'}}>{stats.leftRotations}</strong>
+           </div>
+           <div className="stat-card">
+              <span className="stat-title">Right Rotations</span>
+              <strong className="stat-value" style={{color: 'var(--orange-400)'}}>{stats.rightRotations}</strong>
+           </div>
+           <div className="stat-card">
+              <span className="stat-title">Tree Height</span>
+              <strong className="stat-value" style={{color: 'var(--green-400)'}}>{tree ? tree.height : 0}</strong>
+           </div>
+        </div>
+
         {/* --- Visualization Section --- */}
         <section className="visualization-section">
           <h2 className="section-title">Visualization</h2>
@@ -1657,16 +1914,19 @@ export default function AVLTreeVisualizer() {
 
           <div className="visualization-boxes">
             {tree === null && (
-              <span style={{ color: 'var(--text-gray-500)', margin: 'auto' }}>
-                AVL Tree is empty. Insert a value on the left to start balancing!
+              <span style={{ color: 'var(--text-gray-500)', position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+                AVL Tree is empty.<br/>Insert a value or generate a random tree!
               </span>
             )}
 
             {tree !== null && (
               <>
                 {/* HUD: Step-by-Step Rotation Analyzer Details overlay */}
-                {rotationDiagnostic && (
+                {rotationDiagnostic && isHudVisible && (
                   <div className="rotation-analyzer-hud">
+                    <button className="hud-close-btn" onClick={() => setIsHudVisible(false)}>
+                      <X size={14} />
+                    </button>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--pink-500)', fontWeight: 'bold', marginBottom: '0.4rem', textTransform: 'uppercase', fontSize: '0.75rem' }}>
                       <Info size={14} /> Rotation Analyzer Active
                     </div>
@@ -1761,6 +2021,42 @@ export default function AVLTreeVisualizer() {
               </>
             )}
           </div>
+          
+          {/* --- Playback Controls Bar --- */}
+          <div className="playback-controls-bar">
+            <button
+              onClick={handlePrev}
+              disabled={frames.length === 0 || currentFrameIdx === 0}
+              className="btn btn-secondary"
+            >
+              <StepBack size={16} /> Prev
+            </button>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+              <button
+                onClick={togglePlay}
+                disabled={frames.length === 0}
+                className={`btn ${isPlaying ? 'btn-pause' : 'btn-resume'}`}
+                style={{ borderRadius: '50%', padding: '0.6rem', minWidth: 'auto' }}
+                title={isPlaying ? "Pause" : "Play"}
+              >
+                {isPlaying ? <Pause size={16} /> : <Play size={16} />}
+              </button>
+              
+              <span className="step-indicator">
+                Step {frames.length > 0 ? currentFrameIdx : 0}
+              </span>
+            </div>
+            
+            <button
+              onClick={handleNext}
+              disabled={frames.length === 0 || currentFrameIdx === frames.length - 1}
+              className="btn btn-secondary"
+            >
+              Next <StepForward size={16} />
+            </button>
+          </div>
+
         </section>
 
         {/* --- Lower Content Area (Code & Log) --- */}
