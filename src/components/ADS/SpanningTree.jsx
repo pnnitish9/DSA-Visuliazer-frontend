@@ -715,7 +715,7 @@ export default function SpanningTreeVisualizer() {
           <div className="canvas-wrapper" ref={canvasRef} onMouseMove={handleMouseMove} onMouseUp={()=>setDraggedNodeId(null)} onMouseLeave={()=>setDraggedNodeId(null)}>
             <div style={{position:'absolute', top:'0.5rem', left:'0.5rem', zIndex:5, fontSize:'0.75rem', color:'var(--text-gray-400)', fontWeight:'bold'}}>GRAPH CANVAS</div>
             
-            <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{zIndex:1}} preserveAspectRatio="none" viewBox="0 0 100 100">
+            <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{zIndex:1}}>
               {edges.map((edge) => {
                 const fn = nodes.find(n=>n.id===edge.from), tn = nodes.find(n=>n.id===edge.to);
                 if(!fn || !tn) return null;
@@ -724,9 +724,9 @@ export default function SpanningTreeVisualizer() {
                 
                 return (
                   <g key={edge.id}>
-                    <line x1={`${fn.x}%`} y1={`${fn.y}%`} x2={`${tn.x}%`} y2={`${tn.y}%`} className={`edge-line ${state}`} vectorEffect="non-scaling-stroke" />
-                    <rect x={`${midX}%`} y={`${midY}%`} width="5" height="4" transform="translate(-2.5, -2)" className={`edge-weight-bg ${state}`} />
-                    <text x={`${midX}%`} y={`${midY}%`} className={`edge-weight-text ${state}`} fontSize="2.5">{edge.weight}</text>
+                    <line x1={`${fn.x}%`} y1={`${fn.y}%`} x2={`${tn.x}%`} y2={`${tn.y}%`} className={`edge-line ${state}`} />
+                    <rect x={`${midX}%`} y={`${midY}%`} width="26" height="18" transform="translate(-13, -9)" className={`edge-weight-bg ${state}`} />
+                    <text x={`${midX}%`} y={`${midY}%`} className={`edge-weight-text ${state}`}>{edge.weight}</text>
                   </g>
                 );
               })}
