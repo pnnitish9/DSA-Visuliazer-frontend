@@ -24,6 +24,7 @@ export default function DSAVisualizer() {
     { name: "Trie", href: "trie"},
     { name: "Segment Tree", href: "segmenttree"},
     { name: "Shortest Path", href: "shortestpath"},
+    { name: "String Alogrithm", href: "stringalgo"},
   ];
 
   return (
