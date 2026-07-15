@@ -135,7 +135,7 @@ const InjectedStyles = () => (
     
     /* Node and Edge Styling */
     .graph-node {
-      position: absolute; width: 2.8rem; height: 2.8rem; background: var(--bg-dark-700); border: 2px solid var(--border-gray-500); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-family: monospace; transform: translate(-50%, -50%); transition: left 0.4s ease, top 0.4s ease, background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease; z-index: 10; user-select: none;
+      position: absolute; width: 2.4rem; height: 2.4rem; font-size: 0.85rem; background: var(--bg-dark-700); border: 2px solid var(--border-gray-500); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-family: monospace; transform: translate(-50%, -50%); transition: left 0.4s ease, top 0.4s ease, background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease; z-index: 10; user-select: none;
     }
     .graph-node.highlight { background: var(--green-600); border-color: var(--green-400); color: white; box-shadow: 0 0 15px rgba(34,197,94,0.5); transform: translate(-50%, -50%) scale(1.1); z-index: 12;}
     .graph-node.comparing { background: var(--yellow-500); color: black; border-color: var(--yellow-400); box-shadow: 0 0 15px rgba(234,179,8,0.5); z-index: 11;}
@@ -383,7 +383,7 @@ const LINE_MAPS = {
   }
 };
 
-const generateInsertFrames = (currentHeap, nextIdRef, value, type) => {
+const generateInsertFrames = (currentHeap, nextIdRef, values, type) => {
   const frames = [];
   const heap = [...currentHeap];
   let nodeStates = {};
@@ -392,39 +392,43 @@ const generateInsertFrames = (currentHeap, nextIdRef, value, type) => {
     frames.push({ heap: [...heap], nodeStates: {...nodeStates}, logMsg: msg, lineKey, ...overrides });
   };
 
-  heap.push({ id: nextIdRef.current++, val: value });
-  let curr = heap.length - 1;
-  nodeStates[curr] = 'highlight';
-  addFrame(`Inserted ${value} at end of heap.`, 'insert_push');
-
-  while (curr > 0) {
-    const parent = Math.floor((curr - 1) / 2);
-    nodeStates[curr] = 'comparing';
-    nodeStates[parent] = 'comparing';
-    addFrame(`Comparing ${heap[curr].val} with parent ${heap[parent].val}.`, 'insert_compare');
-
-    const condition = type === 'min' ? heap[curr].val < heap[parent].val : heap[curr].val > heap[parent].val;
-    
-    if (condition) {
-      nodeStates[curr] = 'swapping';
-      nodeStates[parent] = 'swapping';
-      addFrame(`Heap property violated. Swapping ${heap[curr].val} and ${heap[parent].val}.`, 'insert_swap');
-      
-      [heap[curr], heap[parent]] = [heap[parent], heap[curr]];
-      nodeStates = {}; 
-      nodeStates[parent] = 'highlight'; 
-      addFrame(`Swapped.`, 'insert_swap_done');
-      
-      curr = parent;
-    } else {
-      nodeStates = { [curr]: 'highlight' };
-      addFrame(`Heap property satisfied.`, 'insert_break');
+  for (const value of values) {
+    if (heap.length >= 20) {
+      addFrame(`Heap capacity reached (20 nodes). Ignoring remaining.`, null);
       break;
     }
+
+    heap.push({ id: nextIdRef.current++, val: value });
+    let curr = heap.length - 1;
+    nodeStates = { [curr]: 'highlight' };
+    addFrame(`Inserted ${value} at end of heap.`, 'insert_push');
+
+    while (curr > 0) {
+      const parent = Math.floor((curr - 1) / 2);
+      nodeStates = { [curr]: 'comparing', [parent]: 'comparing' };
+      addFrame(`Comparing ${heap[curr].val} with parent ${heap[parent].val}.`, 'insert_compare');
+
+      const condition = type === 'min' ? heap[curr].val < heap[parent].val : heap[curr].val > heap[parent].val;
+      
+      if (condition) {
+        nodeStates = { [curr]: 'swapping', [parent]: 'swapping' };
+        addFrame(`Heap property violated. Swapping ${heap[curr].val} and ${heap[parent].val}.`, 'insert_swap');
+        
+        [heap[curr], heap[parent]] = [heap[parent], heap[curr]];
+        nodeStates = { [parent]: 'highlight' }; 
+        addFrame(`Swapped.`, 'insert_swap_done');
+        
+        curr = parent;
+      } else {
+        nodeStates = { [curr]: 'highlight' };
+        addFrame(`Heap property satisfied.`, 'insert_break');
+        break;
+      }
+    }
+    
+    nodeStates = { [curr]: 'highlight' };
+    addFrame(`Insertion of ${value} complete.`, null);
   }
-  
-  nodeStates = { [curr]: 'highlight' };
-  addFrame(`Insertion complete.`, null);
   return frames;
 };
 
@@ -510,13 +514,13 @@ const generateExtractFrames = (currentHeap, type) => {
 };
 
 const getNodeCoords = (index) => {
-  if (index === 0) return { x: 50, y: 15 };
+  if (index === 0) return { x: 50, y: 12 };
   const level = Math.floor(Math.log2(index + 1));
   const levelNodes = Math.pow(2, level);
   const position = index - (levelNodes - 1);
   const widthPerNode = 100 / levelNodes;
   const x = (position * widthPerNode) + (widthPerNode / 2);
-  const y = 15 + (level * 25); 
+  const y = 12 + (level * 20); 
   return { x, y };
 };
 
@@ -569,11 +573,12 @@ export default function BinaryHeapVisualizer() {
 
   const handleInsert = () => {
     if (isPlaying || (frames.length > 0 && frameIdx < frames.length - 1)) return;
-    const val = parseInt(inputVal);
-    if (isNaN(val)) return;
-    if (heap.length >= 15) { setInputVal(""); return; } // Max 15 nodes
     
-    const newFrames = generateInsertFrames(heap, nextId, val, activeAlgo);
+    const vals = inputVal.split(',').map(v => parseInt(v.trim())).filter(v => !isNaN(v));
+    if (vals.length === 0) return;
+    if (heap.length >= 20) { setInputVal(""); return; } // Max 20 nodes
+    
+    const newFrames = generateInsertFrames(heap, nextId, vals, activeAlgo);
     setHeap(newFrames[newFrames.length - 1].heap);
     setFrames(newFrames);
     setFrameIdx(0);
@@ -679,8 +684,8 @@ export default function BinaryHeapVisualizer() {
           <div className="panel-header">Heap Operations</div>
           
           <div className="row-flex" style={{marginBottom: '0.75rem'}}>
-            <input type="number" placeholder="Enter Value" value={inputVal} onChange={e=>setInputVal(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleInsert()} className="input-field" disabled={isLocked || heap.length >= 15} />
-            <button onClick={handleInsert} className="btn btn-green" style={{width:'auto'}} disabled={isLocked || !inputVal || heap.length >= 15}><Plus size={16}/> Insert</button>
+            <input type="text" placeholder="e.g. 5 or 1,2,3" value={inputVal} onChange={e=>setInputVal(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleInsert()} className="input-field" disabled={isLocked || heap.length >= 20} />
+            <button onClick={handleInsert} className="btn btn-green" style={{width:'auto'}} disabled={isLocked || !inputVal || heap.length >= 20}><Plus size={16}/> Insert</button>
           </div>
           
           <div style={{marginBottom: '0.75rem'}}>
@@ -708,7 +713,7 @@ export default function BinaryHeapVisualizer() {
         <div className="top-layout">
           {/* Canvas */}
           <div className="canvas-wrapper">
-            <div style={{position:'absolute', top:'0.5rem', left:'0.5rem', zIndex:5, fontSize:'0.75rem', color:'var(--text-gray-400)', fontWeight:'bold'}}>TREE VIEW (MAX 15 NODES)</div>
+            <div style={{position:'absolute', top:'0.5rem', left:'0.5rem', zIndex:5, fontSize:'0.75rem', color:'var(--text-gray-400)', fontWeight:'bold'}}>TREE VIEW (MAX 20 NODES)</div>
             
             <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{zIndex:1}}>
               {Array.from({ length: currHeap.length }).map((_, i) => {
