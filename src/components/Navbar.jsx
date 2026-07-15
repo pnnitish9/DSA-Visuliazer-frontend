@@ -12,7 +12,10 @@ function Navbar() {
       <nav className="navbar">
         <div className="nav-left">
           <Link className="nav-link" to={"/"}>
-            Home
+            DSA Visualizer
+          </Link>
+          <Link className="nav-link" to={"/conceptvisu"}>
+            Concept Visualizer
           </Link>
         </div>
         <h1>DSA Visualizer</h1>

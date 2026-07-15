@@ -5,6 +5,7 @@ import { AuthProvider } from "./context/AuthContext";
 import RequireAuth from "./components/RequireAuth";
 
 import DSAVisualizer from "./components/DSAVisualizer";
+import ConceptVisualizer from "./components/ConceptVisualizer";
 import Navbar from "./components/Navbar";
 import LoginForm from "./components/Auth/LoginForm";
 import RegisterForm from "./components/Auth/RegisterForm";
@@ -33,6 +34,9 @@ import SCCVisualizer from "./components/ADS/SCC";
 import TopologicalSortVisualizer from "./components/ADS/TopologicalSort";
 import SpanningTreeVisualizer from "./components/ADS/SpanningTree";
 import UserAccount from "./components/UserAccount";
+
+// Concept Visualization
+import TwoPointerVisualizer from "./components/ConceptQ/Twopointer";
 function App() {
   return (
     <AuthProvider>
@@ -40,6 +44,7 @@ function App() {
       <Routes>
         {/* public */}
         <Route path="/" element={<DSAVisualizer />} />
+        <Route path="/conceptvisu" element={<ConceptVisualizer />} />
         <Route path="/login" element={<LoginForm />} />
         <Route path="/register" element={<RegisterForm />} />
 
@@ -241,6 +246,14 @@ function App() {
           element={
             <RequireAuth>
               <SpanningTreeVisualizer/>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/twopointer"
+          element={
+            <RequireAuth>
+              <TwoPointerVisualizer/>
             </RequireAuth>
           }
         />
