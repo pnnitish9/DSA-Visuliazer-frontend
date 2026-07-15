@@ -23,7 +23,7 @@ import Queue from "./components/Queue/Queue";
 import BST from "./components/Trees/BST";
 import AVLTreeVisualizer from "./components/Trees/AVL";
 import BFSDFS from "./components/BFS-DFS/bfsdfs";
-import HeapVisualizer from "./components/Search/heap";
+import BinaryHeapVisualizer from "./components/Search/heap";
 import HashTableVisualizer from "./components/HashTable/hashing";
 import TrieVisualizer from "./components/Trees/Trie";
 import SegmentTreeVisualizer from "./components/Trees/SegmentTree";
@@ -176,7 +176,7 @@ function App() {
           path="/heap"
           element={
             <RequireAuth>
-              <HeapVisualizer/>
+              <BinaryHeapVisualizer/>
             </RequireAuth>
           }
         />
