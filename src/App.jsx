@@ -219,7 +219,7 @@ function App() {
           }
         />
         <Route
-          path="/ssc"
+          path="/scc"
           element={
             <RequireAuth>
               <SCCVisualizer/>

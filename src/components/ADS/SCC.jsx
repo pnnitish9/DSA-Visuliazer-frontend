@@ -802,7 +802,6 @@ export default function SCCVisualizer() {
     
     setFrames(newFrames); setFrameIdx(0); setIsPlaying(true);
   };
-
   const currFrame = frames[frameIdx] || { ds: {}, nodeStates: {}, edgeStates: {}, logMsg: 'Ready. Compile & Run to visualize.', lineKey: null };
   const highlightLine = currFrame.lineKey ? LINE_MAPS[activeAlgo][language][currFrame.lineKey] : -1;
   const isLocked = frames.length > 0;
@@ -848,7 +847,6 @@ export default function SCCVisualizer() {
       return <line key={idx} x1={`${visualFrom.x}%`} y1={`${visualFrom.y}%`} x2={`${visualTo.x}%`} y2={`${visualTo.y}%`} className={cssClass} markerEnd={marker} />;
     }
   };
-
   return (
     <div className="visualizer-container">
       <InjectedStyles />

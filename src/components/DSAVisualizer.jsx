@@ -23,9 +23,9 @@ export default function DSAVisualizer() {
     { name: "Hashing", href: "hashing" },
     { name: "Trie", href: "trie"},
     { name: "Segment Tree", href: "segmenttree"},
+    { name: "Strongly Connected Components", href: "scc"},
     { name: "Shortest Path", href: "shortestpath"},
     { name: "String Alogrithm", href: "stringalgo"},
-    { name: "Strongly Connected Components (SCC)", href: "ssc"},
   ];
 
   return (
