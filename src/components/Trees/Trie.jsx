@@ -1,18 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { List, Pause, Play, RefreshCw, Search, ArrowRight, X, Shuffle, StepForward, StepBack, Type } from 'lucide-react';
-import { v4 as uuidv4 } from 'uuid'; 
+import { Play, Pause, RefreshCw, Plus, Trash2, SkipBack, SkipForward, RotateCcw, Code, Info, Network, Search } from 'lucide-react';
 
 const InjectedStyles = () => (
   <style>{`
-    /* --- Global Styles & Variables --- */
     :root {
       --bg-dark-950: #0c111c;
       --bg-dark-900: #111827;
       --bg-dark-800: #1f2937;
       --bg-dark-700: #374151;
       --bg-dark-600: #4b5563;
-      --bg-dark-500: #6b7280;
       
+      --text-gray-100: #f3f4f6;
       --text-gray-200: #e5e7eb;
       --text-gray-300: #d1d5db;
       --text-gray-400: #9ca3af;
@@ -23,1595 +21,835 @@ const InjectedStyles = () => (
 
       --cyan-400: #22d3ee;
       --cyan-500: #06b6d4;
-      --cyan-600: #0891b2;
-      
       --green-400: #4ade80;
       --green-500: #22c55e;
-      --green-600: #16a34a;
-      
       --yellow-400: #facc15;
       --yellow-500: #eab308;
-      --yellow-600: #ca8a04;
-      
       --red-400: #f87171;
       --red-500: #ef4444;
-      --red-600: #dc2626;
-
-      --orange-500: #f97316;
-      --orange-600: #ea580c;
-
+      --purple-400: #c084fc;
       --purple-500: #a855f7;
-      --purple-600: #9333ea;
-      
-      --pink-500: #ec4899;
-      --pink-600: #db2777;
+      --blue-400: #60a5fa;
+      --blue-500: #3b82f6;
     }
 
     .visualizer-container {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-        sans-serif;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
+      font-family: 'Inter', -apple-system, sans-serif;
       background-color: var(--bg-dark-900);
       color: var(--text-gray-200);
-    }
-
-    * { box-sizing: border-box; }
-
-    /* --- Main Layout --- */
-    .visualizer-container {
       display: flex;
       flex-direction: column;
-      min-height: 100vh;
+      height: 100vh;
+      overflow: hidden;
     }
-
     @media (min-width: 1024px) {
       .visualizer-container { flex-direction: row; }
     }
 
-    /* --- Sidebar --- */
+    * { box-sizing: border-box; }
+
+    /* Sidebar Layout */
     .controls-sidebar {
       width: 100%;
       background-color: var(--bg-dark-800);
-      padding: 1.5rem;
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      padding: 1.25rem;
+      border-right: 1px solid var(--border-gray-700);
       z-index: 10;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
     }
-
     @media (min-width: 1024px) {
-      .controls-sidebar {
-        width: 25%;
-        min-width: 300px;
-        max-width: 350px;
-        min-height: 100vh;
-        overflow-y: auto;
-      }
+      .controls-sidebar { width: 320px; min-width: 320px; height: 100vh; }
     }
 
-    .sidebar-title {
-      font-size: 1.875rem;
-      font-weight: 700;
-      margin: 0 0 2rem 0;
-      color: var(--cyan-400);
-      display: flex;
-      align-items: center;
-    }
-    .sidebar-title svg { margin-right: 0.75rem; }
+    .sidebar-title { font-size: 1.3rem; font-weight: 800; margin: 0 0 1rem 0; color: var(--cyan-400); display: flex; align-items: center; gap: 0.5rem; }
 
-    /* --- Form Elements --- */
-    .input-group { margin-bottom: 1rem; }
-    .input-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 0.75rem;
-      margin-bottom: 1rem;
-    }
-    .input-group label {
-      display: block;
-      font-size: 0.875rem;
-      font-weight: 500;
-      margin-bottom: 0.5rem;
-      color: var(--text-gray-300);
-    }
-    .input-field {
-      width: 100%;
-      padding: 0.75rem;
-      background-color: var(--bg-dark-700);
-      border-radius: 0.5rem;
-      border: 1px solid var(--border-gray-600);
-      color: var(--text-gray-200);
-      transition: border-color 0.2s, box-shadow 0.2s;
-      font-size: 1rem;
-    }
-    .input-field:focus {
-      outline: none;
-      border-color: var(--cyan-500);
-      box-shadow: 0 0 0 2px var(--cyan-500);
-    }
+    /* Complexity Box */
+    .complexity-box { background: rgba(0,0,0,0.15); border: 1px dashed var(--border-gray-700); border-radius: 0.375rem; padding: 0.5rem; margin-bottom: 0.75rem; display: flex; flex-direction: column; gap: 0.3rem; }
+    .comp-item { display: flex; justify-content: space-between; align-items: center; }
+    .comp-label { color: var(--text-gray-400); font-family: 'Inter', -apple-system, sans-serif; font-size: 0.65rem; text-transform: uppercase; font-weight: 700; }
+    .comp-val { color: var(--cyan-400); font-family: 'Fira Code', monospace; font-weight: bold; font-size: 0.75rem; }
+
+    /* Forms */
+    .input-group { margin-bottom: 0.75rem; }
+    .input-group label { display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.35rem; color: var(--text-gray-400); text-transform: uppercase; }
+    .input-field { width: 100%; padding: 0.5rem 0.75rem; background-color: var(--bg-dark-950); border-radius: 0.375rem; border: 1px solid var(--border-gray-600); color: var(--text-gray-100); font-size: 0.85rem; }
+    .input-field:focus { outline: none; border-color: var(--cyan-500); }
     .input-field:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    .error-message {
-      color: var(--red-400);
-      font-size: 0.875rem;
-      margin-bottom: 1rem;
-      padding: 0.75rem;
-      background-color: rgba(248, 113, 113, 0.1);
-      border: 1px solid var(--red-400);
-      border-radius: 0.5rem;
-    }
-
-    /* --- Buttons --- */
-    .actions-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.75rem;
-      margin-bottom: 1rem;
-    }
-    .btn {
-      padding: 0.75rem;
-      border-radius: 0.5rem;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      transition: all 0.2s;
-      cursor: pointer;
-      border: none;
-      font-size: 0.9rem;
-      text-align: center;
-    }
-    .btn svg { width: 18px; height: 18px; }
-    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
-
-    .btn-cyan { background-color: var(--cyan-600); color: white; }
-    .btn-cyan:hover:not(:disabled) { background-color: var(--cyan-500); }
     
-    .btn-green { background-color: var(--green-600); color: white; }
-    .btn-green:hover:not(:disabled) { background-color: var(--green-500); }
+    .row-flex { display: flex; gap: 0.5rem; align-items: center; }
     
-    .btn-red { background-color: var(--red-600); color: white; }
-    .btn-red:hover:not(:disabled) { background-color: var(--red-500); }
-
-    .btn-pause { background-color: var(--yellow-600); color: black; }
-    .btn-pause:hover:not(:disabled) { background-color: var(--yellow-500); }
-
-    .btn-resume { background-color: var(--green-600); color: white; }
-    .btn-resume:hover:not(:disabled) { background-color: var(--green-500); }
-
-    .btn-secondary { background-color: var(--bg-dark-600); color: white; }
-    .btn-secondary:hover:not(:disabled) { background-color: var(--bg-dark-500); }
-
+    /* Buttons */
+    .btn { padding: 0.5rem; border-radius: 0.375rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 0.4rem; transition: all 0.15s ease; cursor: pointer; border: none; font-size: 0.8rem; width: 100%; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
     .btn-purple { background-color: var(--purple-600); color: white; }
     .btn-purple:hover:not(:disabled) { background-color: var(--purple-500); }
+    .btn-cyan { background-color: var(--cyan-600); color: white; }
+    .btn-cyan:hover:not(:disabled) { background-color: var(--cyan-500); }
+    .btn-green { background-color: var(--green-600); color: white; }
+    .btn-green:hover:not(:disabled) { background-color: var(--green-500); }
+    .btn-red { background-color: var(--red-600); color: white; }
+    .btn-red:hover:not(:disabled) { background-color: var(--red-500); }
+    .btn-secondary { background-color: var(--bg-dark-700); color: white; border: 1px solid var(--border-gray-600); }
+    .btn-secondary:hover:not(:disabled) { background-color: var(--bg-dark-600); }
 
-    /* --- Slider --- */
-    .speed-slider-group {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
-    .speed-slider {
-      width: 100%;
-      -webkit-appearance: none;
-      appearance: none;
-      height: 8px;
-      background: var(--bg-dark-700);
-      border-radius: 5px;
-      outline: none;
-      opacity: 0.9;
-      transition: opacity .2s;
-    }
-    .speed-slider:hover { opacity: 1; }
-    .speed-slider:disabled { opacity: 0.5; }
-    .speed-slider::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 20px;
-      height: 20px;
-      background: var(--cyan-500);
-      border-radius: 50%;
-      cursor: pointer;
-    }
-    .speed-value {
-      width: 5rem;
-      text-align: right;
-      color: var(--text-gray-400);
-      font-size: 0.9rem;
-    }
+    /* Action Panels */
+    .action-panel { background: rgba(0,0,0,0.15); border: 1px solid var(--border-gray-700); padding: 0.75rem; border-radius: 0.5rem; margin-bottom: 0.75rem; }
+    .panel-header { font-size: 0.75rem; color: var(--text-gray-300); font-weight: 700; margin-bottom: 0.5rem; text-transform: uppercase; }
 
-    /* --- Main Content --- */
-    .main-content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      padding: 1.5rem;
-    }
-    @media (min-width: 768px) {
-      .main-content { padding: 2.5rem; }
-    }
-    .section-title {
-      font-size: 1.5rem;
-      font-weight: 600;
-      margin: 0 0 1.5rem 0;
-      color: var(--text-gray-200);
-    }
-
-    /* --- Visualization Area --- */
-    .visualization-section {
-      display: flex;
-      flex-direction: column;
-      min-height: 250px;
-    }
-    .status-bar {
-      width: 100%;
-      padding: 1rem;
-      margin-bottom: 1.5rem;
-      background-color: var(--bg-dark-800);
-      border: 1px solid var(--border-gray-700);
-      border-radius: 0.5rem;
-      text-align: center;
-      min-height: 58px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .status-text { font-size: 1.125rem; font-weight: 500; transition: color 0.3s; }
-    .status-default { color: var(--cyan-400); }
-    .status-found { color: var(--green-400); }
-    .status-not-found { color: var(--red-400); }
-    .status-paused { color: var(--yellow-400); }
-
-    /* --- Trie Specific Visualization --- */
-    .trie-container {
-      flex: 1;
-      width: 100%;
-      min-height: 500px;
-      overflow: auto;
-      background-color: rgba(0, 0, 0, 0.2);
-      border-radius: 0.5rem;
-      border: 1px solid var(--border-gray-700);
-      box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
-      position: relative;
-      padding: 2rem;
-      display: flex;
-      justify-content: center;
-    }
-
-    .trie-canvas {
-      position: relative;
-      /* Dimensions are set dynamically by inline styles based on tree width */
-    }
-
-    .trie-node-wrapper {
-      position: absolute;
-      transform: translate(-50%, -50%);
-      transition: left 0.4s ease-in-out, top 0.4s ease-in-out;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      z-index: 10;
-    }
-
-    .trie-node {
-      width: 3.5rem;
-      height: 3.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.5rem;
-      font-weight: 700;
-      border-radius: 50%; /* Circle for Trie */
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      transition: all 0.3s ease-in-out;
-      border: 2px solid transparent;
-      position: relative;
-      text-transform: uppercase;
-    }
-
-    .trie-node.is-null {
-      font-size: 1.1rem;
-      text-transform: none;
-    }
-
-    .trie-node.default {
-      background-color: var(--bg-dark-600);
-      color: white;
-      border-color: var(--border-gray-500);
-    }
-
-    .trie-node.visiting {
-      background-color: var(--yellow-500);
-      color: black;
-      transform: scale(1.15);
-      border-color: var(--yellow-400);
-    }
+    /* Playback Controls */
+    .playback-panel { background: var(--bg-dark-950); padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--cyan-500); margin-bottom: 1rem; }
+    .slider { width: 100%; -webkit-appearance: none; height: 4px; background: var(--bg-dark-700); border-radius: 2px; outline: none; margin: 0.5rem 0; }
+    .slider::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; background: var(--cyan-400); border-radius: 50%; cursor: pointer; }
+    .player-controls { display: flex; gap: 0.25rem; margin-top: 0.5rem; }
+    .ctrl-btn { flex: 1; background: var(--bg-dark-800); border: 1px solid var(--border-gray-600); color: var(--text-gray-300); padding: 0.4rem; border-radius: 0.25rem; cursor: pointer; display: flex; justify-content: center; }
+    .ctrl-btn:hover:not(:disabled) { background: var(--bg-dark-700); color: var(--cyan-400); border-color: var(--cyan-500); }
     
-    .trie-node.pre-op {
-      background-color: var(--orange-500);
-      color: white;
-      transform: scale(1.15);
-      border-color: var(--orange-600);
-    }
-
-    .trie-node.found {
-      background-color: var(--green-500);
-      color: white;
-      transform: scale(1.15);
-      border-color: var(--green-400);
-      box-shadow: 0 0 15px var(--green-500);
-    }
-
-    .trie-node.deleting {
-      background-color: var(--red-600);
-      color: white;
-      transform: scale(0.8);
-      opacity: 0.5;
-      border-color: var(--red-400);
-    }
-
-    .node-label {
-      position: absolute;
-      top: -24px;
-      font-size: 0.75rem;
-      font-weight: 700;
-      color: var(--cyan-400);
-      white-space: nowrap;
-    }
+    /* Main Area */
+    .main-content { flex: 1; display: flex; flex-direction: column; padding: 1rem; gap: 1rem; overflow-y: auto; background-color: var(--bg-dark-950); }
+    .status-bar { padding: 0.75rem 1rem; background: var(--bg-dark-800); border: 1px solid var(--border-gray-700); border-radius: 0.5rem; display: flex; justify-content: space-between; align-items: center; flex: none; }
+    .status-text { font-family: 'Fira Code', monospace; font-size: 0.85rem; color: var(--yellow-400); }
     
-    .legend-container {
-      position: absolute;
-      top: 1rem;
-      left: 1rem;
-      background: var(--bg-dark-900);
-      padding: 0.75rem;
-      border-radius: 0.5rem;
-      border: 1px solid var(--border-gray-700);
-      font-size: 0.75rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      z-index: 5;
-    }
+    /* Canvas */
+    .top-layout { display: flex; flex-direction: column; gap: 1rem; flex: 2; min-height: 350px; }
+    .canvas-wrapper { flex: 2; background: var(--bg-dark-900); border: 1px solid var(--border-gray-700); border-radius: 0.5rem; position: relative; overflow: auto; min-height: 300px; }
     
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      color: var(--text-gray-300);
+    /* Node and Edge Styling */
+    .graph-node {
+      position: absolute; min-width: 2.5rem; height: 2.5rem; padding: 0 0.5rem; background: var(--bg-dark-700); border: 2px solid var(--border-gray-500); border-radius: 1.25rem; display: flex; align-items: center; justify-content: center; font-weight: bold; font-family: monospace; transform: translate(-50%, -50%); transition: left 0.5s ease, top 0.5s ease, background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease; z-index: 10; user-select: none; color: var(--text-gray-200); box-shadow: 0 4px 6px rgba(0,0,0,0.3);
     }
+    .graph-node.highlight { background: var(--cyan-600); border-color: var(--cyan-400); color: white; box-shadow: 0 0 15px rgba(34,211,238,0.5); transform: translate(-50%, -50%) scale(1.1); z-index: 12;}
+    .graph-node.swapping { background: var(--yellow-500); color: black; border-color: var(--yellow-400); box-shadow: 0 0 15px rgba(234,179,8,0.5); z-index: 11;}
+    .graph-node.end-highlight { background: var(--green-600); border-color: var(--green-400); color: white; box-shadow: 0 0 15px rgba(34,197,94,0.5); transform: translate(-50%, -50%) scale(1.15); z-index: 13;}
+    .graph-node.target { background: var(--red-600); border-color: var(--red-400); color: white; box-shadow: 0 0 15px rgba(239,68,68,0.5); transform: translate(-50%, -50%) scale(1.1); z-index: 13;}
+    .graph-node.is-end { border-color: var(--green-500); border-width: 3px; box-shadow: 0 0 8px rgba(34,197,94,0.3); }
     
-    .legend-circle {
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.7rem;
-      font-weight: bold;
-    }
-
-    /* --- Playback Controls Bar --- */
-    .playback-controls-bar {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 2rem;
-      padding: 1rem 1.5rem;
-      background-color: var(--bg-dark-800);
-      border-radius: 0.5rem;
-      margin-top: 1rem;
-      border: 1px solid var(--border-gray-700);
-    }
-    .playback-controls-bar .btn { min-width: 90px; }
-    .step-indicator {
-      font-family: 'Fira Code', 'Courier New', monospace;
-      font-size: 1rem;
-      font-weight: 500;
-      color: var(--text-gray-200);
-      min-width: 80px;
-      text-align: center;
-    }
-
-    /* --- Complexity Analysis --- */
-    .complexity-bar {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 1rem;
-      margin-top: 2rem;
-    }
-    @media (min-width: 768px) {
-      .complexity-bar { grid-template-columns: repeat(4, 1fr); }
-    }
-    .complexity-card {
-      background-color: var(--bg-dark-950);
-      border: 1px solid var(--border-gray-700);
-      padding: 1rem;
-      border-radius: 0.5rem;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
-    }
-    .complexity-title {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--text-gray-400);
-      margin-bottom: 0.5rem;
-      text-align: center;
-    }
-    .complexity-value {
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: var(--cyan-400);
-      font-family: 'Fira Code', 'Courier New', monospace;
-    }
-
-    /* --- Lower Content Area --- */
-    .lower-content-area {
-      display: flex;
-      flex-direction: column;
-      gap: 2rem;
-      margin-top: 2rem;
-      flex: 1;
-    }
-    @media (min-width: 1024px) {
-      .lower-content-area { flex-direction: row; }
-    }
-
-    /* --- Code Area --- */
-    .code-section {
-      display: flex;
-      flex-direction: column;
-      flex: 1; 
-      min-height: 300px;
-      width: 100%;
-      max-width: 100%;
-    }
-    .code-block {
-      background-color: var(--bg-dark-950);
-      padding: 1.5rem;
-      border-radius: 0.5rem;
-      overflow-x: auto;
-      border: 1px solid var(--border-gray-700);
-      box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
-      height: 100%;
-    }
-    .code-block pre {
-      margin: 0;
-      font-family: 'Fira Code', 'Courier New', monospace;
-      font-size: 0.85rem;
-      line-height: 1.5;
-    }
-    .code-line {
-      display: block;
-      padding: 0 0.5rem;
-      transition: background-color 0.2s;
-      min-height: 1.5em;
-    }
-    .code-line.highlight {
-      background-color: rgba(6, 182, 212, 0.2);
-      border-radius: 0.25rem;
-    }
-    .code-line.comment {
-      color: var(--text-gray-500);
-      font-style: italic;
-    }
+    .edge-line { stroke: var(--border-gray-600); stroke-width: 2.5; transition: all 0.5s ease; fill: none; }
     
-    /* --- Log Section --- */
-    .log-section {
-      display: flex;
-      flex-direction: column;
-      flex: 1; 
-      min-height: 300px;
-    }
-    .log-block {
-      background-color: var(--bg-dark-950);
-      padding: 1.5rem;
-      border-radius: 0.5rem;
-      overflow-y: auto;
-      border: 1px solid var(--border-gray-700);
-      box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
-      height: 100%;
-    }
-    @media (max-width: 1023px) {
-      .log-block { max-height: 300px; }
-    }
-    .log-list {
-      margin: 0;
-      padding: 0;
-      list-style-type: none;
-      font-family: 'Fira Code', 'Courier New', monospace;
-      font-size: 0.85rem;
-      line-height: 1.6;
-    }
-    .log-item {
-      padding: 0.25rem 0.5rem;
-      border-bottom: 1px solid var(--bg-dark-700);
-      color: var(--text-gray-300);
-      word-break: break-all;
-    }
-    .log-item:last-child {
-      border-bottom: none; 
-      color: white;
-    }
+    /* Bottom Row: Code & Logs */
+    .bottom-layout { display: flex; flex-direction: column; gap: 1rem; flex: 1; min-height: 220px; }
+    @media (min-width: 1024px) { .bottom-layout { flex-direction: row; } }
+    .panel-box { flex: 1; background: var(--bg-dark-800); border: 1px solid var(--border-gray-700); border-radius: 0.5rem; display: flex; flex-direction: column; overflow: hidden; }
+    .ds-header { padding: 0.5rem 1rem; background: var(--bg-dark-950); border-bottom: 1px solid var(--border-gray-700); font-size: 0.75rem; font-weight: bold; text-transform: uppercase; color: var(--cyan-400); display: flex; justify-content: space-between; align-items: center;}
+    .code-content { padding: 1rem; overflow: auto; flex: 1; font-family: 'Fira Code', monospace; font-size: 0.8rem; margin: 0; line-height: 1.5; }
+    .code-line { display: block; padding: 0 0.5rem; border-radius: 0.2rem; white-space: pre; }
+    .code-line.highlight { background: rgba(34, 211, 238, 0.25); border-left: 3px solid var(--cyan-400); color: white; }
+    .log-content { padding: 0.5rem; overflow: auto; flex: 1; font-family: monospace; font-size: 0.8rem; margin: 0; list-style: none; }
+    .log-item { padding: 0.4rem; border-bottom: 1px solid var(--border-gray-700); color: var(--text-gray-400); }
+    .log-item.active { background: var(--bg-dark-700); color: var(--yellow-400); border-radius: 0.25rem; border-left: 2px solid var(--yellow-400); }
   `}</style>
 );
 
-const codeSnippets = {
-  python: {
-    base: `
-class TrieNode:
-    def __init__(self):
-        self.children = {}
-        self.is_end_of_word = False
-
-class Trie:
-    def __init__(self):
-        self.root = TrieNode()
-`,
-    insert: `
-    def insert(self, word: str) -> None:
-        current = self.root
-        for char in word:
-            if char not in current.children:
-                current.children[char] = TrieNode()
-            current = current.children[char]
-        current.is_end_of_word = True
-`,
-    search: `
-    def search(self, word: str) -> bool:
-        current = self.root
-        for char in word:
-            if char not in current.children:
-                return False
-            current = current.children[char]
-        return current.is_end_of_word
-`,
-    startsWith: `
-    def startsWith(self, prefix: str) -> bool:
-        current = self.root
-        for char in prefix:
-            if char not in current.children:
-                return False
-            current = current.children[char]
-        return True
-`,
-    delete: `
-    def delete(self, word: str) -> bool:
-        def dfs(node, word, depth):
-            if depth == len(word):
-                if not node.is_end_of_word:
-                    return False
-                node.is_end_of_word = False
-                return len(node.children) == 0
-            
-            char = word[depth]
-            if char not in node.children:
-                return False
-                
-            should_delete_child = dfs(node.children[char], word, depth + 1)
-            
-            if should_delete_child:
-                del node.children[char]
-                return len(node.children) == 0 and not node.is_end_of_word
-            
-            return False
-            
-        dfs(self.root, word, 0)
-`
+const ALGO_CODES = {
+  standard: {
+    python: [
+      "def insert(root, word):",
+      "    curr = root",
+      "    for char in word:",
+      "        if char not in curr.children:",
+      "            curr.children[char] = TrieNode(char)",
+      "        curr = curr.children[char]",
+      "    curr.is_end = True",
+      "",
+      "def search(root, word):",
+      "    curr = root",
+      "    for char in word:",
+      "        if char not in curr.children:",
+      "            return False",
+      "        curr = curr.children[char]",
+      "    return curr.is_end"
+    ],
+    cpp: [
+      "void insert(TrieNode* root, string word) {",
+      "    TrieNode* curr = root;",
+      "    for (char c : word) {",
+      "        if (curr->children.find(c) == curr->children.end()) {",
+      "            curr->children[c] = new TrieNode(c);",
+      "        }",
+      "        curr = curr->children[c];",
+      "    }",
+      "    curr->is_end = true;",
+      "}",
+      "",
+      "bool search(TrieNode* root, string word) {",
+      "    TrieNode* curr = root;",
+      "    for (char c : word) {",
+      "        if (curr->children.find(c) == curr->children.end()) return false;",
+      "        curr = curr->children[c];",
+      "    }",
+      "    return curr->is_end;",
+      "}"
+    ],
+    java: [
+      "public void insert(TrieNode root, String word) {",
+      "    TrieNode curr = root;",
+      "    for (char c : word.toCharArray()) {",
+      "        if (!curr.children.containsKey(c)) {",
+      "            curr.children.put(c, new TrieNode(c));",
+      "        }",
+      "        curr = curr.children.get(c);",
+      "    }",
+      "    curr.isEnd = true;",
+      "}",
+      "",
+      "public boolean search(TrieNode root, String word) {",
+      "    TrieNode curr = root;",
+      "    for (char c : word.toCharArray()) {",
+      "        if (!curr.children.containsKey(c)) return false;",
+      "        curr = curr.children.get(c);",
+      "    }",
+      "    return curr.isEnd;",
+      "}"
+    ]
   },
-  
-  c: {
-    base: `
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <string.h>
-
-#define ALPHABET_SIZE 26
-
-struct TrieNode {
-    struct TrieNode *children[ALPHABET_SIZE];
-    bool isEndOfWord;
-};
-
-struct TrieNode *getNode(void) {
-    struct TrieNode *pNode = NULL;
-    pNode = (struct TrieNode *)malloc(sizeof(struct TrieNode));
-    if (pNode) {
-        pNode->isEndOfWord = false;
-        for (int i = 0; i < ALPHABET_SIZE; i++)
-            pNode->children[i] = NULL;
-    }
-    return pNode;
-}
-
-struct TrieNode *root;
-`,
-    insert: `
-void insert(const char *word) {
-    int length = strlen(word);
-    int index;
-    struct TrieNode *current = root;
-
-    for (int level = 0; level < length; level++) {
-        index = word[level] - 'a';
-        if (!current->children[index]) {
-            current->children[index] = getNode();
-        }
-        current = current->children[index];
-    }
-    current->isEndOfWord = true;
-}
-`,
-    search: `
-bool search(const char *word) {
-    int length = strlen(word);
-    int index;
-    struct TrieNode *current = root;
-
-    for (int level = 0; level < length; level++) {
-        index = word[level] - 'a';
-        if (!current->children[index]) {
-            return false;
-        }
-        current = current->children[index];
-    }
-    return (current != NULL && current->isEndOfWord);
-}
-`,
-    startsWith: `
-bool startsWith(const char *prefix) {
-    int length = strlen(prefix);
-    int index;
-    struct TrieNode *current = root;
-
-    for (int level = 0; level < length; level++) {
-        index = prefix[level] - 'a';
-        if (!current->children[index]) {
-            return false;
-        }
-        current = current->children[index];
-    }
-    return true;
-}
-`,
-    delete: `
-bool isNodeEmpty(struct TrieNode *node) {
-    for (int i = 0; i < ALPHABET_SIZE; i++)
-        if (node->children[i]) return false;
-    return true;
-}
-
-struct TrieNode* deleteHelper(struct TrieNode *node, const char *word, int depth) {
-    if (!node) return NULL;
-
-    if (depth == strlen(word)) {
-        if (node->isEndOfWord) node->isEndOfWord = false;
-        if (isNodeEmpty(node)) {
-            free(node);
-            node = NULL;
-        }
-        return node;
-    }
-    
-    int index = word[depth] - 'a';
-    node->children[index] = deleteHelper(node->children[index], word, depth + 1);
-
-    if (isNodeEmpty(node) && node->isEndOfWord == false) {
-        free(node);
-        node = NULL;
-    }
-    return node;
-}
-
-void deleteWord(const char *word) {
-    deleteHelper(root, word, 0);
-}
-`
+  compressed: {
+    python: [
+      "def insert_compressed(node, word):",
+      "    if not word: ",
+      "        node.is_end = True",
+      "        return",
+      "    char = word[0]",
+      "    if char not in node.children:",
+      "        node.children[char] = TrieNode(word)",
+      "        return",
+      "    child = node.children[char]",
+      "    i = 0 # Find common prefix length",
+      "    while i < len(child.val) and i < len(word) and child.val[i] == word[i]: i += 1",
+      "    if i == len(child.val):",
+      "        insert_compressed(child, word[i:])",
+      "    else:",
+      "        # Split the existing edge",
+      "        split_node = TrieNode(child.val[i:])",
+      "        split_node.children = child.children",
+      "        split_node.is_end = child.is_end",
+      "        child.val = child.val[:i]",
+      "        child.children = { split_node.val[0]: split_node }",
+      "        child.is_end = (i == len(word))",
+      "        if i < len(word):",
+      "            child.children[word[i]] = TrieNode(word[i:])"
+    ],
+    cpp: [
+      "void insert_compressed(TrieNode* node, string word) {",
+      "    if (word.empty()) { node->is_end = true; return; }",
+      "    char c = word[0];",
+      "    if (!node->children.count(c)) { node->children[c] = new TrieNode(word); return; }",
+      "    TrieNode* child = node->children[c];",
+      "    int i = 0;",
+      "    while (i < child->val.length() && i < word.length() && child->val[i] == word[i]) i++;",
+      "    if (i == child->val.length()) {",
+      "        insert_compressed(child, word.substr(i));",
+      "    } else {",
+      "        TrieNode* split_node = new TrieNode(child->val.substr(i));",
+      "        split_node->children = child->children; split_node->is_end = child->is_end;",
+      "        child->val = child->val.substr(0, i);",
+      "        child->children.clear(); child->children[split_node->val[0]] = split_node;",
+      "        child->is_end = (i == word.length());",
+      "        if (i < word.length()) child->children[word[i]] = new TrieNode(word.substr(i));",
+      "    }",
+      "}"
+    ],
+    java: [
+      "public void insertCompressed(TrieNode node, String word) {",
+      "    if (word.isEmpty()) { node.isEnd = true; return; }",
+      "    char c = word.charAt(0);",
+      "    if (!node.children.containsKey(c)) { node.children.put(c, new TrieNode(word)); return; }",
+      "    TrieNode child = node.children.get(c);",
+      "    int i = 0;",
+      "    while (i < child.val.length() && i < word.length() && child.val.charAt(i) == word.charAt(i)) i++;",
+      "    if (i == child.val.length()) {",
+      "        insertCompressed(child, word.substring(i));",
+      "    } else {",
+      "        TrieNode splitNode = new TrieNode(child.val.substring(i));",
+      "        splitNode.children = child.children; splitNode.isEnd = child.isEnd;",
+      "        child.val = child.val.substring(0, i);",
+      "        child.children = new HashMap<>(); child.children.put(splitNode.val.charAt(0), splitNode);",
+      "        child.isEnd = (i == word.length());",
+      "        if (i < word.length()) child.children.put(word.charAt(i), new TrieNode(word.substring(i)));",
+      "    }",
+      "}"
+    ]
   },
-  
-  cpp: {
-    base: `
-#include <iostream>
-#include <unordered_map>
-#include <string>
-
-class TrieNode {
-public:
-    std::unordered_map<char, TrieNode*> children;
-    bool isEndOfWord;
-    
-    TrieNode() {
-        isEndOfWord = false;
-    }
-};
-
-class Trie {
-public:
-    TrieNode* root;
-    Trie() {
-        root = new TrieNode();
-    }
-`,
-    insert: `
-    void insert(std::string word) {
-        TrieNode* current = root;
-        for (char c : word) {
-            if (current->children.find(c) == current->children.end()) {
-                current->children[c] = new TrieNode();
-            }
-            current = current->children[c];
-        }
-        current->isEndOfWord = true;
-    }
-`,
-    search: `
-    bool search(std::string word) {
-        TrieNode* current = root;
-        for (char c : word) {
-            if (current->children.find(c) == current->children.end()) {
-                return false;
-            }
-            current = current->children[c];
-        }
-        return current->isEndOfWord;
-    }
-`,
-    startsWith: `
-    bool startsWith(std::string prefix) {
-        TrieNode* current = root;
-        for (char c : prefix) {
-            if (current->children.find(c) == current->children.end()) {
-                return false;
-            }
-            current = current->children[c];
-        }
-        return true;
-    }
-`,
-    delete: `
-private:
-    bool deleteHelper(TrieNode* node, std::string word, int depth) {
-        if (depth == word.size()) {
-            if (!node->isEndOfWord) return false;
-            node->isEndOfWord = false;
-            return node->children.empty();
-        }
-        
-        char c = word[depth];
-        if (node->children.find(c) == node->children.end()) return false;
-        
-        bool shouldDeleteChild = deleteHelper(node->children[c], word, depth + 1);
-        
-        if (shouldDeleteChild) {
-            delete node->children[c];
-            node->children.erase(c);
-            return node->children.empty() && !node->isEndOfWord;
-        }
-        return false;
-    }
-
-public:
-    void deleteWord(std::string word) {
-        deleteHelper(root, word, 0);
-    }
-};
-`
-  },
-  
-  java: {
-    base: `
-import java.util.HashMap;
-import java.util.Map;
-
-class TrieNode {
-    Map<Character, TrieNode> children;
-    boolean isEndOfWord;
-
-    public TrieNode() {
-        children = new HashMap<>();
-        isEndOfWord = false;
-    }
-}
-
-class Trie {
-    private TrieNode root;
-
-    public Trie() {
-        root = new TrieNode();
-    }
-`,
-    insert: `
-    public void insert(String word) {
-        TrieNode current = root;
-        for (int i = 0; i < word.length(); i++) {
-            char ch = word.charAt(i);
-            current.children.putIfAbsent(ch, new TrieNode());
-            current = current.children.get(ch);
-        }
-        current.isEndOfWord = true;
-    }
-`,
-    search: `
-    public boolean search(String word) {
-        TrieNode current = root;
-        for (int i = 0; i < word.length(); i++) {
-            char ch = word.charAt(i);
-            TrieNode node = current.children.get(ch);
-            if (node == null) {
-                return false;
-            }
-            current = node;
-        }
-        return current.isEndOfWord;
-    }
-`,
-    startsWith: `
-    public boolean startsWith(String prefix) {
-        TrieNode current = root;
-        for (int i = 0; i < prefix.length(); i++) {
-            char ch = prefix.charAt(i);
-            TrieNode node = current.children.get(ch);
-            if (node == null) {
-                return false;
-            }
-            current = node;
-        }
-        return true;
-    }
-`,
-    delete: `
-    private boolean deleteHelper(TrieNode current, String word, int index) {
-        if (index == word.length()) {
-            if (!current.isEndOfWord) return false;
-            current.isEndOfWord = false;
-            return current.children.isEmpty();
-        }
-        
-        char ch = word.charAt(index);
-        TrieNode node = current.children.get(ch);
-        if (node == null) return false;
-        
-        boolean shouldDeleteCurrentNode = deleteHelper(node, word, index + 1);
-        
-        if (shouldDeleteCurrentNode) {
-            current.children.remove(ch);
-            return current.children.isEmpty() && !current.isEndOfWord;
-        }
-        return false;
-    }
-
-    public void delete(String word) {
-        deleteHelper(root, word, 0);
-    }
-}
-`
+  suffix: {
+    python: [
+      "def insert_suffix_trie(root, word):",
+      "    word = word + '$'",
+      "    for i in range(len(word)):",
+      "        curr = root",
+      "        suffix = word[i:]",
+      "        for char in suffix:",
+      "            if char not in curr.children:",
+      "                curr.children[char] = TrieNode(char)",
+      "            curr = curr.children[char]",
+      "        curr.is_end = True"
+    ],
+    cpp: [
+      "void insert_suffix_trie(TrieNode* root, string word) {",
+      "    word += '$';",
+      "    for (int i = 0; i < word.length(); i++) {",
+      "        TrieNode* curr = root;",
+      "        string suffix = word.substr(i);",
+      "        for (char c : suffix) {",
+      "            if (curr->children.find(c) == curr->children.end()) {",
+      "                curr->children[c] = new TrieNode(c);",
+      "            }",
+      "            curr = curr->children[c];",
+      "        }",
+      "        curr->is_end = true;",
+      "    }",
+      "}"
+    ],
+    java: [
+      "public void insertSuffixTrie(TrieNode root, String word) {",
+      "    word += \"$\";",
+      "    for (int i = 0; i < word.length(); i++) {",
+      "        TrieNode curr = root;",
+      "        String suffix = word.substring(i);",
+      "        for (char c : suffix.toCharArray()) {",
+      "            if (!curr.children.containsKey(c)) {",
+      "                curr.children.put(c, new TrieNode(c));",
+      "            }",
+      "            curr = curr.children.get(c);",
+      "        }",
+      "        curr.isEnd = true;",
+      "    }",
+      "}"
+    ]
   }
 };
 
-const complexities = {
-  base: { best: "-", avg: "-", worst: "-", space: "-" },
-  insert: { best: "O(L)", avg: "O(L)", worst: "O(L)", space: "O(L)" },
-  search: { best: "O(1)", avg: "O(L)", worst: "O(L)", space: "O(1)" },
-  startsWith: { best: "O(1)", avg: "O(L)", worst: "O(L)", space: "O(1)" },
-  delete: { best: "O(L)", avg: "O(L)", worst: "O(L)", space: "O(L) recursive" }
+const LINE_MAPS = {
+  standard: {
+    python: { init: 2, traverse: 4, create: 5, mark: 7, s_init: 10, s_fail: 13, s_traverse: 14, s_found: 15 },
+    cpp: { init: 2, traverse: 4, create: 5, mark: 9, s_init: 13, s_fail: 15, s_traverse: 16, s_found: 18 },
+    java: { init: 2, traverse: 4, create: 5, mark: 9, s_init: 13, s_fail: 15, s_traverse: 16, s_found: 18 }
+  },
+  compressed: {
+    python: { check_empty: 2, mark_empty: 3, check_edge: 6, create_edge: 7, find_prefix: 10, recurse: 12, split: 15, remap: 19, new_leaf: 22 },
+    cpp: { check_empty: 2, mark_empty: 2, check_edge: 4, create_edge: 4, find_prefix: 7, recurse: 9, split: 11, remap: 14, new_leaf: 16 },
+    java: { check_empty: 2, mark_empty: 2, check_edge: 4, create_edge: 4, find_prefix: 7, recurse: 9, split: 11, remap: 14, new_leaf: 16 }
+  },
+  suffix: {
+    python: { append: 2, loop: 3, init: 4, traverse: 7, create: 8, mark: 10 },
+    cpp: { append: 2, loop: 3, init: 4, traverse: 7, create: 8, mark: 12 },
+    java: { append: 2, loop: 3, init: 4, traverse: 7, create: 8, mark: 12 }
+  }
 };
 
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-// Deep clone for the nested Trie object to snapshot states
-const deepCloneTrie = (node) => {
-    const clone = { ...node, children: {} };
-    for (const char in node.children) {
-        clone.children[char] = deepCloneTrie(node.children[char]);
-    }
-    return clone;
-};
-
-// Tree Layout Algorithm (Leaf-count based to avoid overlap)
-const countLeaves = (node) => {
+const generateLayout = (root) => {
+  const outNodes = [];
+  const outEdges = [];
+  
+  const getWidth = (node) => {
+    if (!node) return 0;
     const keys = Object.keys(node.children);
-    let leafCount = 0;
-    if (node.isEndOfWord) leafCount += 1; // '$' node acts as a leaf
-    for (const k of keys) {
-        leafCount += countLeaves(node.children[k]);
+    if (keys.length === 0) return 1;
+    let w = 0;
+    for (let k of keys) w += getWidth(node.children[k]);
+    return w;
+  };
+  
+  const totalW = getWidth(root) || 1;
+  const depthConfig = { maxDepth: 0 };
+
+  const traverse = (node, depth, left, right) => {
+    depthConfig.maxDepth = Math.max(depthConfig.maxDepth, depth);
+    const x = (left + right) / 2;
+    const y = 8 + depth * 15; 
+    
+    outNodes.push({ id: node.id, val: node.val, isEnd: node.isEnd, x, y });
+    
+    const keys = Object.keys(node.children);
+    let currLeft = left;
+    const nodeW = getWidth(node) || 1;
+    
+    for (let k of keys) {
+      const child = node.children[k];
+      const childW = getWidth(child);
+      const childRight = currLeft + (right - left) * (childW / nodeW);
+      
+      outEdges.push({ from: node.id, to: child.id });
+      traverse(child, depth + 1, currLeft, childRight);
+      currLeft = childRight;
     }
-    return Math.max(1, leafCount);
+  };
+  
+  traverse(root, 0, 5, 95);
+  return { nodes: outNodes, edges: outEdges, maxDepth: depthConfig.maxDepth };
 };
 
-const SPACING_X = 85; // Increased horizontal spacing
-const SPACING_Y = 100; // Increased vertical spacing
+const generateStandardFrames = (oldRoot, word, nextIdRef, isSearch = false, isSuffix = false) => {
+  const frames = [];
+  const root = JSON.parse(JSON.stringify(oldRoot)); 
+  let nodeStates = {};
+  
+  const addFrame = (msg, lineKey, overrides = {}) => {
+    const layout = generateLayout(root);
+    frames.push({ ...layout, nodeStates: {...nodeStates}, logMsg: msg, lineKey, ...overrides });
+  };
 
-const getTextColor = (bgColor) => {
-    if (!bgColor) return 'white';
-    // Use dark text for light node colors
-    const lightColors = ['#facc15', '#d1d5db', '#84cc16'];
-    return lightColors.includes(bgColor) ? '#111827' : 'white';
+  let curr = root;
+  if (!isSearch) {
+    if(!isSuffix) addFrame(`Inserting word: "${word}"`, 'init', { [curr.id]: 'highlight' });
+    for (let i = 0; i < word.length; i++) {
+      const char = word[i];
+      if (!curr.children[char]) {
+        curr.children[char] = { id: nextIdRef.current++, val: char, isEnd: false, children: {} };
+        nodeStates = { [curr.id]: 'highlight', [curr.children[char].id]: 'highlight' };
+        addFrame(`Created new node for '${char}'.`, 'create');
+      } else {
+        nodeStates = { [curr.id]: 'highlight', [curr.children[char].id]: 'highlight' };
+        addFrame(`Node '${char}' already exists. Traversing.`, 'traverse');
+      }
+      curr = curr.children[char];
+    }
+    curr.isEnd = true;
+    nodeStates = { [curr.id]: 'end-highlight' };
+    addFrame(`End of word reached. Marked '${curr.val}' as end node.`, 'mark');
+  } else {
+    addFrame(`Searching for word: "${word}"`, 's_init', { [curr.id]: 'highlight' });
+    for (let i = 0; i < word.length; i++) {
+      const char = word[i];
+      if (!curr.children[char]) {
+        nodeStates = { [curr.id]: 'target' };
+        addFrame(`Character '${char}' not found among children. Word does not exist in Trie.`, 's_fail');
+        return frames;
+      }
+      curr = curr.children[char];
+      nodeStates = { [curr.id]: 'highlight' };
+      addFrame(`Found '${char}'. Moving down.`, 's_traverse');
+    }
+    if (curr.isEnd) {
+      nodeStates = { [curr.id]: 'end-highlight' };
+      addFrame(`Reached end of string, and node is marked as end. Found!`, 's_found');
+    } else {
+      nodeStates = { [curr.id]: 'target' };
+      addFrame(`Reached end of string, but node is NOT marked as end. Not Found!`, 's_fail');
+    }
+  }
+  return frames;
 };
 
-const buildRenderData = (node, startX, y, color = null, resultNodes = [], resultEdges = []) => {
-    const leaves = countLeaves(node);
-    const width = leaves * SPACING_X;
-    const myX = startX + width / 2;
-    
-    let nodeColor = color;
-    if (node.id === 'root') nodeColor = '#d1d5db'; // Gray for root
-    
-    resultNodes.push({
-        ...node,
-        x: myX,
-        y: y,
-        bgColor: nodeColor
-    });
+const generateSuffixFrames = (oldRoot, word, nextIdRef) => {
+  const frames = [];
+  let currentRoot = JSON.parse(JSON.stringify(oldRoot));
+  let nodeStates = {};
+  
+  const addFrame = (msg, lineKey, rootState, overrides = {}) => {
+    const layout = generateLayout(rootState);
+    frames.push({ ...layout, nodeStates: {...nodeStates}, logMsg: msg, lineKey, ...overrides });
+  };
 
-    let currentX = startX;
-    const NODE_RADIUS = 28; // 3.5rem / 2
+  const wordTerm = word + '$';
+  addFrame(`Appended terminal symbol '$' -> "${wordTerm}"`, 'append', currentRoot);
+  
+  for (let i = 0; i < wordTerm.length; i++) {
+    const suffix = wordTerm.substring(i);
+    addFrame(`--- Inserting suffix: "${suffix}" ---`, 'loop', currentRoot);
     
-    // Helper to calculate exact boundary connection points
-    const addEdge = (childId, childX, childY) => {
-        const dx = childX - myX;
-        const dy = childY - y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        const ratio = dist === 0 ? 0 : NODE_RADIUS / dist;
-        
-        resultEdges.push({
-            id: `e-${node.id}-${childId}`,
-            x1: myX + dx * ratio,
-            y1: y + dy * ratio,
-            x2: childX - dx * ratio,
-            y2: childY - dy * ratio
-        });
-    };
-
-    // Render '$' child first if this node marks the end of a word
-    if (node.isEndOfWord) {
-        const childWidth = 1 * SPACING_X;
-        const childX = currentX + childWidth / 2;
-        const childY = y + SPACING_Y;
-        
-        addEdge('dollar', childX, childY);
-        
-        resultNodes.push({
-            id: `${node.id}-dollar`,
-            char: '$',
-            x: childX,
-            y: childY,
-            bgColor: '#84cc16', // Green for '$'
-            state: node.state === 'deleting' ? 'deleting' : 'default'
-        });
-        
-        currentX += childWidth;
+    let curr = currentRoot;
+    nodeStates = { [curr.id]: 'highlight' };
+    addFrame(`Starting at root.`, 'init', currentRoot);
+    
+    for (let j = 0; j < suffix.length; j++) {
+      const char = suffix[j];
+      if (!curr.children[char]) {
+        curr.children[char] = { id: nextIdRef.current++, val: char, isEnd: false, children: {} };
+        nodeStates = { [curr.id]: 'highlight', [curr.children[char].id]: 'highlight' };
+        addFrame(`Created node for '${char}'.`, 'create', currentRoot);
+      } else {
+        nodeStates = { [curr.id]: 'highlight', [curr.children[char].id]: 'highlight' };
+        addFrame(`Traversed existing node '${char}'.`, 'traverse', currentRoot);
+      }
+      curr = curr.children[char];
     }
-
-    const keys = Object.keys(node.children).sort();
-    const palette = ['#3b82f6', '#ef4444', '#facc15', '#a855f7', '#ec4899', '#f97316', '#14b8a6'];
-    
-    for (let i = 0; i < keys.length; i++) {
-        const key = keys[i];
-        const child = node.children[key];
-        const childLeaves = countLeaves(child);
-        const childWidth = childLeaves * SPACING_X;
-        const childX = currentX + childWidth / 2;
-        const childY = y + SPACING_Y;
-        
-        let childColor = color;
-        if (node.id === 'root') {
-            childColor = palette[i % palette.length]; // Assign branch color at root children
-        }
-        
-        addEdge(child.id, childX, childY);
-        buildRenderData(child, currentX, childY, childColor, resultNodes, resultEdges);
-        
-        currentX += childWidth;
-    }
-    
-    return { nodes: resultNodes, edges: resultEdges, totalWidth: width };
+    curr.isEnd = true;
+    nodeStates = { [curr.id]: 'end-highlight' };
+    addFrame(`Finished suffix "${suffix}". Marked end.`, 'mark', currentRoot);
+  }
+  return frames;
 };
 
+const generateCompressedFrames = (oldRoot, inputWord, nextIdRef) => {
+  const frames = [];
+  const root = JSON.parse(JSON.stringify(oldRoot));
+  let nodeStates = {};
+  
+  const addFrame = (msg, lineKey, overrides = {}) => {
+    const layout = generateLayout(root);
+    frames.push({ ...layout, nodeStates: {...nodeStates}, logMsg: msg, lineKey, ...overrides });
+  };
+
+  const insertHelper = (node, word, fullWord) => {
+    if (word.length === 0) {
+      node.isEnd = true;
+      nodeStates = { [node.id]: 'end-highlight' };
+      addFrame(`Word fully consumed. Marking "${node.val || '*'}" as end.`, 'mark_empty');
+      return;
+    }
+    
+    let firstChar = word[0];
+    addFrame(`Checking for edge starting with '${firstChar}'...`, 'check_edge', { [node.id]: 'highlight' });
+
+    if (!node.children[firstChar]) {
+      const newId = nextIdRef.current++;
+      node.children[firstChar] = { id: newId, val: word, isEnd: true, children: {} };
+      nodeStates = { [node.id]: 'highlight', [newId]: 'highlight' };
+      addFrame(`No edge found. Created new leaf node "${word}".`, 'create_edge');
+      return;
+    }
+
+    let child = node.children[firstChar];
+    nodeStates = { [node.id]: 'highlight', [child.id]: 'highlight' };
+    addFrame(`Found edge "${child.val}". Finding common prefix with remaining word "${word}".`, 'find_prefix');
+
+    let i = 0;
+    while (i < child.val.length && i < word.length && child.val[i] === word[i]) i++;
+
+    if (i === child.val.length) {
+      nodeStates = { [child.id]: 'highlight' };
+      addFrame(`Full edge "${child.val}" matched. Traversing down with remaining "${word.substring(i)}".`, 'recurse');
+      insertHelper(child, word.substring(i), fullWord);
+    } else {
+      nodeStates = { [child.id]: 'swapping' };
+      addFrame(`Mismatch at index ${i}. Splitting edge "${child.val}" into "${child.val.substring(0, i)}" and "${child.val.substring(i)}".`, 'split');
+      
+      let splitNode = { 
+        id: nextIdRef.current++, 
+        val: child.val.substring(i), 
+        isEnd: child.isEnd, 
+        children: child.children 
+      };
+      
+      child.val = child.val.substring(0, i);
+      child.isEnd = false; 
+      child.children = { [splitNode.val[0]]: splitNode };
+      
+      nodeStates = { [child.id]: 'highlight', [splitNode.id]: 'highlight' };
+      addFrame(`Split complete. Remapped previous children to new branch.`, 'remap');
+
+      if (i === word.length) {
+        child.isEnd = true;
+        nodeStates = { [child.id]: 'end-highlight' };
+        addFrame(`Remaining word exactly matches the split prefix. Marked "${child.val}" as end.`, 'mark_empty');
+      } else {
+        let remainingWord = word.substring(i);
+        let newLeaf = { id: nextIdRef.current++, val: remainingWord, isEnd: true, children: {} };
+        child.children[remainingWord[0]] = newLeaf;
+        nodeStates = { [child.id]: 'highlight', [newLeaf.id]: 'highlight' };
+        addFrame(`Added remaining part "${remainingWord}" as new leaf branch.`, 'new_leaf');
+      }
+    }
+  };
+
+  addFrame(`Starting Compressed Trie insertion for "${inputWord}"`, 'check_empty', { [root.id]: 'highlight' });
+  insertHelper(root, inputWord, inputWord);
+  
+  return frames;
+};
 
 export default function TrieVisualizer() {
-  const getInitialTrie = () => ({
-      id: 'root',
-      char: 'Null',
-      isEndOfWord: false,
-      children: {},
-      state: 'default'
-  });
-
-  const [trieRoot, setTrieRoot] = useState(getInitialTrie());
-  const [word, setWord] = useState("");
-  
+  const nextId = useRef(1);
+  const [trieType, setTrieType] = useState("standard");
   const [language, setLanguage] = useState("python");
-  const [speed, setSpeed] = useState(500);
-  const [status, setStatus] = useState("Create a Trie by inserting words.");
-  const [executionLog, setExecutionLog] = useState([]);
-  const [highlightLineNum, setHighlightLineNum] = useState(-1);
-  const [currentOperation, setCurrentOperation] = useState('base');
+  const [inputVal, setInputVal] = useState("");
+  
+  const [rootNode, setRootNode] = useState({ id: 0, val: "*", isEnd: false, children: {} });
   
   const [frames, setFrames] = useState([]);
-  const [currentFrameIdx, setCurrentFrameIdx] = useState(0);
+  const [frameIdx, setFrameIdx] = useState(-1);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [speed, setSpeed] = useState(600);
   
-  const isVisualizing = frames.length > 0 && currentFrameIdx < frames.length - 1;
-  const [error, setError] = useState(null);
+  const logEndRef = useRef(null);
 
-  const logContainerRef = useRef(null);
-
-  useEffect(() => {
-    if (logContainerRef.current) {
-      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
-    }
-  }, [executionLog]);
-  
   useEffect(() => {
     let timer;
-    if (isPlaying && currentFrameIdx < frames.length - 1) {
-        timer = setTimeout(() => {
-            setCurrentFrameIdx(prev => prev + 1);
-        }, speed);
-    } else if (isPlaying && currentFrameIdx >= frames.length - 1) {
-        setIsPlaying(false);
-    }
+    if (isPlaying && frames.length > 0 && frameIdx < frames.length - 1) {
+      timer = setTimeout(() => setFrameIdx(p => p + 1), speed);
+    } else if (frameIdx >= frames.length - 1) setIsPlaying(false);
     return () => clearTimeout(timer);
-  }, [isPlaying, currentFrameIdx, frames.length, speed]);
+  }, [isPlaying, frameIdx, frames, speed]);
 
-  useEffect(() => {
-    if (frames.length > 0 && currentFrameIdx >= 0 && currentFrameIdx < frames.length) {
-        const frame = frames[currentFrameIdx];
-        setTrieRoot(frame.trie);
-        setStatus(frame.status);
-        setExecutionLog(frame.log);
-    }
-  }, [currentFrameIdx, frames]);
+  useEffect(() => { if (logEndRef.current) logEndRef.current.scrollIntoView({ behavior: 'smooth' }); }, [frameIdx]);
 
-  const resetAllStates = (root) => {
-      root.state = 'default';
-      for(let k in root.children) {
-          resetAllStates(root.children[k]);
-      }
-  };
-
-  const getCleanWord = () => {
-      const w = word.trim().toLowerCase();
-      if (!w) { setError("Please enter a valid word (letters only)."); return null; }
-      if (!/^[a-z]+$/.test(w)) { setError("Only alphabetical characters (a-z) are supported."); return null; }
-      return w;
-  };
-
-  const runOperation = (opName, frameGen) => {
-      setError(null);
-      setCurrentOperation(opName);
-      const newFrames = frameGen();
-      if (!newFrames || newFrames.length === 0) return;
-      
-      setFrames(newFrames);
-      setCurrentFrameIdx(0);
-      setIsPlaying(true);
-      setWord("");
+  const handleTypeChange = (e) => {
+    setTrieType(e.target.value);
+    handleClear();
   };
 
   const handleInsert = () => {
-      const w = getCleanWord();
-      if (!w) return;
-      
-      runOperation('insert', () => {
-          const f = [];
-          let currTrie = deepCloneTrie(trieRoot);
-          resetAllStates(currTrie);
-          let currLog = [...executionLog, `Inserting word: "${w}"`];
-          
-          currTrie.state = 'visiting';
-          f.push({ trie: deepCloneTrie(currTrie), status: `Start at root...`, log: currLog });
-          
-          let currentNode = currTrie;
-          
-          for (let i = 0; i < w.length; i++) {
-              const char = w[i];
-              currentNode.state = 'default';
-              
-              if (!currentNode.children[char]) {
-                  currLog = [...currLog, `Char '${char}' not found. Creating new node.`];
-                  f.push({ trie: deepCloneTrie(currTrie), status: `Char '${char}' not found. Creating new node.`, log: currLog });
-                  
-                  currentNode.children[char] = {
-                      id: uuidv4(),
-                      char: char,
-                      isEndOfWord: false,
-                      children: {},
-                      state: 'pre-op'
-                  };
-              } else {
-                  currLog = [...currLog, `Char '${char}' found. Traversing down.`];
-                  currentNode.children[char].state = 'visiting';
-                  f.push({ trie: deepCloneTrie(currTrie), status: `Char '${char}' found. Moving to child.`, log: currLog });
-              }
-              
-              currentNode = currentNode.children[char];
-              currentNode.state = 'visiting';
-              f.push({ trie: deepCloneTrie(currTrie), status: `At node '${char}'...`, log: currLog });
-          }
-          
-          currentNode.isEndOfWord = true;
-          currentNode.state = 'found';
-          currLog = [...currLog, `Reached end of word. Marked '${w[w.length-1]}' as End Of Word.`];
-          f.push({ trie: deepCloneTrie(currTrie), status: `Inserted "${w}" successfully!`, log: currLog });
-          
-          resetAllStates(currTrie);
-          f.push({ trie: deepCloneTrie(currTrie), status: `Inserted "${w}" successfully!`, log: currLog });
-          return f;
-      });
-  };
-
-  const handleSearch = (isPrefixSearch = false) => {
-      const w = getCleanWord();
-      if (!w) return;
-      
-      const opName = isPrefixSearch ? 'startsWith' : 'search';
-      
-      runOperation(opName, () => {
-          const f = [];
-          let currTrie = deepCloneTrie(trieRoot);
-          resetAllStates(currTrie);
-          let currLog = [...executionLog, `${isPrefixSearch ? 'Prefix search' : 'Searching'} for: "${w}"`];
-          
-          currTrie.state = 'visiting';
-          f.push({ trie: deepCloneTrie(currTrie), status: `Start at root...`, log: currLog });
-          
-          let currentNode = currTrie;
-          let found = true;
-          
-          for (let i = 0; i < w.length; i++) {
-              const char = w[i];
-              currentNode.state = 'default';
-              
-              if (!currentNode.children[char]) {
-                  currLog = [...currLog, `Char '${char}' NOT found.`];
-                  f.push({ trie: deepCloneTrie(currTrie), status: `Char '${char}' NOT found. Stopping search.`, log: currLog });
-                  found = false;
-                  break;
-              }
-              
-              currentNode = currentNode.children[char];
-              currentNode.state = 'visiting';
-              currLog = [...currLog, `Found char '${char}'. Traversing down.`];
-              f.push({ trie: deepCloneTrie(currTrie), status: `Found char '${char}'. Moving to child.`, log: currLog });
-          }
-          
-          if (found) {
-              if (isPrefixSearch) {
-                  currentNode.state = 'found';
-                  currLog = [...currLog, `Prefix "${w}" exists in Trie!`];
-                  f.push({ trie: deepCloneTrie(currTrie), status: `Prefix "${w}" exists!`, log: currLog });
-              } else {
-                  if (currentNode.isEndOfWord) {
-                      currentNode.state = 'found';
-                      currLog = [...currLog, `Word "${w}" exists in Trie (End of Word is true)!`];
-                      f.push({ trie: deepCloneTrie(currTrie), status: `Word "${w}" found!`, log: currLog });
-                  } else {
-                      currentNode.state = 'pre-op';
-                      currLog = [...currLog, `Node '${w[w.length-1]}' found, but it is NOT marked as End of Word.`];
-                      f.push({ trie: deepCloneTrie(currTrie), status: `Word "${w}" NOT found (only exists as prefix).`, log: currLog });
-                  }
-              }
-          } else {
-              currLog = [...currLog, `"${w}" NOT found in Trie.`];
-              f.push({ trie: deepCloneTrie(currTrie), status: `"${w}" NOT found.`, log: currLog });
-          }
-          
-          resetAllStates(currTrie);
-          f.push({ trie: deepCloneTrie(currTrie), status: f[f.length-1].status, log: currLog });
-          return f;
-      });
-  };
-
-  const handleDelete = () => {
-      const w = getCleanWord();
-      if (!w) return;
-      
-      runOperation('delete', () => {
-          const f = [];
-          let currTrie = deepCloneTrie(trieRoot);
-          resetAllStates(currTrie);
-          let currLog = [...executionLog, `Deleting word: "${w}"`];
-          
-          const path = []; // Stack to trace back for deletion
-          let currentNode = currTrie;
-          path.push({ char: '*', node: currentNode, parent: null });
-          
-          currTrie.state = 'visiting';
-          f.push({ trie: deepCloneTrie(currTrie), status: `Traversing to find "${w}"...`, log: currLog });
-          
-          let exists = true;
-          for (let i = 0; i < w.length; i++) {
-              const char = w[i];
-              currentNode.state = 'default';
-              
-              if (!currentNode.children[char]) {
-                  exists = false;
-                  break;
-              }
-              
-              let nextNode = currentNode.children[char];
-              path.push({ char, node: nextNode, parent: currentNode });
-              currentNode = nextNode;
-              
-              currentNode.state = 'visiting';
-              f.push({ trie: deepCloneTrie(currTrie), status: `Traversing down '${char}'...`, log: currLog });
-          }
-          
-          if (!exists || !currentNode.isEndOfWord) {
-              currLog = [...currLog, `Word "${w}" not found. Cannot delete.`];
-              f.push({ trie: deepCloneTrie(currTrie), status: `Word "${w}" not found. Cannot delete.`, log: currLog });
-              resetAllStates(currTrie);
-              f.push({ trie: deepCloneTrie(currTrie), status: `Word "${w}" not found.`, log: currLog });
-              return f;
-          }
-          
-          // Step 1: Unmark End Of Word
-          currentNode.isEndOfWord = false;
-          currentNode.state = 'deleting';
-          currLog = [...currLog, `Found word "${w}". Unmarking End of Word.`];
-          f.push({ trie: deepCloneTrie(currTrie), status: `Unmarking End of Word.`, log: currLog });
-          
-          // Step 2: Delete bottom-up if no children
-          for (let i = path.length - 1; i > 0; i--) {
-              let currentPathNode = path[i].node;
-              let parentNode = path[i].parent;
-              let char = path[i].char;
-              
-              if (Object.keys(currentPathNode.children).length === 0 && !currentPathNode.isEndOfWord) {
-                  currentPathNode.state = 'deleting';
-                  currLog = [...currLog, `Node '${char}' has no children and is not End of Word. Deleting...`];
-                  f.push({ trie: deepCloneTrie(currTrie), status: `Cleaning up empty node '${char}'.`, log: currLog });
-                  
-                  delete parentNode.children[char];
-              } else {
-                  currLog = [...currLog, `Node '${char}' is needed by other words. Stopping deletion.`];
-                  f.push({ trie: deepCloneTrie(currTrie), status: `Node '${char}' is shared. Done cleaning.`, log: currLog });
-                  break; 
-              }
-          }
-          
-          currLog = [...currLog, `Deleted "${w}" successfully.`];
-          resetAllStates(currTrie);
-          f.push({ trie: deepCloneTrie(currTrie), status: `Deleted "${w}" successfully.`, log: currLog });
-          
-          return f;
-      });
-  };
-
-  const handleReset = () => {
-    setFrames([]);
-    setCurrentFrameIdx(0);
-    setIsPlaying(false);
+    if (frames.length > 0 && frameIdx < frames.length - 1) return;
+    const word = inputVal.trim().toLowerCase().replace(/[^a-z]/g, '');
+    if (!word) return;
     
-    setTrieRoot(getInitialTrie());
-    setWord("");
-    setError(null);
-    setStatus("Create a Trie by inserting words.");
-    setHighlightLineNum(-1);
-    setCurrentOperation('base');
-    setExecutionLog([]);
+    let newFrames = [];
+    if (trieType === 'standard') {
+      newFrames = generateStandardFrames(rootNode, word, nextId, false, false);
+    } else if (trieType === 'suffix') {
+      // Suffix trie usually replaces everything for a single word
+      const freshRoot = { id: 0, val: "*", isEnd: false, children: {} };
+      nextId.current = 1;
+      newFrames = generateSuffixFrames(freshRoot, word, nextId);
+    } else if (trieType === 'compressed') {
+      newFrames = generateCompressedFrames(rootNode, word, nextId);
+    }
+    
+    if (newFrames.length > 0) {
+      setRootNode(trieType === 'suffix' ? newFrames[newFrames.length-1].nodeStateForSave || freshLayoutToState(newFrames) : layoutToState(newFrames));
+      setFrames(newFrames);
+      setFrameIdx(0);
+      setIsPlaying(true);
+      setInputVal("");
+    }
   };
   
-  const handleGenerateRandom = () => {
-    const randomWords = ["cat", "car", "cart", "dog", "dove", "ant", "and"];
-    // Select 3 to 5 random words
-    const numWords = Math.floor(Math.random() * 3) + 3;
-    const selected = [];
-    for(let i=0; i<numWords; i++) {
-        selected.push(randomWords[Math.floor(Math.random() * randomWords.length)]);
-    }
-    const uniqueSelected = [...new Set(selected)];
+  const layoutToState = (generatedFrames) => {
+    // We just reconstruct the logical root from the last frame's layout or keep it tracked.
+    // To keep it simple, we can just track the logical root manually here by re-running logic silently, 
+    // OR we just use the original generator functions to return the final object.
+    // We'll just do a silent run to get the final state.
+    const tempRoot = JSON.parse(JSON.stringify(trieType==='suffix' ? { id: 0, val: "*", isEnd: false, children: {} } : rootNode));
+    let dummyRef = { current: nextId.current };
     
-    // Quick build logic without animation
-    let newRoot = getInitialTrie();
-    for (const w of uniqueSelected) {
-        let current = newRoot;
-        for (const char of w) {
-            if (!current.children[char]) {
-                current.children[char] = { id: uuidv4(), char, isEndOfWord: false, children: {}, state: 'default' };
-            }
-            current = current.children[char];
-        }
-        current.isEndOfWord = true;
+    if (trieType === 'standard') {
+      let curr = tempRoot;
+      for (let char of inputVal.trim().toLowerCase().replace(/[^a-z]/g, '')) {
+        if (!curr.children[char]) curr.children[char] = { id: dummyRef.current++, val: char, isEnd: false, children: {} };
+        curr = curr.children[char];
+      }
+      curr.isEnd = true;
+    } else if (trieType === 'compressed') {
+       // Just keeping the visual frame for state is enough if we modify rootNode inside generation (which we did by deep copying then assigning).
+       // Actually, generateCompressedFrames modified the local `root` copy. We need to extract it.
+    }
+  };
+  
+  // Helper to extract logical tree from frame generation function
+  const executeInsertAndGetState = (word) => {
+    let newFrames = [];
+    let finalRoot = null;
+    
+    if (trieType === 'standard') {
+      const rootCopy = JSON.parse(JSON.stringify(rootNode));
+      newFrames = generateStandardFrames(rootCopy, word, nextId, false, false);
+      let curr = rootCopy;
+      for (let char of word) {
+        if (!curr.children[char]) curr.children[char] = { id: nextId.current, val: char, isEnd: false, children: {} }; // dummy, ID sync happens in generator
+        curr = curr.children[char];
+      }
+      curr.isEnd = true;
+      finalRoot = rootCopy;
+    } else if (trieType === 'suffix') {
+      const rootCopy = { id: 0, val: "*", isEnd: false, children: {} };
+      nextId.current = 1;
+      newFrames = generateSuffixFrames(rootCopy, word, nextId);
+      finalRoot = rootCopy; // generator modified rootCopy in place
+    } else if (trieType === 'compressed') {
+      const rootCopy = JSON.parse(JSON.stringify(rootNode));
+      newFrames = generateCompressedFrames(rootCopy, word, nextId);
+      finalRoot = rootCopy; // generator modified rootCopy in place
     }
     
-    setFrames([]);
-    setCurrentFrameIdx(0);
-    setIsPlaying(false);
-    setTrieRoot(newRoot);
-    setWord("");
-    setError(null);
-    setStatus(`Generated random Trie with words: ${uniqueSelected.join(", ")}`);
-    setCurrentOperation('base');
-    setExecutionLog([`Generated random words: ${uniqueSelected.join(", ")}`]);
+    return { newFrames, finalRoot };
   };
 
-  const togglePlay = () => {
-    if (frames.length === 0) return;
-    if (currentFrameIdx >= frames.length - 1) {
-        setCurrentFrameIdx(0);
-        setIsPlaying(true);
+  const handleInsertSafe = () => {
+    if (frames.length > 0 && frameIdx < frames.length - 1) return;
+    const word = inputVal.trim().toLowerCase().replace(/[^a-z]/g, '');
+    if (!word) return;
+    
+    const { newFrames, finalRoot } = executeInsertAndGetState(word);
+    
+    setRootNode(finalRoot);
+    setFrames(newFrames);
+    setFrameIdx(0);
+    setIsPlaying(true);
+    setInputVal("");
+  };
+
+  const handleSearch = () => {
+    if (frames.length > 0 && frameIdx < frames.length - 1) return;
+    const word = inputVal.trim().toLowerCase().replace(/[^a-z]/g, '');
+    if (!word) return;
+    
+    let newFrames = [];
+    if (trieType === 'standard' || trieType === 'suffix') {
+      newFrames = generateStandardFrames(rootNode, word, nextId, true, false);
     } else {
-        setIsPlaying(!isPlaying);
+      // Compressed Search isn't fully implemented in frames here for brevity, 
+      // falling back to standard visual check message.
+      const addFrame = (msg, lineKey) => { newFrames.push({ ...generateLayout(rootNode), nodeStates: {}, logMsg: msg, lineKey }); };
+      addFrame(`Search in Compressed Trie requires substring matching (O(L))...`, null);
+    }
+    
+    if (newFrames.length > 0) {
+      setFrames(newFrames);
+      setFrameIdx(0);
+      setIsPlaying(true);
+      setInputVal("");
     }
   };
 
-  const handleNext = () => {
-    if (currentFrameIdx < frames.length - 1) {
-        setCurrentFrameIdx(p => p + 1);
-        setIsPlaying(false);
-    }
+  const handleClear = () => {
+    if (frames.length > 0 && frameIdx < frames.length - 1) return;
+    setRootNode({ id: 0, val: "*", isEnd: false, children: {} });
+    setFrames([]);
+    setFrameIdx(-1);
+    setIsPlaying(false);
+    nextId.current = 1;
   };
 
-  const handlePrev = () => {
-    if (currentFrameIdx > 0) {
-        setCurrentFrameIdx(p => p - 1);
-        setIsPlaying(false);
-    }
-  };
+  const isLocked = isPlaying || (frames.length > 0 && frameIdx < frames.length - 1);
   
-  const currentCode = codeSnippets[language][currentOperation] || codeSnippets[language].base;
-  const codeLines = currentCode.trim().split('\n');
-  const currentComplexity = complexities[currentOperation] || complexities.base;
+  // Render Defaults
+  let defaultLayout = { nodes: [], edges: [] };
+  if (frames.length === 0) defaultLayout = generateLayout(rootNode);
   
-  const statusColor = status.includes("successfully") || status.includes("exists") || status.includes("found!")
-    ? "status-found"
-    : status.includes("NOT found") || status.includes("not found") || status.includes("Cannot delete")
-    ? "status-not-found"
-    : (!isPlaying && frames.length > 0 && currentFrameIdx < frames.length - 1)
-    ? "status-paused"
-    : "status-default";
-
-  const PADDING = 50;
-  const { nodes: renderNodes, edges: renderEdges, totalWidth } = buildRenderData(trieRoot, PADDING, 40);
-  const canvasWidth = totalWidth + (PADDING * 2);
-  const maxDepthY = renderNodes.reduce((max, n) => Math.max(max, n.y), 0);
-  const canvasHeight = Math.max(400, maxDepthY + 100);
+  const currFrame = frames[frameIdx] || { ...defaultLayout, nodeStates: {}, logMsg: 'Ready. Insert words to build Trie.', lineKey: null };
+  const highlightLine = currFrame.lineKey ? LINE_MAPS[trieType][language][currFrame.lineKey] : -1;
 
   return (
     <div className="visualizer-container">
       <InjectedStyles />
       
-      {/* --- Controls Sidebar --- */}
+      {/* Sidebar */}
       <aside className="controls-sidebar">
-        <h1 className="sidebar-title">
-          <Type size={30} />
-          Trie Visualizer
-        </h1>
-
-        <div className="input-grid">
-            <div className="input-group">
-              <label htmlFor="word">Word / Prefix (a-z lowercase)</label>
-              <input
-                id="word"
-                type="text"
-                placeholder="e.g., apple"
-                value={word}
-                onChange={(e) => setWord(e.target.value)}
-                disabled={isVisualizing}
-                className="input-field"
-              />
-            </div>
-        </div>
+        <h1 className="sidebar-title"><Network size={24} /> Trie Visualizer</h1>
         
-        {error && <div className="error-message">{error}</div>}
-
-        <div className="actions-grid">
-            <button onClick={handleInsert} disabled={isVisualizing || !word} className="btn btn-green">Insert Word</button>
-            <button onClick={handleDelete} disabled={isVisualizing || !word} className="btn btn-red">Delete Word</button>
-        </div>
-        <div className="actions-grid">
-            <button onClick={() => handleSearch(false)} disabled={isVisualizing || !word} className="btn btn-cyan">Search Word</button>
-            <button onClick={() => handleSearch(true)} disabled={isVisualizing || !word} className="btn btn-cyan" style={{fontSize: '0.8rem'}}>Search Prefix</button>
-        </div>
-        
-        <hr style={{borderColor: 'var(--border-gray-700)', margin: '1.5rem 0'}} />
-
-        <div className="actions-grid">
-          <button onClick={handleReset} className="btn btn-secondary">
-            <RefreshCw size={18} /> Reset Trie
-          </button>
-          <button onClick={handleGenerateRandom} disabled={isVisualizing} className="btn btn-purple">
-            <Shuffle size={18} /> Random Trie
-          </button>
+        <div className="playback-panel">
+          <input type="range" className="slider" min="-1" max={frames.length ? frames.length-1 : 0} value={frameIdx} onChange={e => {setFrameIdx(Number(e.target.value)); setIsPlaying(false);}} disabled={frames.length === 0} />
+          
+          <div className="player-controls">
+            <button className="ctrl-btn" onClick={() => {setFrameIdx(-1); setIsPlaying(false);}} disabled={frameIdx <= -1}><RotateCcw size={16}/></button>
+            <button className="ctrl-btn" onClick={() => {setFrameIdx(p=>p-1); setIsPlaying(false);}} disabled={frameIdx <= 0}><SkipBack size={16}/></button>
+            <button className="ctrl-btn" onClick={() => setIsPlaying(!isPlaying)} disabled={frames.length === 0 || frameIdx === frames.length-1}>
+              {isPlaying ? <Pause size={16}/> : <Play size={16}/>}
+            </button>
+            <button className="ctrl-btn" onClick={() => {setFrameIdx(p=>p+1); setIsPlaying(false);}} disabled={frames.length === 0 || frameIdx >= frames.length-1}><SkipForward size={16}/></button>
+          </div>
+          
+          <div style={{marginTop: '0.75rem'}}>
+            <label style={{fontSize:'0.65rem', color:'var(--cyan-400)', display:'flex', justifyContent:'space-between'}}><span>Animation Speed</span> <span>{speed}ms</span></label>
+            <input type="range" min="100" max="1500" step="100" value={speed} onChange={e => setSpeed(Number(e.target.value))} className="slider" style={{margin:0}} />
+          </div>
         </div>
 
         <div className="input-group">
-          <label htmlFor="language">Code Language</label>
-          <select
-            id="language"
-            value={language}
-            onChange={(e) => setLanguage(e.target.value)}
-            disabled={isVisualizing}
-            className="input-field"
-          >
-            <option value="python">Python</option>
-            <option value="cpp">C++</option>
-            <option value="java">Java</option>
-            <option value="c">C</option>
+          <label>Trie Variant</label>
+          <select value={trieType} onChange={handleTypeChange} className="input-field" disabled={isLocked}>
+            <option value="standard">Standard Trie (Prefix Trie)</option>
+            <option value="compressed">Compressed Trie (Radix/Patricia)</option>
+            <option value="suffix">Suffix Trie (Single Word)</option>
           </select>
         </div>
 
-        <div className="input-group">
-          <label htmlFor="speed">Visualization Speed</label>
-          <div className="speed-slider-group">
-            <input
-              id="speed"
-              type="range"
-              min="100"
-              max="2000"
-              step="100"
-              value={speed}
-              onChange={(e) => setSpeed(Number(e.target.value))}
-              className="speed-slider"
-            />
-            <span className="speed-value">{speed} ms</span>
+        <div className="complexity-box">
+          <div className="comp-item"><span className="comp-label">Time (Insert/Search)</span> <span className="comp-val">O(L)</span></div>
+          <div className="comp-item"><span className="comp-label">Space</span> <span className="comp-val">{trieType==='compressed'?'O(N)':'O(N * L)'}</span></div>
+          <span style={{fontSize:'0.6rem', color:'var(--text-gray-500)', marginTop:'0.2rem'}}>L = Length of word, N = Number of words</span>
+        </div>
+
+        <hr style={{ borderColor: 'var(--border-gray-700)', margin: '1rem 0' }} />
+
+        {/* Action Panel */}
+        <div className="action-panel" style={{background: 'var(--bg-dark-950)'}}>
+          <div className="panel-header">Trie Operations</div>
+          
+          <div className="row-flex" style={{marginBottom: '0.75rem'}}>
+            <input type="text" placeholder="Word (a-z, max 8)" maxLength="8" value={inputVal} onChange={e=>setInputVal(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleInsertSafe()} className="input-field" disabled={isLocked} />
+          </div>
+          
+          <div className="row-flex" style={{marginBottom: '0.75rem'}}>
+            <button onClick={handleInsertSafe} className="btn btn-green" disabled={isLocked || !inputVal}><Plus size={16}/> Insert</button>
+            <button onClick={handleSearch} className="btn btn-cyan" disabled={isLocked || !inputVal || trieType==='compressed'}><Search size={16}/> Search</button>
+          </div>
+
+          <div className="row-flex">
+            <button onClick={handleClear} className="btn btn-red" disabled={isLocked}><Trash2 size={14}/> Clear Tree</button>
           </div>
         </div>
       </aside>
 
-      {/* --- Main Content Area --- */}
+      {/* Main Content */}
       <main className="main-content">
-        
-        {/* --- Visualization Area --- */}
-        <section className="visualization-section">
-          <h2 className="section-title">Visualization</h2>
-          
-          <div className="status-bar">
-            <span className={`status-text ${statusColor}`}>{status}</span>
-          </div>
-          
-          <div className="trie-container">
-            {Object.keys(trieRoot.children).length === 0 && <span style={{color: 'var(--text-gray-500)', position: 'absolute', top: '50%'}}>Trie is empty.</span>}
-            
-            {Object.keys(trieRoot.children).length > 0 && (
-              <React.Fragment>
-                <div className="legend-container">
-                    <div className="legend-item">
-                        <div className="legend-circle" style={{backgroundColor: '#84cc16', color: '#111827'}}>$</div> 
-                        End Of Word
-                    </div>
-                    <div className="legend-item"><div className="legend-circle" style={{backgroundColor: 'var(--yellow-500)'}}></div> Traversing Node</div>
-                    <div className="legend-item"><div className="legend-circle" style={{backgroundColor: 'var(--green-500)'}}></div> Found Node</div>
-                </div>
-
-                {}
-                <div className="trie-canvas" style={{ width: canvasWidth, height: canvasHeight, margin: '0 auto' }}>
-                  {/* Edges Layer */}
-                  <svg width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}>
-                    <defs>
-                      <marker id="arrow" viewBox="0 -5 10 10" refX="8" refY="0" markerWidth="7" markerHeight="7" orient="auto">
-                        <path d="M0,-5 L10,0 L0,5" fill="#9ca3af" />
-                      </marker>
-                    </defs>
-                    {renderEdges.map(edge => (
-                      <line 
-                        key={edge.id}
-                        x1={edge.x1} y1={edge.y1}
-                        x2={edge.x2} y2={edge.y2}
-                        stroke="#9ca3af"
-                        strokeWidth="2.5"
-                        markerEnd="url(#arrow)"
-                      />
-                    ))}
-                  </svg>
-                  
-                  {/* Nodes Layer */}
-                  {renderNodes.map(node => (
-                    <div 
-                      key={node.id} 
-                      className="trie-node-wrapper"
-                      style={{ left: `${node.x}px`, top: `${node.y}px` }}
-                    >
-                      <div 
-                        className={`trie-node ${node.state} ${node.char === 'Null' ? 'is-null' : ''}`}
-                        style={node.state === 'default' && node.bgColor ? { 
-                          backgroundColor: node.bgColor, 
-                          color: getTextColor(node.bgColor),
-                          borderColor: '#111827'
-                        } : {}}
-                      >
-                        {node.char}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </React.Fragment>
-            )}
-          </div>
-          
-          <div className="playback-controls-bar">
-            <button onClick={handlePrev} disabled={frames.length === 0 || currentFrameIdx === 0} className="btn btn-secondary">
-              <StepBack size={16} /> Prev
-            </button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-              <button
-                onClick={togglePlay}
-                disabled={frames.length === 0}
-                className={`btn ${isPlaying ? 'btn-pause' : 'btn-resume'}`}
-                style={{ borderRadius: '50%', padding: '0.6rem', minWidth: 'auto' }}
-                title={isPlaying ? "Pause" : "Play"}
-              >
-                {isPlaying ? <Pause size={16} /> : <Play size={16} />}
-              </button>
-              <span className="step-indicator">
-                Step {frames.length > 0 ? currentFrameIdx : 0}
-              </span>
-            </div>
-            <button onClick={handleNext} disabled={frames.length === 0 || currentFrameIdx === frames.length - 1} className="btn btn-secondary">
-              Next <StepForward size={16} />
-            </button>
-          </div>
-        </section>
-
-        {/* --- Complexity Analysis --- */}
-        <section className="complexity-bar">
-          <div className="complexity-card">
-            <span className="complexity-title">Best Case Time</span>
-            <span className="complexity-value">{currentComplexity.best}</span>
-          </div>
-          <div className="complexity-card">
-            <span className="complexity-title">Avg Time</span>
-            <span className="complexity-value">{currentComplexity.avg}</span>
-          </div>
-          <div className="complexity-card">
-            <span className="complexity-title">Worst Time</span>
-            <span className="complexity-value">{currentComplexity.worst}</span>
-          </div>
-          <div className="complexity-card">
-            <span className="complexity-title">Space</span>
-            <span className="complexity-value">{currentComplexity.space}</span>
-          </div>
-        </section>
-
-        {/* --- Lower Content Area (Code & Log) --- */}
-        <div className="lower-content-area">
-          <section className="code-section">
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem'}}>
-                <h2 className="section-title" style={{margin: 0}}>Code</h2>
-                <span style={{fontSize: '0.85rem', color: 'var(--cyan-400)', textTransform: 'uppercase', letterSpacing: '0.05em'}}>
-                  {currentOperation === 'base' ? 'Structure Definition' : currentOperation.replace(/([A-Z])/g, ' $1').trim()}
-                </span>
-            </div>
-            <div className="code-block">
-              <pre>
-                <code>
-                  {codeLines.map((line, idx) => (
-                    <span
-                      key={idx}
-                      className={`code-line
-                        ${highlightLineNum === (idx + 1) ? 'highlight' : ''}
-                        ${(line.trim().startsWith('#') || line.trim().startsWith('//')) ? 'comment' : ''}
-                      `}
-                    >
-                      {line || '\u00A0'}
-                    </span>
-                  ))}
-                </code>
-              </pre>
-            </div>
-          </section>
-
-          <section className="log-section">
-            <h2 className="section-title">Execution Log</h2>
-            <div className="log-block" ref={logContainerRef}>
-              <ul className="log-list">
-                {executionLog.map((log, idx) => (
-                  <li key={idx} className="log-item">{log}</li>
-                ))}
-              </ul>
-            </div>
-          </section>
+        <div className="status-bar">
+          <span className="status-text">&gt; {currFrame.logMsg}</span>
         </div>
 
+        <div className="top-layout">
+          {/* Canvas */}
+          <div className="canvas-wrapper">
+            <div style={{position:'absolute', top:'0.5rem', left:'0.5rem', zIndex:5, fontSize:'0.75rem', color:'var(--text-gray-400)', fontWeight:'bold'}}>TRIE GRAPH {trieType==='compressed'&&'(SUBSTRINGS ON NODES)'}</div>
+            
+            <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{zIndex:1}}>
+              <defs>
+                 <marker id="arrow" viewBox="0 0 10 10" refX="24" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M 0 1 L 10 5 L 0 9 z" fill="var(--border-gray-600)"/></marker>
+              </defs>
+              {currFrame.edges.map((e, idx) => {
+                const fn = currFrame.nodes.find(n => n.id === e.from);
+                const tn = currFrame.nodes.find(n => n.id === e.to);
+                if (!fn || !tn) return null;
+                return (
+                  <line key={`edge-${idx}`} x1={`${fn.x}%`} y1={`${fn.y}%`} x2={`${tn.x}%`} y2={`${tn.y}%`} className="edge-line" markerEnd="url(#arrow)" />
+                );
+              })}
+            </svg>
+
+            {currFrame.nodes.map(node => (
+              <div key={node.id} className={`graph-node ${node.isEnd ? 'is-end' : ''} ${currFrame.nodeStates[node.id] || ''}`} style={{left: `${node.x}%`, top: `${node.y}%`}}>
+                {node.val}
+              </div>
+            ))}
+            
+            {currFrame.nodes.length === 1 && (
+               <div style={{position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: 'var(--text-gray-600)', fontStyle: 'italic', fontSize: '0.9rem'}}>Trie is empty. Insert words to begin.</div>
+            )}
+          </div>
+        </div>
+
+        {/* Bottom Row: Code & Logs */}
+        <div className="bottom-layout">
+          <div className="panel-box">
+             <div className="ds-header" style={{display:'flex', gap:'0.5rem', alignItems:'center', justifyContent: 'space-between'}}>
+               <div style={{display:'flex', gap:'0.5rem', alignItems:'center'}}>
+                 <Code size={14}/> Algorithm Tracker
+               </div>
+               <select 
+                 value={language} 
+                 onChange={e => setLanguage(e.target.value)} 
+                 style={{ background: 'var(--bg-dark-900)', color: 'var(--cyan-400)', border: '1px solid var(--border-gray-700)', borderRadius: '0.25rem', padding: '0.1rem 0.4rem', fontSize: '0.75rem', outline: 'none', cursor: 'pointer' }}
+               >
+                 <option value="python">Python</option>
+                 <option value="cpp">C++</option>
+                 <option value="java">Java</option>
+               </select>
+             </div>
+              <pre className="code-content"><code>
+                {ALGO_CODES[trieType][language].map((line, idx) => {
+                  const isComment = line.trim().startsWith('#') || line.trim().startsWith('//');
+                  return (
+                    <span key={idx} className={`code-line ${highlightLine === (idx + 1) ? 'highlight' : ''}`} style={isComment ? {color: 'var(--text-gray-500)', fontStyle: 'italic'} : {}}>
+                      {line || '\u00A0'}
+                    </span>
+                  );
+                })}
+              </code></pre>
+          </div>
+          
+          <div className="panel-box">
+             <div className="ds-header" style={{display:'flex', gap:'0.5rem', alignItems:'center'}}><Info size={14}/> Execution Log</div>
+             <ul className="log-content">
+               {frames.length === 0 && <li className="log-item">Awaiting execution...</li>}
+               {frames.slice(0, frameIdx + 1).map((f, idx) => (
+                 <li key={idx} className={`log-item ${idx === frameIdx ? 'active' : ''}`}>
+                   <span style={{color:'var(--text-gray-500)', marginRight:'0.4rem'}}>[{idx}]</span> {f.logMsg}
+                 </li>
+               ))}
+               <div ref={logEndRef} />
+             </ul>
+          </div>
+        </div>
       </main>
     </div>
   );
