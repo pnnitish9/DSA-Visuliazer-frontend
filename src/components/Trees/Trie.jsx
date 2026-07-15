@@ -120,16 +120,11 @@ const InjectedStyles = () => (
       position: absolute; min-width: 2.5rem; height: 2.5rem; padding: 0 0.4rem; border: 2px solid var(--border-gray-500); border-radius: 1.5rem; display: flex; align-items: center; justify-content: center; font-weight: bold; font-family: monospace; font-size: 0.9rem; transform: translate(-50%, -50%); transition: left 0.5s ease, top 0.5s ease, background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease, color 0.3s ease; z-index: 10; user-select: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
     }
     
-    /* Branch Colors */
-    .node-root { background: #9ca3af; color: #000; border-color: #6b7280; font-size: 0.8rem; }
-    .node-end-symbol { background: #84cc16; color: #000; border-color: #65a30d; }
+    /* Semantic Node Colors (Based on reference image) */
+    .node-root { background: #f5d5d5; color: #802828; border-color: #d9a9a9; font-size: 0.8rem; width: auto; min-width: 5.5rem; padding: 0 1rem; }
+    .node-internal { background: #c1f0c1; color: #216b21; border-color: #8bc98b; }
+    .node-terminal { background: #e0e5ff; color: #3d4b8f; border-color: #aeb8e6; }
     
-    .node-branch-0 { background: #3b82f6; color: #fff; border-color: #2563eb; } /* Blue */
-    .node-branch-1 { background: #ef4444; color: #fff; border-color: #dc2626; } /* Red */
-    .node-branch-2 { background: #eab308; color: #000; border-color: #ca8a04; } /* Yellow */
-    .node-branch-3 { background: #a855f7; color: #fff; border-color: #9333ea; } /* Purple */
-    .node-branch-4 { background: #f97316; color: #fff; border-color: #ea580c; } /* Orange */
-    .node-branch-5 { background: #06b6d4; color: #fff; border-color: #0891b2; } /* Cyan */
     .node-default { background: var(--bg-dark-700); color: var(--text-gray-200); }
 
     /* Override Animations */
@@ -138,7 +133,8 @@ const InjectedStyles = () => (
     .graph-node.end-highlight { background: var(--green-400) !important; border-color: white !important; color: #000 !important; box-shadow: 0 0 15px rgba(34,197,94,0.8) !important; transform: translate(-50%, -50%) scale(1.2) !important; z-index: 13 !important;}
     .graph-node.target { background: var(--red-500) !important; border-color: white !important; color: white !important; box-shadow: 0 0 15px rgba(239,68,68,0.8) !important; transform: translate(-50%, -50%) scale(1.15) !important; z-index: 13 !important;}
     
-    .edge-line { stroke: var(--border-gray-500); stroke-width: 2.5; transition: all 0.5s ease; fill: none; }
+    .edge-line { stroke: var(--green-500); stroke-width: 2.5; transition: all 0.5s ease; fill: none; }
+    .edge-label-text { fill: var(--green-400); font-size: 0.85rem; font-weight: bold; font-family: monospace; text-anchor: middle; }
   `}</style>
 );
 
@@ -343,14 +339,9 @@ const generateLayout = (root) => {
   let leafCount = 0;
   const gridX = {};
   
-  const firstPass = (node, depth, branchIdx) => {
+  const firstPass = (node, depth) => {
     let childKeys = Object.keys(node.children || {});
     let layoutChildren = childKeys.map(k => node.children[k]);
-    
-    // Inject visual '$' leaf node for layout calculation if this node ends a word
-    if (node.isEnd) {
-      layoutChildren.push({ id: `end-${node.id}`, val: '$', isLayoutOnly: true });
-    }
 
     if (layoutChildren.length === 0) {
       gridX[node.id] = leafCount++;
@@ -358,12 +349,9 @@ const generateLayout = (root) => {
     }
     
     let maxD = depth;
-    let cIdx = 0;
     for (let child of layoutChildren) {
-      let nextBranchIdx = depth === 0 ? cIdx : branchIdx;
-      const res = firstPass(child, depth + 1, nextBranchIdx);
+      const res = firstPass(child, depth + 1);
       maxD = Math.max(maxD, res.maxD);
-      if (depth === 0) cIdx++; // Only increment top-level branch identifiers
     }
     
     const firstChildId = layoutChildren[0].id;
@@ -373,23 +361,25 @@ const generateLayout = (root) => {
     return { maxD };
   };
 
-  const treeStats = firstPass(root, 0, 0);
+  const treeStats = firstPass(root, 0);
   const maxDepth = treeStats.maxD || 0;
   const totalW = Math.max(1, leafCount - 1);
 
-  const secondPass = (node, depth, branchIdx) => {
+  const secondPass = (node, depth, prefix) => {
     const xPercent = leafCount <= 1 ? 50 : 10 + (gridX[node.id] / totalW) * 80;
-    const yPx = 40 + depth * 75;
+    const yPx = 50 + depth * 80;
     
-    let colorClass = 'node-default';
+    const currentWord = depth === 0 ? "" : prefix + node.val;
+    
+    let colorClass = 'node-internal';
     if (depth === 0) colorClass = 'node-root';
-    else if (node.isLayoutOnly) colorClass = 'node-end-symbol';
-    else colorClass = `node-branch-${branchIdx % 6}`;
+    else if (node.isEnd) colorClass = 'node-terminal';
 
     outNodes.push({ 
       id: node.id, 
-      val: depth === 0 && node.val === '*' ? 'Null' : node.val, 
-      isEnd: node.isEnd, 
+      val: depth === 0 ? 'Root node' : node.val, 
+      isEnd: node.isEnd,
+      currentWord: currentWord,
       x: xPercent, 
       y: yPx,
       colorClass: colorClass
@@ -397,21 +387,14 @@ const generateLayout = (root) => {
     
     let childKeys = Object.keys(node.children || {});
     let layoutChildren = childKeys.map(k => node.children[k]);
-    
-    if (node.isEnd) {
-      layoutChildren.push({ id: `end-${node.id}`, val: '$', isLayoutOnly: true });
-    }
 
-    let cIdx = 0;
     for (let child of layoutChildren) {
-      outEdges.push({ from: node.id, to: child.id });
-      let nextBranchIdx = depth === 0 ? cIdx : branchIdx;
-      secondPass(child, depth + 1, nextBranchIdx);
-      if (depth === 0) cIdx++;
+      outEdges.push({ from: node.id, to: child.id, label: child.val });
+      secondPass(child, depth + 1, currentWord);
     }
   };
   
-  secondPass(root, 0, 0);
+  secondPass(root, 0, "");
   return { nodes: outNodes, edges: outEdges, maxDepth };
 };
 
@@ -441,7 +424,7 @@ const generateStandardFrames = (oldRoot, word, nextIdRef, isSearch = false, isSu
       curr = curr.children[char];
     }
     curr.isEnd = true;
-    nodeStates = { [curr.id]: 'end-highlight', [`end-${curr.id}`]: 'end-highlight' };
+    nodeStates = { [curr.id]: 'end-highlight' };
     addFrame(`End of word reached. Marked '${curr.val}' as end node.`, 'mark');
   } else {
     addFrame(`Searching for word: "${word}"`, 's_init', { [curr.id]: 'highlight' });
@@ -457,7 +440,7 @@ const generateStandardFrames = (oldRoot, word, nextIdRef, isSearch = false, isSu
       addFrame(`Found '${char}'. Moving down.`, 's_traverse');
     }
     if (curr.isEnd) {
-      nodeStates = { [curr.id]: 'end-highlight', [`end-${curr.id}`]: 'end-highlight' };
+      nodeStates = { [curr.id]: 'end-highlight' };
       addFrame(`Reached end of string, and node is marked as end. Found!`, 's_found');
     } else {
       nodeStates = { [curr.id]: 'target' };
@@ -501,7 +484,7 @@ const generateSuffixFrames = (oldRoot, word, nextIdRef) => {
       curr = curr.children[char];
     }
     curr.isEnd = true;
-    nodeStates = { [curr.id]: 'end-highlight', [`end-${curr.id}`]: 'end-highlight' };
+    nodeStates = { [curr.id]: 'end-highlight' };
     addFrame(`Finished suffix "${suffix}". Marked end.`, 'mark', currentRoot);
   }
   return frames;
@@ -567,7 +550,7 @@ const generateCompressedFrames = (oldRoot, inputWord, nextIdRef) => {
 
       if (i === word.length) {
         child.isEnd = true;
-        nodeStates = { [child.id]: 'end-highlight', [`end-${child.id}`]: 'end-highlight' };
+        nodeStates = { [child.id]: 'end-highlight' };
         addFrame(`Remaining word exactly matches the split prefix. Marked "${child.val}" as end.`, 'mark_empty');
       } else {
         let remainingWord = word.substring(i);
@@ -591,7 +574,7 @@ export default function TrieVisualizer() {
   const [language, setLanguage] = useState("python");
   const [inputVal, setInputVal] = useState("");
   
-  const [rootNode, setRootNode] = useState({ id: 0, val: "*", isEnd: false, children: {} });
+  const [rootNode, setRootNode] = useState({ id: 0, val: "Root node", isEnd: false, children: {} });
   
   const [frames, setFrames] = useState([]);
   const [frameIdx, setFrameIdx] = useState(-1);
@@ -624,8 +607,7 @@ export default function TrieVisualizer() {
     if (trieType === 'standard') {
       newFrames = generateStandardFrames(rootNode, word, nextId, false, false);
     } else if (trieType === 'suffix') {
-      // Suffix trie usually replaces everything for a single word
-      const freshRoot = { id: 0, val: "*", isEnd: false, children: {} };
+      const freshRoot = { id: 0, val: "Root node", isEnd: false, children: {} };
       nextId.current = 1;
       newFrames = generateSuffixFrames(freshRoot, word, nextId);
     } else if (trieType === 'compressed') {
@@ -678,7 +660,7 @@ export default function TrieVisualizer() {
       curr.isEnd = true;
       finalRoot = rootCopy;
     } else if (trieType === 'suffix') {
-      const rootCopy = { id: 0, val: "*", isEnd: false, children: {} };
+      const rootCopy = { id: 0, val: "Root node", isEnd: false, children: {} };
       nextId.current = 1;
       newFrames = generateSuffixFrames(rootCopy, word, nextId);
       finalRoot = rootCopy; // generator modified rootCopy in place
@@ -730,7 +712,7 @@ export default function TrieVisualizer() {
 
   const handleClear = () => {
     if (frames.length > 0 && frameIdx < frames.length - 1) return;
-    setRootNode({ id: 0, val: "*", isEnd: false, children: {} });
+    setRootNode({ id: 0, val: "Root node", isEnd: false, children: {} });
     setFrames([]);
     setFrameIdx(-1);
     setIsPlaying(false);
@@ -745,7 +727,10 @@ export default function TrieVisualizer() {
   
   const currFrame = frames[frameIdx] || { ...defaultLayout, nodeStates: {}, logMsg: 'Ready. Insert words to build Trie.', lineKey: null };
   const highlightLine = currFrame.lineKey ? LINE_MAPS[trieType][language][currFrame.lineKey] : -1;
-  const canvasHeight = Math.max(350, (currFrame.maxDepth || 0) * 75 + 100);
+  const canvasHeight = Math.max(350, (currFrame.maxDepth || 0) * 80 + 120);
+
+  const currentWordsList = currFrame.nodes.filter(n => n.isEnd && n.id !== 0).map(n => n.currentWord);
+  const uniqueWords = [...new Set(currentWordsList)];
 
   return (
     <div className="visualizer-container">
@@ -818,21 +803,38 @@ export default function TrieVisualizer() {
         <div className="top-layout">
           {/* Canvas */}
           <div className="canvas-wrapper">
-            <div style={{position:'sticky', top:'0.5rem', left:'0.5rem', zIndex:5, fontSize:'0.75rem', color:'var(--text-gray-400)', fontWeight:'bold', display:'inline-block'}}>TRIE GRAPH {trieType==='compressed'&&'(SUBSTRINGS ON NODES)'}</div>
+            <div style={{position:'absolute', top:'0.5rem', left:'0.5rem', zIndex:5, fontSize:'0.75rem', color:'var(--text-gray-400)', fontWeight:'bold'}}>
+              TRIE GRAPH {trieType==='compressed'&&'(SUBSTRINGS ON NODES)'}
+            </div>
             
+            {/* Word List Panel */}
+            {uniqueWords.length > 0 && (
+              <div style={{ position: 'absolute', top: '2.5rem', left: '0.5rem', zIndex: 10, background: 'var(--bg-dark-950)', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-gray-700)', minWidth: '100px', boxShadow: '0 4px 6px rgba(0,0,0,0.3)' }}>
+                <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '0.7rem', color: 'var(--text-gray-400)', textTransform: 'uppercase' }}>Inserted Words</h3>
+                <ul style={{ margin: 0, padding: 0, listStyle: 'none', fontSize: '0.85rem', color: 'var(--green-400)', fontWeight: 'bold' }}>
+                    {uniqueWords.map((w, i) => <li key={i}>• {w}</li>)}
+                </ul>
+              </div>
+            )}
+
             <div style={{ position: 'relative', width: '100%', height: `${canvasHeight}px` }}>
               <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{zIndex:1}}>
                 <defs>
-                   <marker id="arrow" viewBox="0 0 10 10" refX="22" refY="5" markerWidth="10" markerHeight="10" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
-                     <path d="M 0 2 L 8 5 L 0 8 z" fill="var(--border-gray-500)"/>
+                   <marker id="arrow" viewBox="0 0 10 10" refX="22" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
+                     <path d="M 0 2 L 8 5 L 0 8 z" fill="var(--green-500)"/>
                    </marker>
                 </defs>
                 {currFrame.edges.map((e, idx) => {
                   const fn = currFrame.nodes.find(n => n.id === e.from);
                   const tn = currFrame.nodes.find(n => n.id === e.to);
                   if (!fn || !tn) return null;
+                  const midX = (fn.x + tn.x) / 2;
+                  const midY = (fn.y + tn.y) / 2;
                   return (
-                    <line key={`edge-${idx}`} x1={`${fn.x}%`} y1={fn.y} x2={`${tn.x}%`} y2={tn.y} className="edge-line" markerEnd="url(#arrow)" />
+                    <g key={`edge-${idx}`}>
+                      <line x1={`${fn.x}%`} y1={fn.y} x2={`${tn.x}%`} y2={tn.y} className="edge-line" markerEnd="url(#arrow)" />
+                      <text x={`${midX}%`} y={midY - 8} className="edge-label-text">{e.label}</text>
+                    </g>
                   );
                 })}
               </svg>
@@ -841,6 +843,11 @@ export default function TrieVisualizer() {
               {currFrame.nodes.map(node => (
                 <div key={node.id} className={`graph-node ${node.colorClass} ${currFrame.nodeStates[node.id] || ''}`} style={{left: `${node.x}%`, top: `${node.y}px`}}>
                   {node.val}
+                  {node.isEnd && (
+                    <span style={{ position: 'absolute', top: '100%', marginTop: '0.4rem', fontSize: '0.75rem', color: 'var(--text-gray-400)', fontWeight: 'normal', pointerEvents: 'none' }}>
+                      {node.currentWord}
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
