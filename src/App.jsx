@@ -29,6 +29,7 @@ import TrieVisualizer from "./components/Trees/Trie";
 import SegmentTreeVisualizer from "./components/Trees/SegmentTree";
 import ShortestPathVisualizer from "./components/ADS/Shortestpath";
 import StringAlgoVisualizer from "./components/ADS/StringAlgo";
+import SCCVisualizer from "./components/ADS/SCC";
 import UserAccount from "./components/UserAccount";
 function App() {
   return (
@@ -214,6 +215,14 @@ function App() {
           element={
             <RequireAuth>
               <StringAlgoVisualizer/>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/ssc"
+          element={
+            <RequireAuth>
+              <SCCVisualizer/>
             </RequireAuth>
           }
         />

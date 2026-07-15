@@ -25,6 +25,7 @@ export default function DSAVisualizer() {
     { name: "Segment Tree", href: "segmenttree"},
     { name: "Shortest Path", href: "shortestpath"},
     { name: "String Alogrithm", href: "stringalgo"},
+    { name: "Strongly Connected Components (SCC)", href: "ssc"},
   ];
 
   return (
