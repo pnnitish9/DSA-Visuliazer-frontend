@@ -127,11 +127,11 @@ const InjectedStyles = () => (
     .graph-node.scc-4 { background: rgba(168, 85, 247, 0.2); border-color: var(--purple-500); color: var(--purple-400); }
     .graph-node.scc-5 { background: rgba(244, 114, 182, 0.2); border-color: var(--pink-400); color: var(--pink-400); }
     
-    .edge-line { stroke: var(--border-gray-600); stroke-width: 2; transition: all 0.3s ease; fill: none; }
-    .edge-line.inspecting { stroke: var(--yellow-500); stroke-width: 3; stroke-dasharray: 6,4; animation: travel 1s linear infinite; }
-    .edge-line.transposed { stroke: var(--purple-500); stroke-width: 2; stroke-dasharray: 4,4; }
-    .edge-line.cross-scc { stroke: var(--border-gray-700); stroke-width: 1; opacity: 0.3; }
-    @keyframes travel { to { stroke-dashoffset: -20; } }
+    .edge-line { stroke: var(--border-gray-600); stroke-width: 0.35; transition: all 0.3s ease; fill: none; }
+    .edge-line.inspecting { stroke: var(--yellow-500); stroke-width: 0.5; stroke-dasharray: 1.5,1; animation: travel 1s linear infinite; }
+    .edge-line.transposed { stroke: var(--purple-500); stroke-width: 0.35; stroke-dasharray: 1,1; }
+    .edge-line.cross-scc { stroke: var(--border-gray-700); stroke-width: 0.15; opacity: 0.3; }
+    @keyframes travel { to { stroke-dashoffset: -10; } }
 
     /* Tables & DS Panels */
     .ds-header { padding: 0.5rem 1rem; background: var(--bg-dark-950); border-bottom: 1px solid var(--border-gray-700); font-size: 0.75rem; font-weight: bold; text-transform: uppercase; color: var(--cyan-400); display: flex; justify-content: space-between; }
@@ -802,6 +802,7 @@ export default function SCCVisualizer() {
     
     setFrames(newFrames); setFrameIdx(0); setIsPlaying(true);
   };
+
   const currFrame = frames[frameIdx] || { ds: {}, nodeStates: {}, edgeStates: {}, logMsg: 'Ready. Compile & Run to visualize.', lineKey: null };
   const highlightLine = currFrame.lineKey ? LINE_MAPS[activeAlgo][language][currFrame.lineKey] : -1;
   const isLocked = frames.length > 0;
@@ -842,17 +843,18 @@ export default function SCCVisualizer() {
       const cx = (visualFrom.x + visualTo.x)/2 + nx * offset;
       const cy = (visualFrom.y + visualTo.y)/2 + ny * offset;
       
-      return <path key={idx} d={`M ${visualFrom.x} ${visualFrom.y} Q ${cx} ${cy} ${visualTo.x} ${visualTo.y}`} className={cssClass} markerEnd={marker} vectorEffect="non-scaling-stroke" />;
+      return <path key={idx} d={`M ${visualFrom.x} ${visualFrom.y} Q ${cx} ${cy} ${visualTo.x} ${visualTo.y}`} className={cssClass} markerEnd={marker} />;
     } else {
       return <line key={idx} x1={`${visualFrom.x}%`} y1={`${visualFrom.y}%`} x2={`${visualTo.x}%`} y2={`${visualTo.y}%`} className={cssClass} markerEnd={marker} />;
     }
   };
+
   return (
     <div className="visualizer-container">
       <InjectedStyles />
       
       <aside className="controls-sidebar">
-        <h1 className="sidebar-title"><Layers size={24} />Strongly Connected Components (SCC)</h1>
+        <h1 className="sidebar-title"><Layers size={24} /> SCC Vis</h1>
         
         <div className="playback-panel">
           <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
@@ -931,8 +933,8 @@ export default function SCCVisualizer() {
             
             <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{zIndex:1}} preserveAspectRatio="none" viewBox="0 0 100 100">
               <defs>
-                <marker id="arrow" viewBox="0 0 10 10" refX="11" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M 0 1 L 10 5 L 0 9 z" fill="var(--border-gray-600)"/></marker>
-                <marker id="arrow-inspecting" viewBox="0 0 10 10" refX="11" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M 0 1 L 10 5 L 0 9 z" fill="var(--yellow-500)"/></marker>
+                <marker id="arrow" viewBox="0 0 10 10" refX="14" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 1 L 10 5 L 0 9 z" fill="var(--border-gray-600)"/></marker>
+                <marker id="arrow-inspecting" viewBox="0 0 10 10" refX="14" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 1 L 10 5 L 0 9 z" fill="var(--yellow-500)"/></marker>
               </defs>
               {edges.map((edge, idx) => renderEdge(edge, idx))}
             </svg>
