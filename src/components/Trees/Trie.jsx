@@ -117,13 +117,13 @@ const InjectedStyles = () => (
     
     /* Node and Edge Styling */
     .graph-node {
-      position: absolute; min-width: 2.5rem; height: 2.5rem; padding: 0 0.4rem; border: 2px solid var(--border-gray-500); border-radius: 1.5rem; display: flex; align-items: center; justify-content: center; font-weight: bold; font-family: monospace; font-size: 0.9rem; transform: translate(-50%, -50%); transition: left 0.5s ease, top 0.5s ease, background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease, color 0.3s ease; z-index: 10; user-select: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+      position: absolute; min-width: 2.5rem; height: 2.5rem; padding: 0 0.4rem; border: 2px solid var(--border-gray-500); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-family: monospace; font-size: 0.9rem; transform: translate(-50%, -50%); transition: left 0.5s ease, top 0.5s ease, background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease, color 0.3s ease; z-index: 10; user-select: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
     }
     
     /* Semantic Node Colors (Based on reference image) */
-    .node-root { background: #f5d5d5; color: #802828; border-color: #d9a9a9; font-size: 0.8rem; width: auto; min-width: 5.5rem; padding: 0 1rem; }
-    .node-internal { background: #c1f0c1; color: #216b21; border-color: #8bc98b; }
-    .node-terminal { background: #e0e5ff; color: #3d4b8f; border-color: #aeb8e6; }
+    .node-root { background: #f8d7da; color: #721c24; border-color: #f5c6cb; font-size: 0.8rem; width: auto; min-width: 5.5rem; padding: 0 1rem; border-radius: 1.5rem; }
+    .node-internal { background: #d4edda; color: #155724; border-color: #c3e6cb; }
+    .node-terminal { background: #cce5ff; color: #004085; border-color: #b8daff; }
     
     .node-default { background: var(--bg-dark-700); color: var(--text-gray-200); }
 
@@ -133,8 +133,20 @@ const InjectedStyles = () => (
     .graph-node.end-highlight { background: var(--green-400) !important; border-color: white !important; color: #000 !important; box-shadow: 0 0 15px rgba(34,197,94,0.8) !important; transform: translate(-50%, -50%) scale(1.2) !important; z-index: 13 !important;}
     .graph-node.target { background: var(--red-500) !important; border-color: white !important; color: white !important; box-shadow: 0 0 15px rgba(239,68,68,0.8) !important; transform: translate(-50%, -50%) scale(1.15) !important; z-index: 13 !important;}
     
-    .edge-line { stroke: var(--green-500); stroke-width: 2.5; transition: all 0.5s ease; fill: none; }
-    .edge-label-text { fill: var(--green-400); font-size: 0.85rem; font-weight: bold; font-family: monospace; text-anchor: middle; }
+    .edge-line { stroke: #216b21; stroke-width: 2.5; transition: all 0.5s ease; fill: none; }
+    .edge-label-text { fill: #155724; font-size: 0.95rem; font-weight: bold; font-family: monospace; }
+
+    /* Bottom Row: Code & Logs (Added Missing Styles) */
+    .bottom-layout { display: flex; flex-direction: column; gap: 1rem; flex: 1; min-height: 250px; }
+    @media (min-width: 1024px) { .bottom-layout { flex-direction: row; } }
+    .panel-box { flex: 1; background: var(--bg-dark-800); border: 1px solid var(--border-gray-700); border-radius: 0.5rem; display: flex; flex-direction: column; overflow: hidden; }
+    .ds-header { padding: 0.5rem 1rem; background: var(--bg-dark-950); border-bottom: 1px solid var(--border-gray-700); font-size: 0.75rem; font-weight: bold; text-transform: uppercase; color: var(--cyan-400); }
+    .code-content { padding: 1rem; overflow: auto; flex: 1; font-family: 'Fira Code', monospace; font-size: 0.8rem; margin: 0; line-height: 1.5; background: var(--bg-dark-900); }
+    .code-line { display: block; padding: 0 0.5rem; border-radius: 0.2rem; white-space: pre; }
+    .code-line.highlight { background: rgba(34, 211, 238, 0.25); border-left: 3px solid var(--cyan-400); color: white; }
+    .log-content { padding: 0.5rem; overflow: auto; flex: 1; font-family: monospace; font-size: 0.8rem; margin: 0; list-style: none; background: var(--bg-dark-900); }
+    .log-item { padding: 0.4rem; border-bottom: 1px solid var(--border-gray-700); color: var(--text-gray-300); }
+    .log-item.active { background: var(--bg-dark-700); color: var(--cyan-400); border-radius: 0.25rem; border-left: 2px solid var(--cyan-400); }
   `}</style>
 );
 
@@ -364,11 +376,11 @@ const generateLayout = (root) => {
   const treeStats = firstPass(root, 0);
   const maxDepth = treeStats.maxD || 0;
   const totalW = Math.max(1, leafCount - 1);
+  const containerWidth = Math.max(100, leafCount * 15); // Expand width dynamically for large trees
 
   const secondPass = (node, depth, prefix) => {
     const xPercent = leafCount <= 1 ? 50 : 10 + (gridX[node.id] / totalW) * 80;
-    const yPx = 50 + depth * 80;
-    
+    const yPx = 50 + depth * 75; // Increased vertical spacing
     const currentWord = depth === 0 ? "" : prefix + node.val;
     
     let colorClass = 'node-internal';
@@ -447,7 +459,7 @@ const generateStandardFrames = (oldRoot, word, nextIdRef, isSearch = false, isSu
       addFrame(`Reached end of string, but node is NOT marked as end. Not Found!`, 's_fail');
     }
   }
-  return frames;
+  return { frames, finalRoot: root };
 };
 
 const generateSuffixFrames = (oldRoot, word, nextIdRef) => {
@@ -487,7 +499,7 @@ const generateSuffixFrames = (oldRoot, word, nextIdRef) => {
     nodeStates = { [curr.id]: 'end-highlight' };
     addFrame(`Finished suffix "${suffix}". Marked end.`, 'mark', currentRoot);
   }
-  return frames;
+  return { frames, finalRoot: currentRoot };
 };
 
 const generateCompressedFrames = (oldRoot, inputWord, nextIdRef) => {
@@ -565,7 +577,7 @@ const generateCompressedFrames = (oldRoot, inputWord, nextIdRef) => {
   addFrame(`Starting Compressed Trie insertion for "${inputWord}"`, 'check_empty', { [root.id]: 'highlight' });
   insertHelper(root, inputWord, inputWord);
   
-  return frames;
+  return { frames, finalRoot: root };
 };
 
 export default function TrieVisualizer() {
@@ -598,79 +610,17 @@ export default function TrieVisualizer() {
     handleClear();
   };
 
-  const handleInsert = () => {
-    if (frames.length > 0 && frameIdx < frames.length - 1) return;
-    const word = inputVal.trim().toLowerCase().replace(/[^a-z]/g, '');
-    if (!word) return;
-    
-    let newFrames = [];
+  const executeInsertAndGetState = (word) => {
     if (trieType === 'standard') {
-      newFrames = generateStandardFrames(rootNode, word, nextId, false, false);
+      return generateStandardFrames(rootNode, word, nextId, false, false);
     } else if (trieType === 'suffix') {
       const freshRoot = { id: 0, val: "Root node", isEnd: false, children: {} };
       nextId.current = 1;
-      newFrames = generateSuffixFrames(freshRoot, word, nextId);
+      return generateSuffixFrames(freshRoot, word, nextId);
     } else if (trieType === 'compressed') {
-      newFrames = generateCompressedFrames(rootNode, word, nextId);
+      return generateCompressedFrames(rootNode, word, nextId);
     }
-    
-    if (newFrames.length > 0) {
-      setRootNode(trieType === 'suffix' ? newFrames[newFrames.length-1].nodeStateForSave || freshLayoutToState(newFrames) : layoutToState(newFrames));
-      setFrames(newFrames);
-      setFrameIdx(0);
-      setIsPlaying(true);
-      setInputVal("");
-    }
-  };
-  
-  const layoutToState = (generatedFrames) => {
-    // We just reconstruct the logical root from the last frame's layout or keep it tracked.
-    // To keep it simple, we can just track the logical root manually here by re-running logic silently, 
-    // OR we just use the original generator functions to return the final object.
-    // We'll just do a silent run to get the final state.
-    const tempRoot = JSON.parse(JSON.stringify(trieType==='suffix' ? { id: 0, val: "*", isEnd: false, children: {} } : rootNode));
-    let dummyRef = { current: nextId.current };
-    
-    if (trieType === 'standard') {
-      let curr = tempRoot;
-      for (let char of inputVal.trim().toLowerCase().replace(/[^a-z]/g, '')) {
-        if (!curr.children[char]) curr.children[char] = { id: dummyRef.current++, val: char, isEnd: false, children: {} };
-        curr = curr.children[char];
-      }
-      curr.isEnd = true;
-    } else if (trieType === 'compressed') {
-       // Just keeping the visual frame for state is enough if we modify rootNode inside generation (which we did by deep copying then assigning).
-       // Actually, generateCompressedFrames modified the local `root` copy. We need to extract it.
-    }
-  };
-  
-  // Helper to extract logical tree from frame generation function
-  const executeInsertAndGetState = (word) => {
-    let newFrames = [];
-    let finalRoot = null;
-    
-    if (trieType === 'standard') {
-      const rootCopy = JSON.parse(JSON.stringify(rootNode));
-      newFrames = generateStandardFrames(rootCopy, word, nextId, false, false);
-      let curr = rootCopy;
-      for (let char of word) {
-        if (!curr.children[char]) curr.children[char] = { id: nextId.current, val: char, isEnd: false, children: {} }; // dummy, ID sync happens in generator
-        curr = curr.children[char];
-      }
-      curr.isEnd = true;
-      finalRoot = rootCopy;
-    } else if (trieType === 'suffix') {
-      const rootCopy = { id: 0, val: "Root node", isEnd: false, children: {} };
-      nextId.current = 1;
-      newFrames = generateSuffixFrames(rootCopy, word, nextId);
-      finalRoot = rootCopy; // generator modified rootCopy in place
-    } else if (trieType === 'compressed') {
-      const rootCopy = JSON.parse(JSON.stringify(rootNode));
-      newFrames = generateCompressedFrames(rootCopy, word, nextId);
-      finalRoot = rootCopy; // generator modified rootCopy in place
-    }
-    
-    return { newFrames, finalRoot };
+    return { frames: [], finalRoot: rootNode };
   };
 
   const handleInsertSafe = () => {
@@ -678,13 +628,14 @@ export default function TrieVisualizer() {
     const word = inputVal.trim().toLowerCase().replace(/[^a-z]/g, '');
     if (!word) return;
     
-    const { newFrames, finalRoot } = executeInsertAndGetState(word);
-    
-    setRootNode(finalRoot);
-    setFrames(newFrames);
-    setFrameIdx(0);
-    setIsPlaying(true);
-    setInputVal("");
+    const res = executeInsertAndGetState(word);
+    if (res && res.frames && res.frames.length > 0) {
+      setRootNode(res.finalRoot);
+      setFrames(res.frames);
+      setFrameIdx(0);
+      setIsPlaying(true);
+      setInputVal("");
+    }
   };
 
   const handleSearch = () => {
@@ -694,7 +645,8 @@ export default function TrieVisualizer() {
     
     let newFrames = [];
     if (trieType === 'standard' || trieType === 'suffix') {
-      newFrames = generateStandardFrames(rootNode, word, nextId, true, false);
+      const res = generateStandardFrames(rootNode, word, nextId, true, false);
+      newFrames = res.frames;
     } else {
       // Compressed Search isn't fully implemented in frames here for brevity, 
       // falling back to standard visual check message.
@@ -727,7 +679,11 @@ export default function TrieVisualizer() {
   
   const currFrame = frames[frameIdx] || { ...defaultLayout, nodeStates: {}, logMsg: 'Ready. Insert words to build Trie.', lineKey: null };
   const highlightLine = currFrame.lineKey ? LINE_MAPS[trieType][language][currFrame.lineKey] : -1;
-  const canvasHeight = Math.max(350, (currFrame.maxDepth || 0) * 80 + 120);
+  const canvasHeight = Math.max(350, (currFrame.maxDepth || 0) * 75 + 120);
+  
+  // Calculate width required to prevent overlap on large trees
+  const treeLeafCount = currFrame.nodes.filter(n => !currFrame.edges.some(e => e.from === n.id)).length;
+  const canvasWidthPercent = Math.max(100, treeLeafCount * 15);
 
   const currentWordsList = currFrame.nodes.filter(n => n.isEnd && n.id !== 0).map(n => n.currentWord);
   const uniqueWords = [...new Set(currentWordsList)];
@@ -817,13 +773,14 @@ export default function TrieVisualizer() {
               </div>
             )}
 
-            <div style={{ position: 'relative', width: '100%', height: `${canvasHeight}px` }}>
-              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{zIndex:1}}>
+            <div style={{ position: 'relative', minWidth: `${canvasWidthPercent}%`, height: `${canvasHeight}px` }}>
+              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{zIndex:1, minWidth: '100%'}}>
                 <defs>
-                   <marker id="arrow" viewBox="0 0 10 10" refX="22" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
-                     <path d="M 0 2 L 8 5 L 0 8 z" fill="var(--green-500)"/>
+                   <marker id="arrow" viewBox="0 0 10 10" refX="22" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
+                     <path d="M 0 2 L 8 5 L 0 8 z" fill="#216b21"/>
                    </marker>
                 </defs>
+                {}
                 {currFrame.edges.map((e, idx) => {
                   const fn = currFrame.nodes.find(n => n.id === e.from);
                   const tn = currFrame.nodes.find(n => n.id === e.to);
@@ -833,7 +790,7 @@ export default function TrieVisualizer() {
                   return (
                     <g key={`edge-${idx}`}>
                       <line x1={`${fn.x}%`} y1={fn.y} x2={`${tn.x}%`} y2={tn.y} className="edge-line" markerEnd="url(#arrow)" />
-                      <text x={`${midX}%`} y={midY - 8} className="edge-label-text">{e.label}</text>
+                      <text x={`${midX}%`} y={midY} dx="10" dy="-5" className="edge-label-text">{e.label}</text>
                     </g>
                   );
                 })}
@@ -876,12 +833,13 @@ export default function TrieVisualizer() {
                </select>
              </div>
               <pre className="code-content"><code>
+                {}
                 {ALGO_CODES[trieType][language].map((line, idx) => {
                   const isComment = line.trim().startsWith('#') || line.trim().startsWith('//');
                   return (
-                    <span key={idx} className={`code-line ${highlightLine === (idx + 1) ? 'highlight' : ''}`} style={isComment ? {color: 'var(--text-gray-500)', fontStyle: 'italic'} : {}}>
+                    <div key={idx} className={`code-line ${highlightLine === (idx + 1) ? 'highlight' : ''}`} style={isComment ? {color: 'var(--text-gray-500)', fontStyle: 'italic'} : {}}>
                       {line || '\u00A0'}
-                    </span>
+                    </div>
                   );
                 })}
               </code></pre>
@@ -890,6 +848,7 @@ export default function TrieVisualizer() {
           <div className="panel-box">
              <div className="ds-header" style={{display:'flex', gap:'0.5rem', alignItems:'center'}}><Info size={14}/> Execution Log</div>
              <ul className="log-content">
+               {}
                {frames.length === 0 && <li className="log-item">Awaiting execution...</li>}
                {frames.slice(0, frameIdx + 1).map((f, idx) => (
                  <li key={idx} className={`log-item ${idx === frameIdx ? 'active' : ''}`}>
