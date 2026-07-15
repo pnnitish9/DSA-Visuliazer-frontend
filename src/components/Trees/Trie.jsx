@@ -117,15 +117,15 @@ const InjectedStyles = () => (
     
     /* Node and Edge Styling */
     .graph-node {
-      position: absolute; min-width: 2.5rem; height: 2.5rem; padding: 0 0.5rem; background: var(--bg-dark-700); border: 2px solid var(--border-gray-500); border-radius: 1.25rem; display: flex; align-items: center; justify-content: center; font-weight: bold; font-family: monospace; transform: translate(-50%, -50%); transition: left 0.5s ease, top 0.5s ease, background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease; z-index: 10; user-select: none; color: var(--text-gray-200); box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+      position: absolute; min-width: 2.2rem; height: 2.2rem; padding: 0 0.4rem; background: var(--bg-dark-700); border: 2px solid var(--border-gray-500); border-radius: 1.1rem; display: flex; align-items: center; justify-content: center; font-weight: bold; font-family: monospace; font-size: 0.9rem; transform: translate(-50%, -50%); transition: left 0.5s ease, top 0.5s ease, background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease; z-index: 10; user-select: none; color: var(--text-gray-200); box-shadow: 0 4px 6px rgba(0,0,0,0.3);
     }
     .graph-node.highlight { background: var(--cyan-600); border-color: var(--cyan-400); color: white; box-shadow: 0 0 15px rgba(34,211,238,0.5); transform: translate(-50%, -50%) scale(1.1); z-index: 12;}
     .graph-node.swapping { background: var(--yellow-500); color: black; border-color: var(--yellow-400); box-shadow: 0 0 15px rgba(234,179,8,0.5); z-index: 11;}
     .graph-node.end-highlight { background: var(--green-600); border-color: var(--green-400); color: white; box-shadow: 0 0 15px rgba(34,197,94,0.5); transform: translate(-50%, -50%) scale(1.15); z-index: 13;}
     .graph-node.target { background: var(--red-600); border-color: var(--red-400); color: white; box-shadow: 0 0 15px rgba(239,68,68,0.5); transform: translate(-50%, -50%) scale(1.1); z-index: 13;}
-    .graph-node.is-end { border-color: var(--green-500); border-width: 3px; box-shadow: 0 0 8px rgba(34,197,94,0.3); }
+    .graph-node.is-end { background: var(--green-600); border-color: var(--green-500); color: white; box-shadow: 0 0 10px rgba(34,197,94,0.3); }
     
-    .edge-line { stroke: var(--border-gray-600); stroke-width: 2.5; transition: all 0.5s ease; fill: none; }
+    .edge-line { stroke: var(--border-gray-500); stroke-width: 2; transition: all 0.5s ease; fill: none; }
     
     /* Bottom Row: Code & Logs */
     .bottom-layout { display: flex; flex-direction: column; gap: 1rem; flex: 1; min-height: 220px; }
@@ -339,43 +339,49 @@ const LINE_MAPS = {
 const generateLayout = (root) => {
   const outNodes = [];
   const outEdges = [];
+  let leafCount = 0;
+  const gridX = {};
   
-  const getWidth = (node) => {
-    if (!node) return 0;
+  // First Pass: Assign logical X coordinates based on leaf distribution
+  const firstPass = (node, depth) => {
     const keys = Object.keys(node.children);
-    if (keys.length === 0) return 1;
-    let w = 0;
-    for (let k of keys) w += getWidth(node.children[k]);
-    return w;
-  };
-  
-  const totalW = getWidth(root) || 1;
-  const depthConfig = { maxDepth: 0 };
-
-  const traverse = (node, depth, left, right) => {
-    depthConfig.maxDepth = Math.max(depthConfig.maxDepth, depth);
-    const x = (left + right) / 2;
-    const y = 8 + depth * 15; 
-    
-    outNodes.push({ id: node.id, val: node.val, isEnd: node.isEnd, x, y });
-    
-    const keys = Object.keys(node.children);
-    let currLeft = left;
-    const nodeW = getWidth(node) || 1;
-    
+    if (keys.length === 0) {
+      gridX[node.id] = leafCount++;
+      return { maxD: depth };
+    }
+    let maxD = depth;
     for (let k of keys) {
+      const res = firstPass(node.children[k], depth + 1);
+      maxD = Math.max(maxD, res.maxD);
+    }
+    // Parent node sits exactly centered above its widest children span
+    const firstChildId = node.children[keys[0]].id;
+    const lastChildId = node.children[keys[keys.length - 1]].id;
+    gridX[node.id] = (gridX[firstChildId] + gridX[lastChildId]) / 2;
+    
+    return { maxD };
+  };
+
+  const treeStats = firstPass(root, 0);
+  const maxDepth = treeStats.maxD || 0;
+  const totalW = Math.max(1, leafCount - 1);
+
+  // Second Pass: Convert logic grid to screen coordinates
+  const secondPass = (node, depth) => {
+    const xPercent = leafCount <= 1 ? 50 : 10 + (gridX[node.id] / totalW) * 80;
+    const yPx = 40 + depth * 75; // 75px vertical separation per depth
+    
+    outNodes.push({ id: node.id, val: node.val, isEnd: node.isEnd, x: xPercent, y: yPx });
+    
+    for (let k in node.children) {
       const child = node.children[k];
-      const childW = getWidth(child);
-      const childRight = currLeft + (right - left) * (childW / nodeW);
-      
       outEdges.push({ from: node.id, to: child.id });
-      traverse(child, depth + 1, currLeft, childRight);
-      currLeft = childRight;
+      secondPass(child, depth + 1);
     }
   };
   
-  traverse(root, 0, 5, 95);
-  return { nodes: outNodes, edges: outEdges, maxDepth: depthConfig.maxDepth };
+  secondPass(root, 0);
+  return { nodes: outNodes, edges: outEdges, maxDepth };
 };
 
 const generateStandardFrames = (oldRoot, word, nextIdRef, isSearch = false, isSuffix = false) => {
@@ -708,6 +714,7 @@ export default function TrieVisualizer() {
   
   const currFrame = frames[frameIdx] || { ...defaultLayout, nodeStates: {}, logMsg: 'Ready. Insert words to build Trie.', lineKey: null };
   const highlightLine = currFrame.lineKey ? LINE_MAPS[trieType][language][currFrame.lineKey] : -1;
+  const canvasHeight = Math.max(350, (currFrame.maxDepth || 0) * 75 + 100);
 
   return (
     <div className="visualizer-container">
@@ -780,27 +787,31 @@ export default function TrieVisualizer() {
         <div className="top-layout">
           {/* Canvas */}
           <div className="canvas-wrapper">
-            <div style={{position:'absolute', top:'0.5rem', left:'0.5rem', zIndex:5, fontSize:'0.75rem', color:'var(--text-gray-400)', fontWeight:'bold'}}>TRIE GRAPH {trieType==='compressed'&&'(SUBSTRINGS ON NODES)'}</div>
+            <div style={{position:'sticky', top:'0.5rem', left:'0.5rem', zIndex:5, fontSize:'0.75rem', color:'var(--text-gray-400)', fontWeight:'bold', display:'inline-block'}}>TRIE GRAPH {trieType==='compressed'&&'(SUBSTRINGS ON NODES)'}</div>
             
-            <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{zIndex:1}}>
-              <defs>
-                 <marker id="arrow" viewBox="0 0 10 10" refX="24" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M 0 1 L 10 5 L 0 9 z" fill="var(--border-gray-600)"/></marker>
-              </defs>
-              {currFrame.edges.map((e, idx) => {
-                const fn = currFrame.nodes.find(n => n.id === e.from);
-                const tn = currFrame.nodes.find(n => n.id === e.to);
-                if (!fn || !tn) return null;
-                return (
-                  <line key={`edge-${idx}`} x1={`${fn.x}%`} y1={`${fn.y}%`} x2={`${tn.x}%`} y2={`${tn.y}%`} className="edge-line" markerEnd="url(#arrow)" />
-                );
-              })}
-            </svg>
+            <div style={{ position: 'relative', width: '100%', height: `${canvasHeight}px` }}>
+              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{zIndex:1}}>
+                <defs>
+                   <marker id="arrow" viewBox="0 0 10 10" refX="22" refY="5" markerWidth="10" markerHeight="10" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
+                     <path d="M 0 2 L 8 5 L 0 8 z" fill="var(--border-gray-500)"/>
+                   </marker>
+                </defs>
+                {currFrame.edges.map((e, idx) => {
+                  const fn = currFrame.nodes.find(n => n.id === e.from);
+                  const tn = currFrame.nodes.find(n => n.id === e.to);
+                  if (!fn || !tn) return null;
+                  return (
+                    <line key={`edge-${idx}`} x1={`${fn.x}%`} y1={fn.y} x2={`${tn.x}%`} y2={tn.y} className="edge-line" markerEnd="url(#arrow)" />
+                  );
+                })}
+              </svg>
 
-            {currFrame.nodes.map(node => (
-              <div key={node.id} className={`graph-node ${node.isEnd ? 'is-end' : ''} ${currFrame.nodeStates[node.id] || ''}`} style={{left: `${node.x}%`, top: `${node.y}%`}}>
-                {node.val}
-              </div>
-            ))}
+              {currFrame.nodes.map(node => (
+                <div key={node.id} className={`graph-node ${node.isEnd ? 'is-end' : ''} ${currFrame.nodeStates[node.id] || ''}`} style={{left: `${node.x}%`, top: `${node.y}px`}}>
+                  {node.val}
+                </div>
+              ))}
+            </div>
             
             {currFrame.nodes.length === 1 && (
                <div style={{position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: 'var(--text-gray-600)', fontStyle: 'italic', fontSize: '0.9rem'}}>Trie is empty. Insert words to begin.</div>
