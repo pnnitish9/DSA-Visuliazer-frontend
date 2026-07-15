@@ -117,27 +117,28 @@ const InjectedStyles = () => (
     
     /* Node and Edge Styling */
     .graph-node {
-      position: absolute; min-width: 2.2rem; height: 2.2rem; padding: 0 0.4rem; background: var(--bg-dark-700); border: 2px solid var(--border-gray-500); border-radius: 1.1rem; display: flex; align-items: center; justify-content: center; font-weight: bold; font-family: monospace; font-size: 0.9rem; transform: translate(-50%, -50%); transition: left 0.5s ease, top 0.5s ease, background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease; z-index: 10; user-select: none; color: var(--text-gray-200); box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+      position: absolute; min-width: 2.5rem; height: 2.5rem; padding: 0 0.4rem; border: 2px solid var(--border-gray-500); border-radius: 1.5rem; display: flex; align-items: center; justify-content: center; font-weight: bold; font-family: monospace; font-size: 0.9rem; transform: translate(-50%, -50%); transition: left 0.5s ease, top 0.5s ease, background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease, color 0.3s ease; z-index: 10; user-select: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
     }
-    .graph-node.highlight { background: var(--cyan-600); border-color: var(--cyan-400); color: white; box-shadow: 0 0 15px rgba(34,211,238,0.5); transform: translate(-50%, -50%) scale(1.1); z-index: 12;}
-    .graph-node.swapping { background: var(--yellow-500); color: black; border-color: var(--yellow-400); box-shadow: 0 0 15px rgba(234,179,8,0.5); z-index: 11;}
-    .graph-node.end-highlight { background: var(--green-600); border-color: var(--green-400); color: white; box-shadow: 0 0 15px rgba(34,197,94,0.5); transform: translate(-50%, -50%) scale(1.15); z-index: 13;}
-    .graph-node.target { background: var(--red-600); border-color: var(--red-400); color: white; box-shadow: 0 0 15px rgba(239,68,68,0.5); transform: translate(-50%, -50%) scale(1.1); z-index: 13;}
-    .graph-node.is-end { background: var(--green-600); border-color: var(--green-500); color: white; box-shadow: 0 0 10px rgba(34,197,94,0.3); }
     
-    .edge-line { stroke: var(--border-gray-500); stroke-width: 2; transition: all 0.5s ease; fill: none; }
+    /* Branch Colors */
+    .node-root { background: #9ca3af; color: #000; border-color: #6b7280; font-size: 0.8rem; }
+    .node-end-symbol { background: #84cc16; color: #000; border-color: #65a30d; }
     
-    /* Bottom Row: Code & Logs */
-    .bottom-layout { display: flex; flex-direction: column; gap: 1rem; flex: 1; min-height: 220px; }
-    @media (min-width: 1024px) { .bottom-layout { flex-direction: row; } }
-    .panel-box { flex: 1; background: var(--bg-dark-800); border: 1px solid var(--border-gray-700); border-radius: 0.5rem; display: flex; flex-direction: column; overflow: hidden; }
-    .ds-header { padding: 0.5rem 1rem; background: var(--bg-dark-950); border-bottom: 1px solid var(--border-gray-700); font-size: 0.75rem; font-weight: bold; text-transform: uppercase; color: var(--cyan-400); display: flex; justify-content: space-between; align-items: center;}
-    .code-content { padding: 1rem; overflow: auto; flex: 1; font-family: 'Fira Code', monospace; font-size: 0.8rem; margin: 0; line-height: 1.5; }
-    .code-line { display: block; padding: 0 0.5rem; border-radius: 0.2rem; white-space: pre; }
-    .code-line.highlight { background: rgba(34, 211, 238, 0.25); border-left: 3px solid var(--cyan-400); color: white; }
-    .log-content { padding: 0.5rem; overflow: auto; flex: 1; font-family: monospace; font-size: 0.8rem; margin: 0; list-style: none; }
-    .log-item { padding: 0.4rem; border-bottom: 1px solid var(--border-gray-700); color: var(--text-gray-400); }
-    .log-item.active { background: var(--bg-dark-700); color: var(--yellow-400); border-radius: 0.25rem; border-left: 2px solid var(--yellow-400); }
+    .node-branch-0 { background: #3b82f6; color: #fff; border-color: #2563eb; } /* Blue */
+    .node-branch-1 { background: #ef4444; color: #fff; border-color: #dc2626; } /* Red */
+    .node-branch-2 { background: #eab308; color: #000; border-color: #ca8a04; } /* Yellow */
+    .node-branch-3 { background: #a855f7; color: #fff; border-color: #9333ea; } /* Purple */
+    .node-branch-4 { background: #f97316; color: #fff; border-color: #ea580c; } /* Orange */
+    .node-branch-5 { background: #06b6d4; color: #fff; border-color: #0891b2; } /* Cyan */
+    .node-default { background: var(--bg-dark-700); color: var(--text-gray-200); }
+
+    /* Override Animations */
+    .graph-node.highlight { background: var(--cyan-400) !important; border-color: white !important; color: #000 !important; box-shadow: 0 0 15px rgba(34,211,238,0.8) !important; transform: translate(-50%, -50%) scale(1.15) !important; z-index: 12 !important;}
+    .graph-node.swapping { background: var(--yellow-400) !important; color: #000 !important; border-color: white !important; box-shadow: 0 0 15px rgba(234,179,8,0.8) !important; transform: translate(-50%, -50%) scale(1.15) !important; z-index: 11 !important;}
+    .graph-node.end-highlight { background: var(--green-400) !important; border-color: white !important; color: #000 !important; box-shadow: 0 0 15px rgba(34,197,94,0.8) !important; transform: translate(-50%, -50%) scale(1.2) !important; z-index: 13 !important;}
+    .graph-node.target { background: var(--red-500) !important; border-color: white !important; color: white !important; box-shadow: 0 0 15px rgba(239,68,68,0.8) !important; transform: translate(-50%, -50%) scale(1.15) !important; z-index: 13 !important;}
+    
+    .edge-line { stroke: var(--border-gray-500); stroke-width: 2.5; transition: all 0.5s ease; fill: none; }
   `}</style>
 );
 
@@ -342,45 +343,75 @@ const generateLayout = (root) => {
   let leafCount = 0;
   const gridX = {};
   
-  // First Pass: Assign logical X coordinates based on leaf distribution
-  const firstPass = (node, depth) => {
-    const keys = Object.keys(node.children);
-    if (keys.length === 0) {
+  const firstPass = (node, depth, branchIdx) => {
+    let childKeys = Object.keys(node.children || {});
+    let layoutChildren = childKeys.map(k => node.children[k]);
+    
+    // Inject visual '$' leaf node for layout calculation if this node ends a word
+    if (node.isEnd) {
+      layoutChildren.push({ id: `end-${node.id}`, val: '$', isLayoutOnly: true });
+    }
+
+    if (layoutChildren.length === 0) {
       gridX[node.id] = leafCount++;
       return { maxD: depth };
     }
+    
     let maxD = depth;
-    for (let k of keys) {
-      const res = firstPass(node.children[k], depth + 1);
+    let cIdx = 0;
+    for (let child of layoutChildren) {
+      let nextBranchIdx = depth === 0 ? cIdx : branchIdx;
+      const res = firstPass(child, depth + 1, nextBranchIdx);
       maxD = Math.max(maxD, res.maxD);
+      if (depth === 0) cIdx++; // Only increment top-level branch identifiers
     }
-    // Parent node sits exactly centered above its widest children span
-    const firstChildId = node.children[keys[0]].id;
-    const lastChildId = node.children[keys[keys.length - 1]].id;
+    
+    const firstChildId = layoutChildren[0].id;
+    const lastChildId = layoutChildren[layoutChildren.length - 1].id;
     gridX[node.id] = (gridX[firstChildId] + gridX[lastChildId]) / 2;
     
     return { maxD };
   };
 
-  const treeStats = firstPass(root, 0);
+  const treeStats = firstPass(root, 0, 0);
   const maxDepth = treeStats.maxD || 0;
   const totalW = Math.max(1, leafCount - 1);
 
-  // Second Pass: Convert logic grid to screen coordinates
-  const secondPass = (node, depth) => {
+  const secondPass = (node, depth, branchIdx) => {
     const xPercent = leafCount <= 1 ? 50 : 10 + (gridX[node.id] / totalW) * 80;
-    const yPx = 40 + depth * 75; // 75px vertical separation per depth
+    const yPx = 40 + depth * 75;
     
-    outNodes.push({ id: node.id, val: node.val, isEnd: node.isEnd, x: xPercent, y: yPx });
+    let colorClass = 'node-default';
+    if (depth === 0) colorClass = 'node-root';
+    else if (node.isLayoutOnly) colorClass = 'node-end-symbol';
+    else colorClass = `node-branch-${branchIdx % 6}`;
+
+    outNodes.push({ 
+      id: node.id, 
+      val: depth === 0 && node.val === '*' ? 'Null' : node.val, 
+      isEnd: node.isEnd, 
+      x: xPercent, 
+      y: yPx,
+      colorClass: colorClass
+    });
     
-    for (let k in node.children) {
-      const child = node.children[k];
+    let childKeys = Object.keys(node.children || {});
+    let layoutChildren = childKeys.map(k => node.children[k]);
+    
+    if (node.isEnd) {
+      layoutChildren.push({ id: `end-${node.id}`, val: '$', isLayoutOnly: true });
+    }
+
+    let cIdx = 0;
+    for (let child of layoutChildren) {
       outEdges.push({ from: node.id, to: child.id });
-      secondPass(child, depth + 1);
+      let nextBranchIdx = depth === 0 ? cIdx : branchIdx;
+      secondPass(child, depth + 1, nextBranchIdx);
+      if (depth === 0) cIdx++;
     }
   };
   
-  secondPass(root, 0);
+  secondPass(root, 0, 0);
   return { nodes: outNodes, edges: outEdges, maxDepth };
 };
 
@@ -410,7 +441,7 @@ const generateStandardFrames = (oldRoot, word, nextIdRef, isSearch = false, isSu
       curr = curr.children[char];
     }
     curr.isEnd = true;
-    nodeStates = { [curr.id]: 'end-highlight' };
+    nodeStates = { [curr.id]: 'end-highlight', [`end-${curr.id}`]: 'end-highlight' };
     addFrame(`End of word reached. Marked '${curr.val}' as end node.`, 'mark');
   } else {
     addFrame(`Searching for word: "${word}"`, 's_init', { [curr.id]: 'highlight' });
@@ -426,7 +457,7 @@ const generateStandardFrames = (oldRoot, word, nextIdRef, isSearch = false, isSu
       addFrame(`Found '${char}'. Moving down.`, 's_traverse');
     }
     if (curr.isEnd) {
-      nodeStates = { [curr.id]: 'end-highlight' };
+      nodeStates = { [curr.id]: 'end-highlight', [`end-${curr.id}`]: 'end-highlight' };
       addFrame(`Reached end of string, and node is marked as end. Found!`, 's_found');
     } else {
       nodeStates = { [curr.id]: 'target' };
@@ -470,7 +501,7 @@ const generateSuffixFrames = (oldRoot, word, nextIdRef) => {
       curr = curr.children[char];
     }
     curr.isEnd = true;
-    nodeStates = { [curr.id]: 'end-highlight' };
+    nodeStates = { [curr.id]: 'end-highlight', [`end-${curr.id}`]: 'end-highlight' };
     addFrame(`Finished suffix "${suffix}". Marked end.`, 'mark', currentRoot);
   }
   return frames;
@@ -489,8 +520,8 @@ const generateCompressedFrames = (oldRoot, inputWord, nextIdRef) => {
   const insertHelper = (node, word, fullWord) => {
     if (word.length === 0) {
       node.isEnd = true;
-      nodeStates = { [node.id]: 'end-highlight' };
-      addFrame(`Word fully consumed. Marking "${node.val || '*'}" as end.`, 'mark_empty');
+      nodeStates = { [node.id]: 'end-highlight', [`end-${node.id}`]: 'end-highlight' };
+      addFrame(`Word fully consumed. Marking "${node.val || 'Null'}" as end.`, 'mark_empty');
       return;
     }
     
@@ -536,7 +567,7 @@ const generateCompressedFrames = (oldRoot, inputWord, nextIdRef) => {
 
       if (i === word.length) {
         child.isEnd = true;
-        nodeStates = { [child.id]: 'end-highlight' };
+        nodeStates = { [child.id]: 'end-highlight', [`end-${child.id}`]: 'end-highlight' };
         addFrame(`Remaining word exactly matches the split prefix. Marked "${child.val}" as end.`, 'mark_empty');
       } else {
         let remainingWord = word.substring(i);
@@ -806,8 +837,9 @@ export default function TrieVisualizer() {
                 })}
               </svg>
 
+              {}
               {currFrame.nodes.map(node => (
-                <div key={node.id} className={`graph-node ${node.isEnd ? 'is-end' : ''} ${currFrame.nodeStates[node.id] || ''}`} style={{left: `${node.x}%`, top: `${node.y}px`}}>
+                <div key={node.id} className={`graph-node ${node.colorClass} ${currFrame.nodeStates[node.id] || ''}`} style={{left: `${node.x}%`, top: `${node.y}px`}}>
                   {node.val}
                 </div>
               ))}
