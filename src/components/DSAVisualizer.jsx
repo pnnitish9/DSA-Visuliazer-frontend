@@ -26,6 +26,7 @@ export default function DSAVisualizer() {
     { name: "Strongly Connected Components", href: "scc"},
     { name: "Shortest Path", href: "shortestpath"},
     { name: "String Alogrithm", href: "stringalgo"},
+    { name: "Topological Sort", href: "topologicalsort"},
   ];
 
   return (
