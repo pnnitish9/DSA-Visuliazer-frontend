@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Pause, RefreshCw, Plus, Trash2, SkipBack, SkipForward, RotateCcw, Code, Info, Network, Search } from 'lucide-react';
+import { Play, Pause, RefreshCw, Plus, Trash2, SkipBack, SkipForward, RotateCcw, Code, Info, Network, Search, Minus } from 'lucide-react';
 
 const InjectedStyles = () => (
   <style>{`
@@ -167,7 +167,18 @@ const ALGO_CODES = {
       "        if char not in curr.children:",
       "            return False",
       "        curr = curr.children[char]",
-      "    return curr.is_end"
+      "    return curr.is_end",
+      "",
+      "def delete(node, word, d=0):",
+      "    if d == len(word):",
+      "        if node.is_end: node.is_end = False",
+      "        return len(node.children) == 0",
+      "    char = word[d]",
+      "    if char not in node.children: return False",
+      "    if delete(node.children[char], word, d + 1):",
+      "        del node.children[char]",
+      "        return len(node.children) == 0 and not node.is_end",
+      "    return False"
     ],
     cpp: [
       "void insert(TrieNode* root, string word) {",
@@ -188,6 +199,20 @@ const ALGO_CODES = {
       "        curr = curr->children[c];",
       "    }",
       "    return curr->is_end;",
+      "}",
+      "",
+      "bool deleteWord(TrieNode* node, string word, int d = 0) {",
+      "    if (d == word.length()) {",
+      "        if (node->is_end) node->is_end = false;",
+      "        return node->children.empty();",
+      "    }",
+      "    char c = word[d];",
+      "    if (node->children.find(c) == node->children.end()) return false;",
+      "    if (deleteWord(node->children[c], word, d + 1)) {",
+      "        node->children.erase(c);",
+      "        return node->children.empty() && !node->is_end;",
+      "    }",
+      "    return false;",
       "}"
     ],
     java: [
@@ -209,6 +234,20 @@ const ALGO_CODES = {
       "        curr = curr.children.get(c);",
       "    }",
       "    return curr.isEnd;",
+      "}",
+      "",
+      "public boolean delete(TrieNode node, String word, int d) {",
+      "    if (d == word.length()) {",
+      "        if (node.isEnd) node.isEnd = false;",
+      "        return node.children.isEmpty();",
+      "    }",
+      "    char c = word.charAt(d);",
+      "    if (!node.children.containsKey(c)) return false;",
+      "    if (delete(node.children.get(c), word, d + 1)) {",
+      "        node.children.remove(c);",
+      "        return node.children.isEmpty() && !node.isEnd;",
+      "    }",
+      "    return false;",
       "}"
     ]
   },
@@ -329,9 +368,9 @@ const ALGO_CODES = {
 
 const LINE_MAPS = {
   standard: {
-    python: { init: 2, traverse: 4, create: 5, mark: 7, s_init: 10, s_fail: 13, s_traverse: 14, s_found: 15 },
-    cpp: { init: 2, traverse: 4, create: 5, mark: 9, s_init: 13, s_fail: 15, s_traverse: 16, s_found: 18 },
-    java: { init: 2, traverse: 4, create: 5, mark: 9, s_init: 13, s_fail: 15, s_traverse: 16, s_found: 18 }
+    python: { init: 2, traverse: 4, create: 5, mark: 7, s_init: 10, s_fail: 13, s_traverse: 14, s_found: 15, d_init: 17, d_unmark: 19, d_not_found: 22, d_traverse: 23, d_remove: 24, d_keep: 26 },
+    cpp: { init: 2, traverse: 4, create: 5, mark: 9, s_init: 13, s_fail: 15, s_traverse: 16, s_found: 18, d_init: 20, d_unmark: 22, d_not_found: 26, d_traverse: 27, d_remove: 28, d_keep: 31 },
+    java: { init: 2, traverse: 4, create: 5, mark: 9, s_init: 13, s_fail: 15, s_traverse: 16, s_found: 18, d_init: 20, d_unmark: 22, d_not_found: 26, d_traverse: 27, d_remove: 28, d_keep: 31 }
   },
   compressed: {
     python: { check_empty: 2, mark_empty: 3, check_edge: 6, create_edge: 7, find_prefix: 10, recurse: 12, split: 15, remap: 19, new_leaf: 22 },
@@ -580,6 +619,57 @@ const generateCompressedFrames = (oldRoot, inputWord, nextIdRef) => {
   return { frames, finalRoot: root };
 };
 
+const generateStandardDeleteFrames = (oldRoot, word) => {
+  const frames = [];
+  const root = JSON.parse(JSON.stringify(oldRoot));
+  let nodeStates = {};
+
+  const addFrame = (msg, lineKey, overrides = {}) => {
+    const layout = generateLayout(root);
+    frames.push({ ...layout, nodeStates: {...nodeStates}, logMsg: msg, lineKey, ...overrides });
+  };
+
+  const deleteHelper = (node, word, depth) => {
+    if (depth === word.length) {
+      if (!node.isEnd) {
+         addFrame(`Word "${word}" not found (not an end node).`, 'd_not_found');
+         return false;
+      }
+      node.isEnd = false;
+      nodeStates = { [node.id]: 'swapping' };
+      addFrame(`Unmarked "${node.val || 'Root'}" as end of word.`, 'd_unmark');
+      return Object.keys(node.children).length === 0;
+    }
+
+    const char = word[depth];
+    if (!node.children[char]) {
+       addFrame(`Character '${char}' not found. Word does not exist.`, 'd_not_found');
+       return false;
+    }
+
+    nodeStates = { [node.id]: 'highlight', [node.children[char].id]: 'highlight' };
+    addFrame(`Traversing down to '${char}'.`, 'd_traverse');
+
+    const shouldDeleteChild = deleteHelper(node.children[char], word, depth + 1);
+
+    if (shouldDeleteChild) {
+       nodeStates = { [node.id]: 'highlight' };
+       delete node.children[char];
+       addFrame(`Child '${char}' is no longer needed. Removing it.`, 'd_remove');
+       return Object.keys(node.children).length === 0 && !node.isEnd;
+    }
+    
+    nodeStates = { [node.id]: 'highlight' };
+    addFrame(`Child node '${char}' is part of another word or is an end node. Keeping it.`, 'd_keep');
+    return false;
+  };
+
+  addFrame(`Starting deletion of "${word}"...`, 'd_init', { [root.id]: 'highlight' });
+  deleteHelper(root, word, 0);
+
+  return { frames, finalRoot: root };
+};
+
 export default function TrieVisualizer() {
   const nextId = useRef(1);
   const [trieType, setTrieType] = useState("standard");
@@ -655,6 +745,32 @@ export default function TrieVisualizer() {
     }
     
     if (newFrames.length > 0) {
+      setFrames(newFrames);
+      setFrameIdx(0);
+      setIsPlaying(true);
+      setInputVal("");
+    }
+  };
+
+  const handleDelete = () => {
+    if (frames.length > 0 && frameIdx < frames.length - 1) return;
+    const word = inputVal.trim().toLowerCase().replace(/[^a-z]/g, '');
+    if (!word) return;
+    
+    let newFrames = [];
+    let finalState = rootNode;
+    
+    if (trieType === 'standard') {
+      const res = generateStandardDeleteFrames(rootNode, word);
+      newFrames = res.frames;
+      finalState = res.finalRoot;
+    } else {
+      const addFrame = (msg) => { newFrames.push({ ...generateLayout(rootNode), nodeStates: {}, logMsg: msg, lineKey: null }); };
+      addFrame(`Delete animation is only supported for Standard Trie.`);
+    }
+    
+    if (newFrames.length > 0) {
+      setRootNode(finalState);
       setFrames(newFrames);
       setFrameIdx(0);
       setIsPlaying(true);
@@ -742,6 +858,7 @@ export default function TrieVisualizer() {
           <div className="row-flex" style={{marginBottom: '0.75rem'}}>
             <button onClick={handleInsertSafe} className="btn btn-green" disabled={isLocked || !inputVal}><Plus size={16}/> Insert</button>
             <button onClick={handleSearch} className="btn btn-cyan" disabled={isLocked || !inputVal || trieType==='compressed'}><Search size={16}/> Search</button>
+            <button onClick={handleDelete} className="btn btn-red" disabled={isLocked || !inputVal || trieType==='compressed' || trieType==='suffix'}><Minus size={16}/> Delete</button>
           </div>
 
           <div className="row-flex">
