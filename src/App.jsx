@@ -31,6 +31,7 @@ import ShortestPathVisualizer from "./components/ADS/Shortestpath";
 import StringAlgoVisualizer from "./components/ADS/StringAlgo";
 import SCCVisualizer from "./components/ADS/SCC";
 import TopologicalSortVisualizer from "./components/ADS/TopologicalSort";
+import SpanningTreeVisualizer from "./components/ADS/SpanningTree";
 import UserAccount from "./components/UserAccount";
 function App() {
   return (
@@ -232,6 +233,14 @@ function App() {
           element={
             <RequireAuth>
               <TopologicalSortVisualizer/>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/spanningtree"
+          element={
+            <RequireAuth>
+              <SpanningTreeVisualizer/>
             </RequireAuth>
           }
         />

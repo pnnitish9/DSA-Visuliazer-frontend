@@ -27,6 +27,7 @@ export default function DSAVisualizer() {
     { name: "Shortest Path", href: "shortestpath"},
     { name: "String Alogrithm", href: "stringalgo"},
     { name: "Topological Sort", href: "topologicalsort"},
+    { name: "Spanning Tree", href: "spanningtree"},
   ];
 
   return (
